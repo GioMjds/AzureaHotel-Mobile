@@ -4,6 +4,7 @@ import axios, {
     type AxiosRequestConfig,
     type AxiosResponse,
 } from 'axios';
+import * as SecureStore from 'expo-secure-store';
 
 export interface ApiResponse<T = any> {
     data?: T;
@@ -40,8 +41,16 @@ export class ApiClient {
 
     private setupInterceptors(): void {
         this.axiosInstance.interceptors.request.use(
-            (config) => {
+            async (config) => {
                 config.withCredentials = true;
+                try {
+                    const accessToken = await SecureStore.getItemAsync('access_token');
+                    if (accessToken) {
+                        config.headers.Authorization = `Bearer ${accessToken}`;
+                    }
+                } catch (error) {
+                    console.error(`Error retrieving access token: ${error}`);
+                }
                 return config;
             },
             (error) => Promise.reject(error)
@@ -49,7 +58,40 @@ export class ApiClient {
 
         this.axiosInstance.interceptors.response.use(
             (response: AxiosResponse) => response.data,
-            (error: AxiosError) => {
+            async (error: AxiosError) => {
+                const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+
+                if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+                    originalRequest._retry = true;
+
+                    try {
+                        const refreshToken = await SecureStore.getItemAsync('refresh_token');
+                        
+                        if (refreshToken) {
+                            // Try to refresh the token
+                            const response = await axios.post(
+                                `${this.baseUrl}/api/token/refresh`,
+                                { refresh: refreshToken },
+                                { withCredentials: true }
+                            );
+
+                            const newAccessToken = response.data.access;
+                            await SecureStore.setItemAsync('access_token', newAccessToken);
+
+                            if (!originalRequest.headers) {
+                                originalRequest.headers = {};
+                            }
+                            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+                            return this.axiosInstance(originalRequest);
+                        }
+                    } catch (refreshError) {
+                        await SecureStore.deleteItemAsync('access_token');
+                        await SecureStore.deleteItemAsync('refresh_token');
+                        await SecureStore.deleteItemAsync('user_data');
+                        console.error('Token refresh failed:', refreshError);
+                    }
+                }
+
                 const errorMsg = (error?.response?.data as any)?.error || 'Request failed';
                 return Promise.reject(new Error(errorMsg));
             }

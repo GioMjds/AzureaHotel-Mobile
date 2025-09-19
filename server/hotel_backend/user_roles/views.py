@@ -885,7 +885,7 @@ def get_notifications(request):
         return Response({
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def mark_notification_read(request, id):

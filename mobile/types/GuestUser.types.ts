@@ -1,4 +1,4 @@
-interface Guest {
+export interface Guest {
     id: number;
     email: string;
     first_name: string;
