@@ -2,9 +2,9 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import '../../globals.css';
 import { Stack } from 'expo-router';
 
-export default function RootLayout() {
+export default function PublicScreensLayout() {
 	return (
-		<ProtectedRoute>
+		<ProtectedRoute requireAuth={true}>
 			<Stack screenOptions={{ headerShown: false }}>
 				<Stack.Screen name="index" />
 				<Stack.Screen name="areas" />

@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/contexts/UserContext";
 import { router } from "expo-router";
@@ -13,19 +13,30 @@ export default function IndexScreen() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white p-6">
+        <SafeAreaView className="flex-1 bg-gray-800 p-6">
             <View className="flex-1">
-                <Text className="text-2xl font-bold mb-4">
+                <Text className="text-2xl font-bold mb-4 text-white">
                     Welcome, {user?.first_name} {user?.last_name}!
                 </Text>
-                
-                <Text className="text-gray-600 mb-6">Email: {user?.email}</Text>
-                
+
+                <Text className="text-gray-400 mb-6">Email: {user?.email}</Text>
+
+                <Image source={{ uri: user?.profile_image }} className="w-32 h-32 rounded-full self-center mb-4" />
+
                 <TouchableOpacity
                     className="bg-red-600 rounded-lg p-4"
                     onPress={handleLogout}
                 >
                     <Text className="text-white text-center font-semibold">Logout</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                    className="mt-6"
+                    onPress={() => router.push("/(auth)/register")}
+                >
+                    <Text className="text-blue-400 mt-4 text-center">
+                        Go to Register
+                    </Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>

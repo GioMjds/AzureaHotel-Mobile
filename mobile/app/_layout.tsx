@@ -5,12 +5,12 @@ import { Stack } from 'expo-router';
 import { AuthProvider } from '@/contexts/UserContext';
 
 const queryClient = new QueryClient({
-	defaultOptions: {
-		queries: {
-			retry: 1,
-			staleTime: 1000 * 60 * 5,
-		},
-	},
+    defaultOptions: {
+        queries: {
+            retry: 1,
+            staleTime: 1000 * 60 * 5,
+        },
+    },
 });
 
 export default function RootLayout() {

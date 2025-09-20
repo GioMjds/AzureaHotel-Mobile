@@ -6,9 +6,10 @@ import { ReactNode } from "react";
 interface ProtectedRouteProps {
     children: ReactNode;
     fallback?: ReactNode;
+    requireAuth?: boolean;
 }
 
-export const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({ children, fallback, requireAuth }: ProtectedRouteProps) => {
     const { isAuthenticated, isLoading } = useAuth();
 
     if (isLoading) {
@@ -20,8 +21,14 @@ export const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
         );
     }
 
-    if (!isAuthenticated) {
-        return fallback || <Redirect href="/(auth)/login" />;
+    if (requireAuth) {
+        if (!isAuthenticated) {
+            return fallback || <Redirect href="/(auth)/login" />;
+        }
+    } else {
+        if (isAuthenticated) {
+            return <Redirect href="/(screens)" />;
+        }
     }
 
     return <>{children}</>;

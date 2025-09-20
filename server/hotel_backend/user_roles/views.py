@@ -612,9 +612,6 @@ def user_login(request):
         if not user.role == 'guest':
             return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
         
-        if user.role == 'admin':
-            return Response({'error': 'Admin users cannot log in here'}, status=status.HTTP_403_FORBIDDEN)
-        
         if user.is_archived:
             return Response({'error': 'User account is archived'}, status=status.HTTP_403_FORBIDDEN)
         

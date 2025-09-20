@@ -6,7 +6,7 @@ module.exports = {
 		extend: {
 			colors: {
 				// Primary violet/purple shades
-				primary: {
+				violet: {
 					50: '#f5f3ff',
 					100: '#ede9fe',
 					200: '#ddd6fe',
@@ -20,7 +20,7 @@ module.exports = {
 					950: '#2e1065',
 				},
 				// Secondary indigo shades for complementary colors
-				secondary: {
+				indigo: {
 					50: '#eef2ff',
 					100: '#e0e7ff',
 					200: '#c7d2fe',
@@ -55,10 +55,17 @@ module.exports = {
 				},
 			},
 			fontFamily: {
-				playfair: ['"Playfair Display"', 'serif'],
-				montserrat: ['Montserrat', 'sans-serif'],
-				raleway: ['Raleway', 'sans-serif'],
-			},
+                playfair: ['PlayfairDisplay_400Regular'],
+                'playfair-medium': ['PlayfairDisplay_500Medium'],
+                'playfair-semibold': ['PlayfairDisplay_600SemiBold'], 
+                'playfair-bold': ['PlayfairDisplay_700Bold'],
+                'playfair-extrabold': ['PlayfairDisplay_800ExtraBold'],
+                'playfair-black': ['PlayfairDisplay_900Black'],
+                montserrat: ['Montserrat_400Regular'],
+                'montserrat-bold': ['Montserrat_700Bold'],
+                raleway: ['Raleway_400Regular'],
+                'raleway-bold': ['Raleway_700Bold'],
+            },
 		},
 	},
 	plugins: [],

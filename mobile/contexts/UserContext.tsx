@@ -1,8 +1,15 @@
-import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import { createContext, useContext, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { httpClient } from '@/configs/axios';
 import { ApiRoutes } from '@/configs/axios.routes';
 import { Guest } from '@/types/GuestUser.types';
+import { auth } from '@/services/UserAuth';
+
+// SecureStore keys
+const ACCESS_TOKEN_KEY = 'access_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
+const USER_DATA_KEY = 'user_data';
 
 interface AuthContextType {
 	user: Guest | null;
@@ -10,192 +17,83 @@ interface AuthContextType {
 	isLoading: boolean;
 	login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
 	logout: () => Promise<void>;
-	checkAuthStatus: () => Promise<void>;
+	refetchUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// SecureStore keys
-const ACCESS_TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
-const USER_DATA_KEY = 'user_data';
+// Used for login mutation
+const storeTokens = async (accessToken: string, refreshToken: string) => {
+	await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
+	await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+};
 
-interface AuthProviderProps {
-	children: ReactNode;
+// Particularly for logout mutation
+const clearStoredData = async () => {
+	await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+	await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+	await SecureStore.deleteItemAsync(USER_DATA_KEY);
+};
+
+const fetchUser = async () => {
+	const accessToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+	if (!accessToken) return null;
+	const response = await httpClient.get(ApiRoutes.USER_AUTH);
+	if (response.isAuthenticated) {
+		await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(response.user));
+		return response.user;
+	}
+	await clearStoredData();
+	return null;
 }
 
-export const AuthProvider = ({ children }: AuthProviderProps) => {
-	const [user, setUser] = useState<Guest | null>(null);
-	const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-	const [isLoading, setIsLoading] = useState<boolean>(true);
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+	const queryClient = useQueryClient();
 
-	// Store tokens securely
-	const storeTokens = async (accessToken: string, refreshToken: string) => {
-		try {
-			await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
-			await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
-		} catch (error) {
-			console.error('Error storing tokens:', error);
-		}
-	};
+	const { data: user, refetch, isLoading } = useQuery({
+		queryKey: ['user'],
+		queryFn: fetchUser,
+		staleTime: 5 * 60 * 1000, // 5 minutes
+	});
 
-	// Get stored tokens
-	const getStoredTokens = async () => {
-		try {
-			const accessToken =
-				await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
-			const refreshToken =
-				await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
-			return { accessToken, refreshToken };
-		} catch (error) {
-			console.error('Error getting stored tokens:', error);
-			return { accessToken: null, refreshToken: null };
-		}
-	};
+	const isAuthenticated = !!user;
 
-	// Store user data
-	const storeUserData = async (userData: Guest) => {
-		try {
-			await SecureStore.setItemAsync(
-				USER_DATA_KEY,
-				JSON.stringify(userData)
-			);
-		} catch (error) {
-			console.error('Error storing user data:', error);
+	const loginMutation = useMutation({
+		mutationFn: ({ email, password }: { email: string; password: string }) => auth.login(email, password),
+		onSuccess: async (data) => {
+			if (data.user && data.access_token && data.refresh_token) {
+				await storeTokens(data.access_token, data.refresh_token);
+				await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(data.user));
+				queryClient.setQueryData(['user'], data.user);
+			}
+		},
+		onError: (error) => {
+			console.error(`Login error: ${error}`);
+			return { success: false, message: 'Invalid response from server' };
 		}
-	};
+	});
 
-	// Get stored user data
-	const getStoredUserData = async (): Promise<Guest | null> => {
-		try {
-			const userData = await SecureStore.getItemAsync(USER_DATA_KEY);
-			return userData ? JSON.parse(userData) : null;
-		} catch (error) {
-			console.error('Error getting stored user data:', error);
-			return null;
+	const logoutMutation = useMutation({
+		mutationFn: auth.logout,
+		onSuccess: async () => {
+			await clearStoredData();
+			queryClient.setQueryData(['user'], null);
+		},
+		onError: (error) => {
+			console.error(`Logout error: ${error}`);
+			return { success: false, message: 'Logout failed' };
 		}
-	};
-
-	// Clear all stored data
-	const clearStoredData = async () => {
-		try {
-			await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
-			await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-			await SecureStore.deleteItemAsync(USER_DATA_KEY);
-		} catch (error) {
-			console.error('Error clearing stored data:', error);
-		}
-	};
+	});
 
 	// Login function
 	const login = async (email: string, password: string) => {
-		try {
-			setIsLoading(true);
-			const response = await httpClient.post(ApiRoutes.LOGIN, {
-				email,
-				password,
-			});
-
-			if (
-				response.user &&
-				response.access_token &&
-				response.refresh_token
-			) {
-				// Store tokens and user data
-				await storeTokens(
-					response.access_token,
-					response.refresh_token
-				);
-				await storeUserData(response.user);
-
-				setUser(response.user);
-				setIsAuthenticated(true);
-
-				return { success: true, message: response.message };
-			} else {
-				return {
-					success: false,
-					message: 'Invalid response from server',
-				};
-			}
-		} catch (error: any) {
-			return { success: false, message: error.message || 'Login failed' };
-		} finally {
-			setIsLoading(false);
-		}
+		return loginMutation.mutateAsync({ email, password });
 	};
 
 	// Logout function
 	const logout = async () => {
-		try {
-			setIsLoading(true);
-
-			try {
-				await httpClient.post(ApiRoutes.LOGOUT);
-			} catch (error) {
-				console.log(`Logout API call failed, but continuing with local logout: ${error}`);
-			}
-
-			await clearStoredData();
-
-			setUser(null);
-			setIsAuthenticated(false);
-		} catch (error) {
-			console.error('Logout error:', error);
-		} finally {
-			setIsLoading(false);
-		}
+		return logoutMutation.mutateAsync();
 	};
-
-	// Check authentication status
-	const checkAuthStatus = async () => {
-		try {
-			setIsLoading(true);
-
-			// First check if we have stored tokens
-			const { accessToken } = await getStoredTokens();
-
-			if (!accessToken) {
-				setIsAuthenticated(false);
-				setUser(null);
-				return;
-			}
-
-			// Verify with server using the user_auth endpoint
-			try {
-				const response = await httpClient.get(ApiRoutes.USER_AUTH);
-
-				if (response.isAuthenticated && response.user) {
-					setUser(response.user);
-					setIsAuthenticated(true);
-
-					// Update stored user data in case it changed
-					await storeUserData(response.user);
-				} else {
-					// Server says not authenticated, clear local data
-					await clearStoredData();
-					setUser(null);
-					setIsAuthenticated(false);
-				}
-			} catch (error) {
-				console.error('Auth check failed:', error);
-				// If server check fails, clear everything
-				await clearStoredData();
-				setUser(null);
-				setIsAuthenticated(false);
-			}
-		} catch (error) {
-			console.error('Error checking auth status:', error);
-			setIsAuthenticated(false);
-			setUser(null);
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		checkAuthStatus();
-	}, []);
 
 	const value: AuthContextType = {
 		user,
@@ -203,7 +101,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 		isLoading,
 		login,
 		logout,
-		checkAuthStatus,
+		refetchUser: refetch,
 	};
 
 	return (
