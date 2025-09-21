@@ -1,7 +1,7 @@
 import React from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuth } from "@/contexts/UserContext";
+import { useAuth } from "@/hooks/useAuth";
 import { router } from "expo-router";
 
 export default function IndexScreen() {

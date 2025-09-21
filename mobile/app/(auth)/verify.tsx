@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
 import { httpClient } from '@/configs/axios';
 import { ApiRoutes } from '@/configs/axios.routes';
-import { useAuth } from '@/contexts/UserContext';
+import { useAuth } from '@/hooks/useAuth';
 
 const REGISTRATION_EMAIL_KEY = 'registration_email';
 const REGISTRATION_PASSWORD_KEY = 'registration_password';
@@ -89,34 +89,19 @@ export default function VerifyRegisterOTPScreen() {
     }, [countdown]);
 
     const verifyOTPMutation = useMutation({
-        mutationFn: ({ otp }: { otp: string }) => 
-            httpClient.post(ApiRoutes.VERIFY_OTP, {
-                email,
-                password,
-                otp,
-                first_name: 'Guest',
-                last_name: '',
-            }),
+        mutationFn: ({ otp }: { otp: string }) => httpClient.post(ApiRoutes.VERIFY_OTP, {
+            email,
+            password,
+            otp,
+            first_name: 'Guest',
+            last_name: '',
+        }),
         onSuccess: async (data) => {
             // Clear stored registration data
             await SecureStore.deleteItemAsync(REGISTRATION_EMAIL_KEY);
             await SecureStore.deleteItemAsync(REGISTRATION_PASSWORD_KEY);
             
-            Alert.alert('Success', 'Account created successfully!', [
-                {
-                    text: 'OK',
-                    onPress: async () => {
-                        // Auto-login the user after successful registration
-                        try {
-                            await login(email, password);
-                            router.replace('/(screens)');
-                        } catch (error) {
-                            console.error('Auto-login failed:', error);
-                            router.replace('/(auth)/login');
-                        }
-                    },
-                },
-            ]);
+            await login(email, password);
         },
         onError: (error: any) => {
             const errorMessage = error?.message || 'Failed to verify OTP. Please try again.';

@@ -1,6 +1,7 @@
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import '../../globals.css';
 import { Stack } from 'expo-router';
+import Tabs from '@/layout/Tabs';
 
 export default function PublicScreensLayout() {
 	return (
@@ -10,6 +11,7 @@ export default function PublicScreensLayout() {
 				<Stack.Screen name="areas" />
 				<Stack.Screen name="rooms" />
 			</Stack>
+			<Tabs />
 		</ProtectedRoute>
 	);
 }

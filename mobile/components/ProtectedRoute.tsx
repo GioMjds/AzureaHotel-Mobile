@@ -1,7 +1,10 @@
 import { View, Text, ActivityIndicator } from "react-native";
-import { useAuth } from "@/contexts/UserContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Redirect } from "expo-router";
 import { ReactNode } from "react";
+import { Logger } from "@/configs/logger";
+
+const logger = Logger.getInstance({ context: 'ProtectedRoute' });
 
 interface ProtectedRouteProps {
     children: ReactNode;
@@ -11,6 +14,8 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ children, fallback, requireAuth }: ProtectedRouteProps) => {
     const { isAuthenticated, isLoading } = useAuth();
+
+    logger.debug(`isAuthenticated: ${isAuthenticated}`);
 
     if (isLoading) {
         return (

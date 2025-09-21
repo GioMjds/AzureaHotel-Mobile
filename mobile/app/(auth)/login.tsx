@@ -6,12 +6,11 @@ import {
 	View,
 	Image,
 	ScrollView,
-	ActivityIndicator,
-    ToastAndroid,
+	ActivityIndicator
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '@/contexts/UserContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -42,13 +41,7 @@ export default function LoginScreen() {
 		await login(data.email, data.password);
 	};
 
-	const togglePasswordVisibility = () => {
-		setShowPassword(!showPassword);
-	};
-
-	const handleGoogleLogin = () => {
-        ToastAndroid.show('Miss na kita boss', ToastAndroid.SHORT);
-	};
+	const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
 	return (
 		<LinearGradient
@@ -176,27 +169,6 @@ export default function LoginScreen() {
 										<Text>Login</Text>
 									</>
 								)}
-							</Text>
-						</TouchableOpacity>
-
-						<View className="flex-row items-center mb-3">
-							<View className="flex-1 h-px bg-violet-600" />
-							<Text className="mx-4 text-lg text-gray-600">OR</Text>
-							<View className="flex-1 h-px bg-violet-600" />
-						</View>
-
-						<TouchableOpacity
-							className="border border-violet-500 rounded-xl p-4 mb-6 flex-row justify-center items-center"
-							onPress={handleGoogleLogin}
-						>
-							<FontAwesome
-								name="google"
-								size={24}
-								color="#7c3aed"
-								className="mr-2"
-							/>
-							<Text className="text-gray-800 text-lg font-medium">
-								Login with Google
 							</Text>
 						</TouchableOpacity>
 

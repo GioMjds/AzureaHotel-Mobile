@@ -28,6 +28,10 @@ class UserAuthService {
         });
     }
 
+    async userAuth() {
+        return httpClient.get(ApiRoutes.USER_AUTH);
+    }
+
     async getGuestProfile(userId: number) {
         return httpClient.get(ApiRoutes.USER_DETAILS(userId));
     }

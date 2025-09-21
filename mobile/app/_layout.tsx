@@ -2,7 +2,8 @@ import '../globals.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
-import { AuthProvider } from '@/contexts/UserContext';
+import { useEffect } from 'react';
+import useAuthStore from '@/store/AuthStore';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -13,16 +14,25 @@ const queryClient = new QueryClient({
     },
 });
 
+function AuthInitializer() {
+	const { fetchUser } = useAuthStore();
+
+	useEffect(() => {
+		fetchUser();
+	}, []);
+
+	return null;
+}
+
 export default function RootLayout() {
 	return (
 		<SafeAreaProvider>
 			<QueryClientProvider client={queryClient}>
-				<AuthProvider>
-					<Stack screenOptions={{ headerShown: false }}>
-						<Stack.Screen name="(screens)" />
-						<Stack.Screen name="(auth)" />
-					</Stack>
-				</AuthProvider>
+				<AuthInitializer />
+				<Stack screenOptions={{ headerShown: false }}>
+					<Stack.Screen name="(screens)" />
+					<Stack.Screen name="(auth)" />
+				</Stack>
 			</QueryClientProvider>
 		</SafeAreaProvider>
 	);
