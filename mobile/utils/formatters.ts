@@ -107,29 +107,26 @@ export const formatStatus = (status: string): string => {
 /**
  * Format a status color based on the status string
  */
-export const getStatusColor = (status: string): string => {
-	const normalizedStatus = status.toLowerCase().replace(/_/g, ' ');
-	switch (normalizedStatus) {
-		case 'confirmed':
-			return 'bg-green-50 text-green-700';
-		case 'pending':
-			return 'bg-yellow-50 text-yellow-700';
-		case 'cancelled':
-			return 'bg-red-50 text-red-700';
-		case 'rejected':
-			return 'bg-red-50 text-red-700';
-		case 'reserved':
-			return 'bg-green-50 text-green-700';
-		case 'checked in':
-			return 'bg-blue-50 text-blue-700';
-		case 'checked out':
-			return 'bg-gray-50 text-gray-700';
-		case 'no show':
-			return 'bg-purple-50 text-purple-700';
-		default:
-			return 'bg-gray-50 text-gray-700';
-	}
-};
+export const getStatusColor = (status: string) => {
+		switch (status.toLowerCase()) {
+			case 'pending':
+				return 'bg-yellow-500';
+			case 'reserved':
+				return 'bg-blue-500';
+			case 'checked_in':
+				return 'bg-green-500';
+			case 'checked_out':
+				return 'bg-purple-500';
+			case 'completed':
+				return 'bg-emerald-500';
+			case 'cancelled':
+				return 'bg-red-500';
+			case 'rejected':
+				return 'bg-red-600';
+			default:
+				return 'bg-neutral-500';
+		}
+	};
 
 /**
  * Calculate the number of days until the next stay

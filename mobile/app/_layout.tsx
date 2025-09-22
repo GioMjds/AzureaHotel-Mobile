@@ -1,18 +1,36 @@
 import '../globals.css';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
 import useAuthStore from '@/store/AuthStore';
+import * as SplashScreen from 'expo-splash-screen';
 
-const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            retry: 1,
-            staleTime: 1000 * 60 * 5,
-        },
-    },
-});
+// Custom Expo fonts from Google Fonts
+import {
+    useFonts as usePlayfairDisplay,
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_500Medium,
+    PlayfairDisplay_600SemiBold,
+    PlayfairDisplay_700Bold,
+    PlayfairDisplay_800ExtraBold,
+    PlayfairDisplay_900Black,
+} from '@expo-google-fonts/playfair-display';
+import {
+	useFonts as useMontserrat,
+    Montserrat_400Regular,
+    Montserrat_700Bold,
+} from '@expo-google-fonts/montserrat';
+import {
+	useFonts as useRaleway,
+    Raleway_400Regular,
+    Raleway_700Bold,
+} from '@expo-google-fonts/raleway';
+
+SplashScreen.preventAutoHideAsync();
 
 function AuthInitializer() {
 	const { fetchUser } = useAuthStore();
@@ -25,14 +43,43 @@ function AuthInitializer() {
 }
 
 export default function RootLayout() {
+	const [playfairLoaded] = usePlayfairDisplay({
+		PlayfairDisplay_400Regular,
+		PlayfairDisplay_500Medium,
+		PlayfairDisplay_600SemiBold,
+		PlayfairDisplay_700Bold,
+		PlayfairDisplay_800ExtraBold,
+		PlayfairDisplay_900Black,
+	});
+
+	const [montserratLoaded] = useMontserrat({
+		Montserrat_400Regular,
+		Montserrat_700Bold,
+	});
+
+	const [ralewayLoaded] = useRaleway({
+		Raleway_400Regular,
+		Raleway_700Bold,
+	});
+
+	const fontsLoaded = playfairLoaded && montserratLoaded && ralewayLoaded;
+	
+	useEffect(() => {
+		SystemUI.setBackgroundColorAsync('black');
+	}, []);
+	
+	useEffect(() => {
+		if (fontsLoaded) SplashScreen.hideAsync();
+	}, [fontsLoaded]);
+
+	if (!fontsLoaded) return null;
+
 	return (
 		<SafeAreaProvider>
 			<QueryClientProvider client={queryClient}>
 				<AuthInitializer />
-				<Stack screenOptions={{ headerShown: false }}>
-					<Stack.Screen name="(screens)" />
-					<Stack.Screen name="(auth)" />
-				</Stack>
+				<StatusBar style="dark" />
+				<Stack screenOptions={{ headerShown: false }} />
 			</QueryClientProvider>
 		</SafeAreaProvider>
 	);

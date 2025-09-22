@@ -8,13 +8,13 @@ const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const USER_DATA_KEY = 'user_data';
 
-interface AuthState {
+interface State {
     user: Guest | null;
     isAuthenticated: boolean;
     isLoading: boolean;
 }
 
-interface AuthActions {
+interface Actions {
     setUser: (user: Guest | null) => void;
     setIsAuthenticated: (isAuthenticated: boolean) => void;
     setIsLoading: (isLoading: boolean) => void;
@@ -36,7 +36,7 @@ const clearStoredData = async () => {
     await SecureStore.deleteItemAsync(USER_DATA_KEY);
 };
 
-const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
+const useAuthStore = create<State & Actions>((set, get) => ({
     user: null,
     isAuthenticated: false,
     isLoading: true,

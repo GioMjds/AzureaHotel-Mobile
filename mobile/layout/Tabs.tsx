@@ -2,7 +2,6 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 
 interface TabItem {
 	name: string;
@@ -33,13 +32,6 @@ export default function Tabs() {
 
 	return (
 		<View>
-			{/* Gradient backdrop with blur effect */}
-			<BlurView
-				intensity={80}
-				tint="light"
-				className="absolute inset-0"
-			/>
-
 			{/* Main tab container with gradient border */}
 			<LinearGradient
 				colors={[
@@ -48,7 +40,6 @@ export default function Tabs() {
 				]}
 				start={{ x: 0, y: 0 }}
 				end={{ x: 1, y: 1 }}
-				className="border-t border-violet-200/30"
 			>
 				<View className="flex-row bg-white/95 px-2 py-3 pb-6">
 					{tabs.map((tab) => {
@@ -82,8 +73,8 @@ export default function Tabs() {
 									<Text
 										className={`text-md mt-1 ${
 											isActive
-												? 'font-montserrat-bold text-violet-600'
-												: 'font-montserrat text-neutral-500'
+												? 'font-montserrat text-sm text-violet-600'
+												: 'font-montserrat text-sm text-neutral-500'
 										}`}
 										numberOfLines={1}
 									>

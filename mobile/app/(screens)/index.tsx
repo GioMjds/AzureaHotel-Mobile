@@ -13,7 +13,7 @@ export default function IndexScreen() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-gray-800 p-6">
+        <SafeAreaView className="flex-1 bg-violet-300 p-6">
             <View className="flex-1">
                 <Text className="text-2xl font-bold mb-4 text-white">
                     Welcome, {user?.first_name} {user?.last_name}!

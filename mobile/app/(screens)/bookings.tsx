@@ -12,7 +12,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { auth } from '@/services/UserAuth';
 import { UserBooking } from '@/types/Bookings.types';
-import { pesoFormatter, formatDate } from '@/utils/formatters';
+import { pesoFormatter, formatDate, getStatusColor } from '@/utils/formatters';
+import { Link } from 'expo-router';
 
 export default function BookingsScreen() {
     const [selectedStatus, setSelectedStatus] = useState<string>('');
@@ -21,7 +22,7 @@ export default function BookingsScreen() {
         queryKey: ['guest-bookings', selectedStatus],
         queryFn: async () => {
             return await auth.getGuestBookings({
-                status: selectedStatus || undefined,
+                status: selectedStatus,
                 page: 1,
                 page_size: 10
             });
@@ -37,59 +38,33 @@ export default function BookingsScreen() {
         { label: 'Completed', value: 'completed' },
     ];
 
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'pending':
-                return 'bg-yellow-500';
-            case 'reserved':
-                return 'bg-blue-500';
-            case 'checked_in':
-                return 'bg-green-500';
-            case 'checked_out':
-                return 'bg-purple-500';
-            case 'completed':
-                return 'bg-emerald-500';
-            case 'cancelled':
-                return 'bg-red-500';
-            case 'rejected':
-                return 'bg-red-600';
-            default:
-                return 'bg-neutral-500';
-        }
-    };
-
     const renderBookingCard = ({ item }: { item: UserBooking }) => {
         const isVenueBooking = item.is_venue_booking;
-        const propertyDetails = isVenueBooking ? item.area_details : item.room_details;
+
         const propertyName = isVenueBooking 
-            ? propertyDetails?.area_name
-            : propertyDetails?.room_name;
+            ? (item.area_details)?.area_name
+            : (item.room_details)?.room_name;
+
         const propertyImage = isVenueBooking
-            ? propertyDetails?.images?.[0]?.area_image
-            : propertyDetails?.images?.[0]?.room_image;
+            ? (item.area_details)?.images?.[0].area_image
+            : (item.room_details)?.images?.[0].room_image;
 
         return (
             <View className="bg-white rounded-xl shadow-sm mx-4 mb-4 overflow-hidden border border-neutral-200">
                 {/* Property Image */}
                 <View className="h-40 bg-neutral-100">
-                    {propertyImage ? (
+                    {propertyImage && (
                         <Image
                             source={{ uri: propertyImage }}
                             className="w-full h-full"
                             resizeMode="cover"
                         />
-                    ) : (
-                        <View className="w-full h-full bg-violet-100 justify-center items-center">
-                            <Text className="text-violet-400 font-montserrat">
-                                No Image
-                            </Text>
-                        </View>
                     )}
 
                     {/* Status Badge */}
                     <View className="absolute top-3 left-3">
                         <View className={`px-3 py-2 rounded-full ${getStatusColor(item.status)}`}>
-                            <Text className="text-white font-montserrat-bold text-xs capitalize">
+                            <Text className="text-white font-bold text-sm uppercase">
                                 {item.status.replace('_', ' ')}
                             </Text>
                         </View>
@@ -106,7 +81,7 @@ export default function BookingsScreen() {
                 {/* Booking Details */}
                 <View className="p-4">
                     {/* Property Name */}
-                    <Text className="text-lg font-playfair-bold text-neutral-800 mb-2">
+                    <Text className="text-2xl font-bold text-neutral-800 mb-2">
                         {propertyName || 'Unknown Property'}
                     </Text>
 
@@ -181,9 +156,11 @@ export default function BookingsScreen() {
                             </View>
 
                             <TouchableOpacity className="bg-violet-600 px-4 py-2 rounded-full">
-                                <Text className="text-white font-montserrat-bold text-sm">
-                                    View Details
-                                </Text>
+                                <Link href={`/booking/${item.id}` as any} asChild>
+                                    <Text className="text-white font-semibold text-md">
+                                        View Details
+                                    </Text>
+                                </Link>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -265,7 +242,7 @@ export default function BookingsScreen() {
                     My Bookings
                 </Text>
                 <Text className="text-neutral-600 font-montserrat text-sm mt-1">
-                    {data?.data?.length || 0} bookings found
+                    {data?.data?.length || 0} total booking{data?.data?.length || 0 > 1 ? 's' : ''}
                 </Text>
             </View>
 
@@ -283,7 +260,7 @@ export default function BookingsScreen() {
 
             {/* Bookings List */}
             <FlatList
-                data={data?.data || []}
+                data={data?.data}
                 renderItem={renderBookingCard}
                 keyExtractor={(item) => item.id.toString()}
                 contentContainerStyle={{ paddingTop: 8, paddingBottom: 20 }}
