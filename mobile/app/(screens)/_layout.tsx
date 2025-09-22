@@ -10,6 +10,8 @@ export default function PublicScreensLayout() {
 				<Stack.Screen name="index" />
 				<Stack.Screen name="areas" />
 				<Stack.Screen name="rooms" />
+				<Stack.Screen name="bookings" />
+				<Stack.Screen name="profile" />
 			</Stack>
 			<Tabs />
 		</ProtectedRoute>

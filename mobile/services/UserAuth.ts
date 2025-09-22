@@ -1,17 +1,18 @@
 import { httpClient } from "@/configs/axios";
 import { ApiRoutes } from "@/configs/axios.routes";
+import { UserBookingResponse } from "@/types/Bookings.types";
 
 class UserAuthService {
     async login(email: string, password: string) {
-        return httpClient.post(ApiRoutes.LOGIN, { email, password });
+        return await httpClient.post(ApiRoutes.LOGIN, { email, password });
     }
 
     async logout() {
-        return httpClient.post(ApiRoutes.LOGOUT);
+        return await httpClient.post(ApiRoutes.LOGOUT);
     }
 
     async sendRegisterOtp(email: string, password: string, confirmPassword: string) {
-        return httpClient.post(ApiRoutes.REGISTER, {
+        return await httpClient.post(ApiRoutes.REGISTER, {
             email: email,
             password: password,
             confirm_password: confirmPassword,
@@ -19,7 +20,7 @@ class UserAuthService {
     }
 
     async verifyOtp(email: string, password: string, otp: string, firstName: string, lastName: string) {
-        return httpClient.post(ApiRoutes.VERIFY_OTP, { 
+        return await httpClient.post(ApiRoutes.VERIFY_OTP, { 
             email,
             password, 
             otp,
@@ -29,11 +30,25 @@ class UserAuthService {
     }
 
     async userAuth() {
-        return httpClient.get(ApiRoutes.USER_AUTH);
+        return await httpClient.get(ApiRoutes.USER_AUTH);
+    }
+
+    async getGuestBookings(params?: {
+        status?: string;
+        page?: number;
+        page_size?: number;
+    }): Promise<UserBookingResponse> {
+        return await httpClient.get(ApiRoutes.GUEST_BOOKINGS, {
+            params: {
+                status: params?.status,
+                page: params?.page,
+                page_size: params?.page_size,
+            }
+        });
     }
 
     async getGuestProfile(userId: number) {
-        return httpClient.get(ApiRoutes.USER_DETAILS(userId));
+        return await httpClient.get(ApiRoutes.USER_DETAILS(userId));
     }
 }
 

@@ -120,7 +120,6 @@ def bookings_list(request):
             }, status=status.HTTP_200_OK)
             
         elif request.method == 'POST':
-
             request_data = request.data.copy()
             if 'payment_proof' in request.FILES:
                 request_data['payment_proof'] = request.FILES['payment_proof']

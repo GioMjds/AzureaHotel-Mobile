@@ -29,15 +29,6 @@ export default function IndexScreen() {
                 >
                     <Text className="text-white text-center font-semibold">Logout</Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity 
-                    className="mt-6"
-                    onPress={() => router.push("/(auth)/register")}
-                >
-                    <Text className="text-blue-400 mt-4 text-center">
-                        Go to Register
-                    </Text>
-                </TouchableOpacity>
             </View>
         </SafeAreaView>
     );

@@ -770,7 +770,6 @@ def update_user_details(request, id):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def get_guest_bookings(request):
     try:
         user = request.user
