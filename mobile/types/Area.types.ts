@@ -1,3 +1,5 @@
+import { Reviews } from "./Reviews.types";
+
 export interface AreaImage {
     id: number;
     area_image: string;
@@ -15,6 +17,7 @@ export interface Area {
     discount_percent: number;
     senior_discounted_price: number;
     average_rating: number;
+    reviews: Reviews[];
     price_per_hour_numeric: number;
     discounted_price_numeric: number | null;
 }

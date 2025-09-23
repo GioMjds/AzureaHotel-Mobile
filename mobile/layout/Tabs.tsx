@@ -70,12 +70,10 @@ export default function Tabs() {
 									</View>
 
 									{/* Tab label */}
-									<Text
-										className={`text-md mt-1 ${
-											isActive
-												? 'font-montserrat text-sm text-violet-600'
-												: 'font-montserrat text-sm text-neutral-500'
-										}`}
+									<Text className={`text-md mt-1 ${isActive
+										? 'font-raleway text-md text-violet-600'
+										: 'font-raleway text-md text-neutral-600'
+									}`}
 										numberOfLines={1}
 									>
 										{tab.name}

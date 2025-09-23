@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Bookings, Transactions, Reviews, CraveOnCategory, CraveOnItem, CraveOnOrder, CraveOnOrderItem, CraveOnReview
+from .models import Bookings, Transactions, Reviews, CraveOnCategory, CraveOnItem, CraveOnReview
 from user_roles.models import CustomUsers
 from user_roles.serializers import CustomUserSerializer
 from property.models import Rooms, Areas
@@ -385,8 +385,8 @@ class ReviewSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Reviews
-        fields = ['id', 'rating', 'user', 'booking', 'review_text', 'created_at', 'room', 'area', 'user_profile_image', 'formatted_date', 'user_name', 'booking_details']
-        read_only_fields = ['user', 'room', 'area', 'booking']
+        fields = ['id', 'rating', 'user_id', 'booking', 'review_text', 'created_at', 'room_id', 'area_id', 'user_profile_image', 'formatted_date', 'user_name', 'booking_details']
+        read_only_fields = ['user_id', 'room_id', 'area_id', 'booking']
     
     def get_user_name(self, obj):
         if obj.user:

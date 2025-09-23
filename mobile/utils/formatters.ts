@@ -1,3 +1,7 @@
+interface ColorMap {
+    [key: string]: string;
+}
+
 export const pesoFormatter = new Intl.NumberFormat('en-PH', {
 	style: 'currency',
 	currency: 'PHP',
@@ -107,26 +111,15 @@ export const formatStatus = (status: string): string => {
 /**
  * Format a status color based on the status string
  */
-export const getStatusColor = (status: string) => {
-		switch (status.toLowerCase()) {
-			case 'pending':
-				return 'bg-yellow-500';
-			case 'reserved':
-				return 'bg-blue-500';
-			case 'checked_in':
-				return 'bg-green-500';
-			case 'checked_out':
-				return 'bg-purple-500';
-			case 'completed':
-				return 'bg-emerald-500';
-			case 'cancelled':
-				return 'bg-red-500';
-			case 'rejected':
-				return 'bg-red-600';
-			default:
-				return 'bg-neutral-500';
-		}
-	};
+export const colorMap: ColorMap = {
+    pending: 'bg-yellow-500',
+    reserved: 'bg-purple-500',
+    checked_in: 'bg-green-500',
+    checked_out: 'bg-blue-500',
+    completed: 'bg-gray-500',
+    cancelled: 'bg-red-500',
+    rejected: 'bg-red-700',
+};
 
 /**
  * Calculate the number of days until the next stay

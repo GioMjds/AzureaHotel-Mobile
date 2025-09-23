@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { booking } from "@/services/Booking";
 import { UserBooking } from "@/types/Bookings.types";
-import { pesoFormatter, formatDate, getStatusColor } from "@/utils/formatters";
+import { pesoFormatter, formatDate, colorMap } from "@/utils/formatters";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 
 export default function BookingDetailsScreen() {
@@ -131,11 +131,8 @@ export default function BookingDetailsScreen() {
                         <FontAwesome name="arrow-left" size={24} color="#374151" />
                     </TouchableOpacity>
                     <View className="flex-1 ml-4">
-                        <Text className="text-xl font-playfair-bold text-gray-900">
+                        <Text className="text-xl font-raleway text-gray-900">
                             Booking Details
-                        </Text>
-                        <Text className="text-sm text-gray-600 font-montserrat">
-                            ID: #{bookingData.id}
                         </Text>
                     </View>
                 </View>
@@ -151,7 +148,7 @@ export default function BookingDetailsScreen() {
             >
                 <View className="p-4 space-y-6">
                     {/* Status Banner */}
-                    <View className={`${getStatusColor(bookingData.status)} rounded-2xl p-6`}>
+                    <View className={`${colorMap[bookingData.status]} rounded-2xl p-6`}>
                         <View className="flex-row items-center justify-center space-x-3 mb-2">
                             {getStatusIcon(bookingData.status)}
                             <Text className="text-xl font-montserrat-bold text-white uppercase tracking-wide">

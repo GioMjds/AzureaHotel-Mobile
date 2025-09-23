@@ -12,7 +12,7 @@ const AreaCard = ({ item }: AreaCardProps) => {
 		<View className="bg-white rounded-xl shadow-sm mx-4 mb-4 overflow-hidden border border-neutral-200">
 			{/* Area Image */}
 			<View className="h-48 bg-neutral-100">
-				{item.images && item.images.length > 0 ? (
+				{item.images ? (
 					<Image
 						source={{ uri: item.images[0].area_image }}
 						className="w-full h-full"
@@ -54,7 +54,7 @@ const AreaCard = ({ item }: AreaCardProps) => {
 			{/* Area Details */}
 			<View className="p-4">
 				<View className="flex-row justify-between items-start mb-2">
-					<Text className="text-xl font-playfair-bold text-neutral-800 flex-1">
+					<Text className="text-3xl font-montserrat-bold text-neutral-800 flex-1">
 						{item.area_name}
 					</Text>
 					{/* Rating */}
@@ -76,7 +76,7 @@ const AreaCard = ({ item }: AreaCardProps) => {
 
 				{/* Capacity */}
 				<View className="flex-row items-center mb-3">
-					<Text className="text-neutral-500 font-montserrat text-sm">
+					<Text className="text-neutral-600 font-montserrat text-sm">
 						Capacity:{' '}
 					</Text>
 					<Text className="text-violet-600 font-montserrat-bold text-sm">
@@ -90,21 +90,15 @@ const AreaCard = ({ item }: AreaCardProps) => {
 						{item.discounted_price_numeric ? (
 							<View className="flex-row items-center">
 								<Text className="text-neutral-400 font-montserrat text-sm line-through">
-									{pesoFormatter.format(
-										item.price_per_hour_numeric
-									)}
+									{pesoFormatter.format(item.price_per_hour_numeric)}
 								</Text>
 								<Text className="text-violet-600 font-black text-2xl ml-2">
-									{pesoFormatter.format(
-										item.discounted_price_numeric
-									)}
+									{pesoFormatter.format(item.discounted_price_numeric)}
 								</Text>
 							</View>
 						) : (
 							<Text className="text-violet-600 font-black text-2xl">
-								{pesoFormatter.format(
-									item.price_per_hour_numeric
-								)}
+								{pesoFormatter.format(item.price_per_hour_numeric)}
 							</Text>
 						)}
 					</View>

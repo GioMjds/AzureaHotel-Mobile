@@ -1,4 +1,5 @@
 import { Amenities } from "./Amenity.types";
+import { Reviews } from "./Reviews.types";
 
 export interface RoomImage {
     id: number;
@@ -20,8 +21,9 @@ export interface Room {
     max_guests: number;
     amenities: Amenities[];
     average_rating: number;
+    reviews: Reviews[];
     price_per_night: number;
-    discouted_price_numeric: number | null;
+    discounted_price_numeric: number | null;
 }
 
 export interface FetchRoomResponse {

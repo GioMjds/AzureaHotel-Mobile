@@ -29,7 +29,7 @@ const RoomCard = ({ item }: RoomCardProps) => {
 				{/* Discount Badge */}
 				{item.discount_percent > 0 && (
 					<View className="absolute top-3 right-3 bg-accent-pink rounded-full px-3 py-1">
-						<Text className="text-white font-montserrat-bold text-xs">
+						<Text className="text-white font-montserrat-bold text-sm">
 							{item.discount_percent}% OFF
 						</Text>
 					</View>
@@ -44,7 +44,7 @@ const RoomCard = ({ item }: RoomCardProps) => {
 								: 'bg-red-500'
 						}`}
 					>
-						<Text className="text-white font-montserrat-bold text-xs capitalize">
+						<Text className="text-white font-montserrat-bold text-sm capitalize">
 							{item.status}
 						</Text>
 					</View>
@@ -54,7 +54,7 @@ const RoomCard = ({ item }: RoomCardProps) => {
 			{/* Room Details */}
 			<View className="p-4">
 				<View className="flex-row justify-between items-start mb-2">
-					<Text className="text-xl font-playfair-bold text-neutral-800 flex-1">
+					<Text className="text-3xl font-montserrat-bold text-neutral-800 flex-1">
 						{item.room_name}
 					</Text>
 					{/* Rating */}
@@ -77,10 +77,10 @@ const RoomCard = ({ item }: RoomCardProps) => {
 				{/* Room Type and Bed Type */}
 				<View className="flex-row items-center justify-between mb-2">
 					<View className="flex-row items-center">
-						<Text className="text-neutral-500 font-montserrat text-sm">
-							Type: {""}
+						<Text className="text-neutral-600 font-montserrat text-sm">
+							Room Type: {""}
 						</Text>
-						<Text className="text-violet-600 capitalize font-montserrat-bold text-sm">
+						<Text className="text-violet-600 capitalize font-montserrat-bold text-lg">
 							{item.room_type}
 						</Text>
 					</View>
@@ -93,10 +93,10 @@ const RoomCard = ({ item }: RoomCardProps) => {
 
 				{/* Max Guests */}
 				<View className="flex-row items-center mb-3">
-					<Text className="text-neutral-500 font-montserrat text-sm">
+					<Text className="text-neutral-600 font-montserrat text-sm">
 						Max Guests:
 					</Text>
-					<Text className="text-violet-600 font-montserrat-bold text-sm ml-1">
+					<Text className="text-violet-600 font-montserrat-bold text-lg ml-1">
 						{item.max_guests} people
 					</Text>
 				</View>
@@ -104,15 +104,13 @@ const RoomCard = ({ item }: RoomCardProps) => {
 				{/* Pricing */}
 				<View className="flex-row items-center justify-between">
 					<View>
-						{item.discouted_price_numeric ? (
+						{item.discounted_price_numeric ? (
 							<View className="flex-row items-center">
 								<Text className="text-neutral-400 font-montserrat text-sm line-through">
 									{pesoFormatter.format(item.price_per_night)}
 								</Text>
 								<Text className="text-violet-600 font-black text-2xl ml-2">
-									{pesoFormatter.format(
-										item.discouted_price_numeric
-									)}
+									{pesoFormatter.format(item.discounted_price_numeric)}
 								</Text>
 							</View>
 						) : (

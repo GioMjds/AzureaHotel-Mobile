@@ -33,6 +33,7 @@ class RoomSerializer(serializers.ModelSerializer):
     discounted_price = serializers.SerializerMethodField()
     images = RoomImagesSerializer(many=True, read_only=True)
     senior_discounted_price = serializers.SerializerMethodField()
+    reviews = serializers.SerializerMethodField()
     
     class Meta:
         model = Rooms
@@ -51,7 +52,13 @@ class RoomSerializer(serializers.ModelSerializer):
             'max_guests',
             'amenities',
             'average_rating',
+            'reviews',
         ]
+        
+    def get_reviews(self, obj):
+        from booking.serializers import ReviewSerializer
+        reviews = obj.reviews.all().order_by('-created_at')
+        return ReviewSerializer(reviews, many=True, context=self.context).data
         
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -103,6 +110,7 @@ class AreaSerializer(serializers.ModelSerializer):
     discounted_price = serializers.SerializerMethodField()
     images = AreaImagesSerializer(many=True, read_only=True)
     senior_discounted_price = serializers.SerializerMethodField()
+    reviews = serializers.SerializerMethodField()
     
     class Meta:
         model = Areas
@@ -118,7 +126,13 @@ class AreaSerializer(serializers.ModelSerializer):
             'discount_percent',
             'senior_discounted_price',
             'average_rating',
+            'reviews',
         ]
+        
+    def get_reviews(self, obj):
+        from booking.serializers import ReviewSerializer
+        reviews = obj.reviews.all().order_by('-created_at')
+        return ReviewSerializer(reviews, many=True, context=self.context).data
         
     def to_representation(self, instance):
         representation = super().to_representation(instance)

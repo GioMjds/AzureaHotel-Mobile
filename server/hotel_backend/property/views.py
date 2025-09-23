@@ -20,7 +20,7 @@ def fetch_rooms(request):
 def fetch_room_detail(request, id):
     try:
         room = Rooms.objects.get(id=id)
-        serializer = RoomSerializer(room)
+        serializer = RoomSerializer(room, context={'request': request})
         return Response({
             "data": serializer.data
         }, status=status.HTTP_200_OK)
@@ -53,7 +53,9 @@ def fetch_areas(request):
 def fetch_area_detail(request, id):
     try:
         area = Areas.objects.get(id=id)
-        serializer = AreaSerializer(area)
-        return Response({"data": serializer.data}, status=status.HTTP_200_OK)
+        serializer = AreaSerializer(area, context={'request': request})
+        return Response({
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

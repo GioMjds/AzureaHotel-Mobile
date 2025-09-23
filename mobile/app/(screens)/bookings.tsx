@@ -12,7 +12,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { auth } from '@/services/UserAuth';
 import { UserBooking } from '@/types/Bookings.types';
-import { pesoFormatter, formatDate, getStatusColor } from '@/utils/formatters';
+import { pesoFormatter, formatDate, colorMap } from '@/utils/formatters';
 import { Link } from 'expo-router';
 
 export default function BookingsScreen() {
@@ -63,8 +63,8 @@ export default function BookingsScreen() {
 
                     {/* Status Badge */}
                     <View className="absolute top-3 left-3">
-                        <View className={`px-3 py-2 rounded-full ${getStatusColor(item.status)}`}>
-                            <Text className="text-white font-bold text-sm uppercase">
+                        <View className={`px-3 py-2 rounded-full ${colorMap[item.status]}`}>
+                            <Text className="text-white font-bold text-md uppercase">
                                 {item.status.replace('_', ' ')}
                             </Text>
                         </View>
@@ -72,7 +72,7 @@ export default function BookingsScreen() {
 
                     {/* Booking Type Badge */}
                     <View className="absolute top-3 right-3 bg-white/90 rounded-full px-3 py-1">
-                        <Text className="text-neutral-700 font-semibold text-sm">
+                        <Text className="text-neutral-700 font-semibold text-md">
                             {isVenueBooking ? 'Area' : 'Room'}
                         </Text>
                     </View>
