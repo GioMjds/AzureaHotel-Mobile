@@ -1,8 +1,0 @@
-{
-  "servers": {
-    "AzureaHotel-Mobile Docs": {
-      "type": "sse",
-      "url": "https://gitmcp.io/GioMjds/AzureaHotel-Mobile"
-    }
-  }
-}

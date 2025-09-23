@@ -1,21 +1,38 @@
 import {
     ActivityIndicator,
-	FlatList,
 	Text,
 	View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { room } from '@/services/Room';
 import RoomCard from '@/components/RoomCard';
+import { useTabVisibilityStore } from '@/store/ScrollStore';
+import { ScrollAwareView } from '@/components/ScrollAwareScreen';
+import { Room } from '@/types/Room.types';
 
 export default function RoomsScreen() {
+	const scrollOffset = useRef<number>(0);
+
 	const { data, isLoading, error } = useQuery({
 		queryKey: ['rooms'],
 		queryFn: async () => {
 			return await room.getRooms();
 		},
 	});
+
+	const handleScroll = (e: any) => {
+			const currentOffset = e.nativeEvent.contentOffset.y;
+			const direction = currentOffset > scrollOffset.current ? 'down' : 'up';
+			scrollOffset.current = currentOffset;
+	
+			if (direction === 'down' && currentOffset > 10) {
+				useTabVisibilityStore.getState().setVisible('hidden');
+			} else if (direction === 'up') {
+				useTabVisibilityStore.getState().setVisible('visible');
+			}
+		}
 
 	if (isLoading) {
 		return (
@@ -48,7 +65,7 @@ export default function RoomsScreen() {
 	return (
 		<SafeAreaView className="flex-1 bg-neutral-50">
 			{/* Header */}
-			<View className="px-4 py-2 bg-white border-b border-neutral-200">
+			<View className="p-4 bg-white border-b border-neutral-200">
 				<Text className="text-3xl font-montserrat-bold text-neutral-800">
 					Browse Rooms
 				</Text>
@@ -58,12 +75,14 @@ export default function RoomsScreen() {
 			</View>
 
 			{/* Rooms List */}
-			<FlatList
+			<ScrollAwareView 
+				type="flatlist"
 				data={data?.data || []}
-				renderItem={({ item }) => <RoomCard item={item} />}
-				keyExtractor={(item) => item.id.toString()}
+				renderItem={({ item }: { item: Room }) => <RoomCard item={item} />}
+				keyExtractor={(item: Room) => item.id.toString()}
 				contentContainerStyle={{ paddingTop: 16, paddingBottom: 20 }}
 				showsVerticalScrollIndicator={false}
+				onScroll={handleScroll}
 				ListEmptyComponent={
 					<View className="flex-1 justify-center items-center py-20">
 						<Text className="text-neutral-500 font-montserrat text-center">

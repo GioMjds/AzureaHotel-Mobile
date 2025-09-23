@@ -1,7 +1,9 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTabVisibilityStore } from '@/store/ScrollStore';
+import { useEffect, useRef } from 'react';
 
 interface TabItem {
 	name: string;
@@ -21,7 +23,19 @@ export default function Tabs() {
 	const router = useRouter();
 	const pathname = usePathname();
 
+	const tabState = useTabVisibilityStore((state) => state.state);
+	const translateY = useRef(new Animated.Value(0)).current;
+
+	useEffect(() => {
+		Animated.timing(translateY, {
+			toValue: tabState === 'hidden' ? 100 : 0,
+			duration: 250,
+			useNativeDriver: true,
+		}).start();
+	}, [tabState, translateY]);
+
 	const handleTabPress = (route: string) => {
+		if (isActiveTab(route)) return;
 		router.push(route as any);
 	};
 
@@ -31,7 +45,7 @@ export default function Tabs() {
 	};
 
 	return (
-		<View>
+		<Animated.View style={{ transform: [{ translateY }] }}>
 			{/* Main tab container with gradient border */}
 			<LinearGradient
 				colors={[
@@ -56,11 +70,7 @@ export default function Tabs() {
 								<View className="items-center relative px-2 py-1">
 									{/* Icon container */}
 									<View className="relative mb-1">
-										<View
-											className={`p-2.5 rounded-xl ${
-												isActive ? 'bg-violet-100/80' : 'bg-neutral-100/80'
-											}`}
-										>
+										<View className="p-2.5 rounded-xl">
 											<FontAwesome
 												name={tab.icon}
 												size={25}
@@ -92,6 +102,6 @@ export default function Tabs() {
 				end={{ x: 0, y: 0 }}
 				className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none"
 			/>
-		</View>
+		</Animated.View>
 	);
 }

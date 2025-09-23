@@ -1,13 +1,10 @@
-import {
-	ActivityIndicator,
-	FlatList,
-	Text,
-	View,
-} from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { area } from '@/services/Area';
 import AreaCard from '@/components/AreaCard';
+import { ScrollAwareView } from '@/components/ScrollAwareScreen';
+import { Area } from '@/types/Area.types';
 
 export default function AreasScreen() {
 	const { data, isLoading, error } = useQuery({
@@ -48,7 +45,7 @@ export default function AreasScreen() {
 	return (
 		<SafeAreaView className="flex-1 bg-neutral-50">
 			{/* Header */}
-			<View className="px-4 py-2 bg-white border-b border-neutral-200">
+			<View className="p-4 bg-white border-b border-neutral-200">
 				<Text className="text-3xl font-montserrat-bold text-neutral-800">
 					Browse Areas
 				</Text>
@@ -58,10 +55,11 @@ export default function AreasScreen() {
 			</View>
 
 			{/* Areas List */}
-			<FlatList
+			<ScrollAwareView
+				type="flatlist"
 				data={data?.data || []}
-				renderItem={({ item }) => <AreaCard item={item} />}
-				keyExtractor={(item) => item.id.toString()}
+				renderItem={({ item }: { item: Area }) => <AreaCard item={item} />}
+				keyExtractor={(item: Area) => item.id.toString()}
 				contentContainerStyle={{ paddingTop: 16, paddingBottom: 20 }}
 				showsVerticalScrollIndicator={false}
 				ListEmptyComponent={
