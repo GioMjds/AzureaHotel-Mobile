@@ -1,4 +1,4 @@
-import '../globals.css';
+import '../global.css';
 import { queryClient } from '@/lib/queryClient';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';

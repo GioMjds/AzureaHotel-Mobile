@@ -1,8 +1,7 @@
-import { View, Text, Image } from 'react-native';
-import React from 'react';
-import { UserBooking } from '@/types/Bookings.types';
-import { colorMap, formatDate, pesoFormatter } from '@/utils/formatters';
 import { Link } from 'expo-router';
+import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { UserBooking } from '@/types/Bookings.types';
+import { formatDate, formatTime, getStatusStyle, pesoFormatter } from '@/utils/formatters';
 
 interface BookingCardProps {
 	item: UserBooking;
@@ -20,9 +19,9 @@ const BookingCard = ({ item }: BookingCardProps) => {
 		: item.room_details?.images?.[0]?.room_image;
 
 	return (
-		<View className="bg-white rounded-xl shadow-sm mx-4 mb-4 overflow-hidden border border-neutral-200">
+		<View className="bg-background-elevated rounded-2xl mx-4 mb-4 overflow-hidden border border-border-DEFAULT shadow-sm">
 			{/* Property Image */}
-			<View className="h-40 bg-neutral-100">
+			<View className="h-48 bg-background-subtle relative">
 				{propertyImage && (
 					<Image
 						source={{ uri: propertyImage }}
@@ -32,128 +31,186 @@ const BookingCard = ({ item }: BookingCardProps) => {
 				)}
 
 				{/* Status Badge */}
-				<View className="absolute top-3 left-3">
-					<View className={`px-3 py-2 rounded-full ${colorMap[item.status]}`}>
-						<Text className="text-white font-bold text-md uppercase">
+				<View className="absolute top-4 left-4">
+					<View 
+						className="px-4 py-2 rounded-full shadow-sm"
+						style={getStatusStyle(item.status)}
+					>
+						<Text className="text-white font-montserrat-bold text-sm uppercase tracking-wide">
 							{item.status.replace('_', ' ')}
 						</Text>
 					</View>
 				</View>
-
-				{/* Booking Type Badge */}
-				<View className="absolute top-3 right-3 bg-white/90 rounded-full px-3 py-1">
-					<Text className="text-neutral-700 font-semibold text-md">
-						{isAreaBooking ? 'Area' : 'Room'}
-					</Text>
-				</View>
 			</View>
 
 			{/* Booking Details */}
-			<View className="p-4">
-				{/* Property Name */}
-				<Text className="text-2xl font-montserrat-bold text-neutral-800 mb-2">
-					{propertyName}
-				</Text>
+			<View className="p-6">
+				{/* Property Name & Creation Date */}
+				<View className="mb-4">
+					<Text className="text-2xl font-playfair-bold text-text-primary mb-1">
+						{propertyName}
+					</Text>
+					<Text className="text-text-muted font-montserrat text-sm">
+						Booked on {formatDate(item.created_at)}
+					</Text>
+				</View>
 
-				{/* Booking Information */}
-				<View className="space-y-2 mb-4">
-					{/* Check-in/Check-out Dates */}
-					<View className="flex-row items-center justify-between">
-						<View className="flex-1">
-							<Text className="text-neutral-500 font-montserrat text-xs">
+				{/* Primary Booking Information */}
+				<View className="bg-background-subtle rounded-xl p-4 mb-4">
+					<View className="flex-row items-center justify-between mb-3">
+						<View className="flex-1 mr-4">
+							<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-1">
 								Check-in
 							</Text>
-							<Text className="text-neutral-800 font-montserrat-bold text-sm">
+							<Text className="text-text-primary font-playfair-medium text-base">
 								{item.check_in_date
 									? formatDate(item.check_in_date)
-									: 'N/A'}
+									: 'Not specified'}
 							</Text>
+							{item.time_of_arrival && (
+								<Text className="text-text-muted font-montserrat text-sm">
+									Arrival: {formatTime(item.time_of_arrival)}
+								</Text>
+							)}
 						</View>
 						<View className="flex-1">
-							<Text className="text-neutral-500 font-montserrat text-xs">
+							<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-1">
 								Check-out
 							</Text>
-							<Text className="text-neutral-800 font-montserrat-bold text-sm">
+							<Text className="text-text-primary font-playfair-medium text-base">
 								{item.check_out_date
 									? formatDate(item.check_out_date)
-									: 'N/A'}
+									: 'Not specified'}
 							</Text>
 						</View>
 					</View>
 
-					{/* Guests and Payment Method */}
 					<View className="flex-row items-center justify-between">
-						<View className="flex-1">
-							<Text className="text-neutral-500 font-montserrat text-xs">
+						<View className="flex-1 mr-4">
+							<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-1">
 								Guests
 							</Text>
-							<Text className="text-neutral-800 font-montserrat-bold text-sm">
-								{item.number_of_guests}{' '}
-								{item.number_of_guests > 1
-									? 'guests'
-									: 'guest'}
+							<Text className="text-text-primary font-playfair-medium text-base">
+								{item.number_of_guests} {item.number_of_guests === 1 ? 'Guest' : 'Guests'}
 							</Text>
 						</View>
 						<View className="flex-1">
-							<Text className="text-neutral-500 font-montserrat text-xs">
-								Payment
+							<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-1">
+								Contact
 							</Text>
-							<Text className="text-neutral-800 font-montserrat-bold text-sm capitalize">
-								{item.payment_method}
+							<Text className="text-text-primary font-montserrat text-sm">
+								{item.phone_number || 'Not provided'}
 							</Text>
 						</View>
 					</View>
 				</View>
 
+				{/* Payment Information */}
+				<View className="border border-border-DEFAULT rounded-xl p-4 mb-4">
+					<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-3">
+						Payment Details
+					</Text>
+					
+					<View className="flex-row items-center justify-between mb-2">
+						<Text className="text-text-primary font-montserrat text-sm">Method:</Text>
+						<Text className="text-text-primary font-montserrat-bold text-sm capitalize">
+							{item.payment_method}
+						</Text>
+					</View>
+					
+					{item.payment_date && (
+						<View className="flex-row items-center justify-between mb-2">
+							<Text className="text-text-primary font-montserrat text-sm">Paid on:</Text>
+							<Text className="text-text-primary font-montserrat-bold text-sm">
+								{formatDate(item.payment_date)}
+							</Text>
+						</View>
+					)}
+					
+					{item.down_payment && (
+						<View className="flex-row items-center justify-between mb-2">
+							<Text className="text-text-primary font-montserrat text-sm">Down Payment:</Text>
+							<Text className="text-interactive-primary-DEFAULT font-montserrat-bold text-sm">
+								{pesoFormatter.format(parseFloat(item.down_payment))}
+							</Text>
+						</View>
+					)}
+				</View>
+
 				{/* Pricing */}
-				<View className="border-t border-neutral-200 pt-4">
+				<View className="border-t border-border-DEFAULT pt-4 mb-4">
 					<View className="flex-row items-center justify-between">
-						<View>
-							{item.discount_percent > 0 &&
-							item.discounted_price ? (
+						<View className="flex-1">
+							<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-1">
+								Total Amount
+							</Text>
+							{item.discount_percent > 0 && item.discounted_price ? (
 								<View>
-									<Text className="text-neutral-400 font-montserrat text-sm line-through">
+									<Text className="text-text-muted font-montserrat text-sm line-through">
 										{pesoFormatter.format(item.original_price)}
 									</Text>
 									<View className="flex-row items-center">
-										<Text className="text-violet-600 font-black text-lg">
+										<Text className="text-interactive-primary-DEFAULT font-playfair-bold text-xl">
 											{pesoFormatter.format(item.discounted_price)}
 										</Text>
-										<View className="bg-green-100 px-2 py-1 rounded-full ml-2">
-											<Text className="text-green-700 font-montserrat-bold text-xs">
+										<View className="bg-feedback-success-light px-2 py-1 rounded-full ml-2">
+											<Text className="text-feedback-success-dark font-montserrat-bold text-xs">
 												{item.discount_percent}% OFF
 											</Text>
 										</View>
 									</View>
 								</View>
 							) : (
-								<Text className="text-violet-600 font-black text-lg">
-									{pesoFormatter.format(item.total_price)}
+								<Text className="text-interactive-primary-DEFAULT font-playfair-bold text-xl">
+									{pesoFormatter.format(item.total_amount || item.total_price)}
 								</Text>
 							)}
 						</View>
 
 						<Link 
 							href={`/booking/${item.id}` as any} 
-							className='bg-violet-600 px-4 py-2 rounded-full' 
 							asChild
 						>
-							<Text className="text-white font-semibold text-md">
-								View Details
-							</Text>
+							<TouchableOpacity className='bg-interactive-primary-DEFAULT px-6 py-3 rounded-xl shadow-sm active:bg-interactive-primary-pressed'>
+								<Text className="text-interactive-primary-foreground font-montserrat-bold text-sm">
+									View Details
+								</Text>
+							</TouchableOpacity>
 						</Link>
 					</View>
 				</View>
 
 				{/* Special Request */}
 				{item.special_request && (
-					<View className="mt-3 pt-3 border-t border-neutral-100">
-						<Text className="text-neutral-500 font-montserrat text-xs mb-1">
+					<View className="bg-background-subtle rounded-xl p-4 mb-4">
+						<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-2">
 							Special Request
 						</Text>
-						<Text className="text-neutral-700 font-montserrat text-sm">
+						<Text className="text-text-primary font-montserrat text-sm leading-relaxed">
 							{item.special_request}
 						</Text>
+					</View>
+				)}
+
+				{/* Cancellation Information */}
+				{(item.cancellation_date || item.cancellation_reason) && (
+					<View className="bg-feedback-error-light border border-feedback-error-DEFAULT rounded-xl p-4">
+						<Text className="text-feedback-error-dark font-montserrat-bold text-xs uppercase tracking-wide mb-2">
+							Cancellation Details
+						</Text>
+						{item.cancellation_date && (
+							<View className="flex-row justify-between mb-1">
+								<Text className="text-feedback-error-dark font-montserrat text-sm">Cancelled on:</Text>
+								<Text className="text-feedback-error-dark font-montserrat-bold text-sm">
+									{formatDate(item.cancellation_date)}
+								</Text>
+							</View>
+						)}
+						{item.cancellation_reason && (
+							<Text className="text-feedback-error-dark font-montserrat text-sm mt-2">
+								Reason: {item.cancellation_reason}
+							</Text>
+						)}
 					</View>
 				)}
 			</View>

@@ -14,6 +14,10 @@ def get_local_ip():
     return ip
 
 def update_env_file(env_path, replacements):
+    if not os.path.exists(env_path):
+        print(f"File {env_path} does not exist.")
+        return
+    
     with open(env_path, 'r') as file:
         lines = file.readlines()
     with open(env_path, 'w') as file:
@@ -29,25 +33,25 @@ def update_env_file(env_path, replacements):
 
 def main():
     ip = get_local_ip()
+    
     # Update server/.env
-    server_env = os.path.join(os.path.dirname(__file__), '..', '.env')
+    server_env = os.path.join(os.path.dirname(__file__), 'server', '.env')
     server_replacements = {
-        'CLIENT_URL': f'http://{ip}:5173',
+        'CLIENT_URL': f'exp://{ip}:8081',
         'REDIRECT_URI': f'http://{ip}:5173',
         'DB_HOST': ip,
     }
     update_env_file(server_env, server_replacements)
     print(f"Updated {server_env} with IP {ip}")
 
-    # Update client/.env
-    client_env = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'client', '.env'))
-    client_replacements = {
-        'VITE_API_URL': f'"http://{ip}:8000"',
-        'VITE_REDIRECT_URI': f'"http://{ip}:5173"',
-        'VITE_CURRENT_IP_ADDRESS': f"{ip}",
+    # Update mobile/.env
+    mobile_env = os.path.abspath(os.path.join(os.path.dirname(__file__), 'mobile', '.env'))
+    mobile_replacements = {
+        'EXPO_PUBLIC_API_URL': f"exp://{ip}:8081",
+        'EXPO_PUBLIC_DJANGO_URL': f"http://{ip}:8000",
     }
-    update_env_file(client_env, client_replacements)
-    print(f"Updated {client_env} with IP {ip}")
+    update_env_file(mobile_env, mobile_replacements)
+    print(f"Updated {mobile_env} with IP {ip}")
 
 if __name__ == "__main__":
     main()

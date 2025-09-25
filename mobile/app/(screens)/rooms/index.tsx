@@ -1,38 +1,22 @@
 import {
     ActivityIndicator,
+	FlatList,
 	Text,
 	View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { room } from '@/services/Room';
-import RoomCard from '@/components/RoomCard';
-import { useTabVisibilityStore } from '@/store/ScrollStore';
-import { ScrollAwareView } from '@/components/ScrollAwareScreen';
+import RoomCard from '@/components/rooms/RoomCard';
 import { Room } from '@/types/Room.types';
 
 export default function RoomsScreen() {
-	const scrollOffset = useRef<number>(0);
-
 	const { data, isLoading, error } = useQuery({
 		queryKey: ['rooms'],
 		queryFn: async () => {
 			return await room.getRooms();
 		},
 	});
-
-	const handleScroll = (e: any) => {
-			const currentOffset = e.nativeEvent.contentOffset.y;
-			const direction = currentOffset > scrollOffset.current ? 'down' : 'up';
-			scrollOffset.current = currentOffset;
-	
-			if (direction === 'down' && currentOffset > 10) {
-				useTabVisibilityStore.getState().setVisible('hidden');
-			} else if (direction === 'up') {
-				useTabVisibilityStore.getState().setVisible('visible');
-			}
-		}
 
 	if (isLoading) {
 		return (
@@ -75,14 +59,12 @@ export default function RoomsScreen() {
 			</View>
 
 			{/* Rooms List */}
-			<ScrollAwareView 
-				type="flatlist"
+			<FlatList
 				data={data?.data || []}
 				renderItem={({ item }: { item: Room }) => <RoomCard item={item} />}
 				keyExtractor={(item: Room) => item.id.toString()}
 				contentContainerStyle={{ paddingTop: 16, paddingBottom: 20 }}
 				showsVerticalScrollIndicator={false}
-				onScroll={handleScroll}
 				ListEmptyComponent={
 					<View className="flex-1 justify-center items-center py-20">
 						<Text className="text-neutral-500 font-montserrat text-center">

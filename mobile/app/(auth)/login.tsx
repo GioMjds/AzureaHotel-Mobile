@@ -8,12 +8,12 @@ import {
 	ScrollView,
 	ActivityIndicator
 } from 'react-native';
-import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '@/hooks/useAuth';
-import { useForm, Controller, SubmitHandler } from 'react-hook-form';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useForm, Controller, SubmitHandler } from 'react-hook-form';
+import { router } from 'expo-router';
+import { useAuthMutations } from '@/hooks/useAuthMutations';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 interface LoginFormData {
     email: string;
@@ -23,13 +23,13 @@ interface LoginFormData {
 export default function LoginScreen() {
 	const [showPassword, setShowPassword] = useState<boolean>(false);
 
-	const { login } = useAuth();
+	const { loginMutation } = useAuthMutations();
 
 	const {
 		control,
 		handleSubmit,
 		formState: { errors, isSubmitting },
-	} = useForm({
+	} = useForm<LoginFormData>({
 		defaultValues: {
 			email: '',
 			password: '',
@@ -37,83 +37,130 @@ export default function LoginScreen() {
 		mode: 'onSubmit',
 	});
 
-	const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
-		await login(data.email, data.password);
+	const onSubmit: SubmitHandler<LoginFormData> = (data) => {
+		loginMutation.mutateAsync(data);
 	};
 
 	const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
 	return (
-		<LinearGradient
-			colors={['#7c3aed', '#a78bfa']}
-			start={{ x: 0, y: 0 }}
-			end={{ x: 1, y: 1 }}
-			style={{ flex: 1 }}
-		>
-			<SafeAreaView className="flex-1 p-5 justify-center">
+		<View className="flex-1 bg-background-default">
+			{/* Background Gradient Overlay */}
+			<View className="absolute inset-0">
+				<LinearGradient
+					colors={['#6F00FF', '#3B0270', '#E9B3FB']}
+					start={{ x: 0, y: 0 }}
+					end={{ x: 1, y: 1 }}
+					style={{ flex: 1 }}
+				/>
+				{/* Decorative Elements */}
+				<View className="absolute top-20 right-8 w-32 h-32 rounded-full bg-brand-accent opacity-20" />
+				<View className="absolute top-40 right-16 w-20 h-20 rounded-full bg-text-inverse opacity-15" />
+				<View className="absolute bottom-32 left-8 w-24 h-24 rounded-full bg-brand-accent opacity-25" />
+			</View>
+
+			<SafeAreaView className="flex-1 p-6 justify-center">
 				<ScrollView
 					contentContainerStyle={{
 						flexGrow: 1,
 						justifyContent: 'center',
 					}}
+					showsVerticalScrollIndicator={false}
 				>
-					<View className="w-full max-w-md bg-gray-100/65 rounded-2xl p-8 self-center shadow-lg">
-						{/* Logo Container */}
-                        <View className="flex-row items-center justify-center mb-6">
-                            <Image
-                                source={require('@/assets/images/logo.png')}
-                                className="w-16 h-16 mr-2"
-                            />
-                            <Text className="text-2xl font-bold text-gray-800">
-                                Azurea
-                            </Text>
-                        </View>
+					{/* Main Login Card */}
+					<View className="w-full max-w-md bg-surface-default/95 backdrop-blur-xl rounded-3xl p-8 self-center shadow-2xl border border-border-subtle">
+						{/* Logo and Branding Section */}
+						<View className="items-center mb-8">
+							<View className="bg-brand-primary/10 rounded-full p-4 mb-4">
+								<Image
+									source={require('@/assets/images/logo.png')}
+									className="w-16 h-16"
+								/>
+							</View>
+							<Text className="text-3xl font-playfair-bold text-text-primary mb-2">
+								Azurea Hotel
+							</Text>
+							<View className="w-16 h-1 bg-brand-primary rounded-full" />
+						</View>
 
-						<Text className="text-4xl font-bold text-center text-gray-800 mb-1">
-							Welcome to Azurea Hotel!
-						</Text>
-						<Text className="text-gray-600 text-center text-lg mb-6">
-							Log in with your Azurea Hotel for hotel bookings!
-						</Text>
+						{/* Welcome Text */}
+						<View className="mb-8 text-center">
+							<Text className="text-3xl font-playfair-bold text-text-primary mb-3 text-center">
+								Welcome Back!
+							</Text>
+							<Text className="text-text-secondary font-montserrat text-lg text-center leading-6">
+								Sign in to access your bookings and explore luxury accommodations
+							</Text>
+						</View>
 
-						<View className="mb-5">
+						{/* Email Input */}
+						<View className="mb-6">
+							<Text className="text-text-primary font-montserrat-bold text-sm mb-2 ml-1">
+								Email Address
+							</Text>
 							<Controller
 								control={control}
 								name="email"
-								rules={{ required: 'Email is required' }}
+								rules={{ 
+									required: 'Email is required',
+									pattern: {
+										value: /\S+@\S+\.\S+/,
+										message: 'Please enter a valid email address'
+									}
+								}}
 								render={({
 									field: { onChange, onBlur, value },
 								}) => (
-									<TextInput
-										className="bg-white/50 border-2 border-gray-200 rounded-xl p-4 text-gray-800 text-xl"
-										placeholder="Email"
-										value={value}
-										onChangeText={onChange}
-										onBlur={onBlur}
-										keyboardType="email-address"
-										autoCapitalize="none"
-									/>
+									<View className="relative">
+										<TextInput
+											className={`bg-input-background border-2 ${errors.email ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 pl-12 text-input-text font-montserrat text-lg`}
+											placeholder="Enter your email"
+											placeholderTextColor="#E9B3FB"
+											value={value}
+											onChangeText={onChange}
+											onBlur={onBlur}
+											keyboardType="email-address"
+											autoCapitalize="none"
+										/>
+										<View className="absolute left-4 top-1/2 transform -translate-y-1/2">
+											<FontAwesome name="envelope" size={20} color="#6F00FF" />
+										</View>
+									</View>
 								)}
 							/>
 							{errors.email && (
-								<Text className="text-red-500 mt-2">
-									{errors.email.message}
-								</Text>
+								<View className="flex-row items-center mt-2 ml-1">
+									<FontAwesome name="exclamation-circle" size={16} color="#EF4444" />
+									<Text className="text-feedback-error-DEFAULT font-montserrat text-sm ml-2">
+										{errors.email.message}
+									</Text>
+								</View>
 							)}
 						</View>
 
-						<View className="mb-5">
+						{/* Password Input */}
+						<View className="mb-6">
+							<Text className="text-text-primary font-montserrat-bold text-sm mb-2 ml-1">
+								Password
+							</Text>
 							<View className="relative">
 								<Controller
 									control={control}
 									name="password"
-									rules={{ required: 'Password is required' }}
+									rules={{ 
+										required: 'Password is required',
+										minLength: {
+											value: 6,
+											message: 'Password must be at least 6 characters'
+										}
+									}}
 									render={({
 										field: { onChange, onBlur, value },
 									}) => (
 										<TextInput
-											className="bg-white/50 border-2 border-gray-200 rounded-xl p-4 text-gray-800 text-xl pr-12"
-											placeholder="Password"
+											className={`bg-input-background border-2 ${errors.password ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 pl-12 pr-14 text-input-text font-montserrat text-lg`}
+											placeholder="Enter your password"
+											placeholderTextColor="#E9B3FB"
 											value={value}
 											onChangeText={onChange}
 											onBlur={onBlur}
@@ -121,72 +168,92 @@ export default function LoginScreen() {
 										/>
 									)}
 								/>
+								<View className="absolute left-4 top-1/2 transform -translate-y-1/2">
+									<FontAwesome name="lock" size={20} color="#6F00FF" />
+								</View>
 								<TouchableOpacity
-									className="absolute right-3 top-2 p-2"
+									className="absolute right-4 top-1/2 transform -translate-y-1/2 p-2"
 									onPress={togglePasswordVisibility}
 								>
-									{showPassword ? (
-										<FontAwesome
-											name="eye-slash"
-											size={24}
-											color="black"
-										/>
-									) : (
-										<FontAwesome
-											name="eye"
-											size={24}
-											color="black"
-										/>
-									)}
+									<FontAwesome
+										name={showPassword ? "eye-slash" : "eye"}
+										size={20}
+										color="#6F00FF"
+									/>
 								</TouchableOpacity>
 							</View>
 							{errors.password && (
-								<Text className="text-red-500 mt-2">
-									{errors.password.message}
-								</Text>
+								<View className="flex-row items-center mt-2 ml-1">
+									<FontAwesome name="exclamation-circle" size={16} color="#EF4444" />
+									<Text className="text-feedback-error-DEFAULT font-montserrat text-sm ml-2">
+										{errors.password.message}
+									</Text>
+								</View>
 							)}
 						</View>
 
-						<TouchableOpacity className="self-start mb-6">
-							<Text className="text-violet-600">
-								Forgot password?
+						{/* Forgot Password Link */}
+						<TouchableOpacity 
+							className="self-end mb-8"
+							onPress={() => router.push('/(auth)/forgot-pass')}
+						>
+							<Text className="text-interactive-primary font-montserrat-bold text-sm">
+								Forgot Password?
 							</Text>
 						</TouchableOpacity>
 
+						{/* Login Button */}
 						<TouchableOpacity
-							className={`bg-violet-600 rounded-xl p-3 mb-3 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+							className={`bg-interactive-primary rounded-2xl p-4 mb-6 shadow-lg ${isSubmitting ? 'opacity-70' : ''}`}
 							onPress={handleSubmit(onSubmit)}
 							disabled={isSubmitting}
+							activeOpacity={0.8}
 						>
-							<Text className="text-white text-2xl uppercase text-center font-semibold">
-								{isSubmitting ? (
-									<>
-										<ActivityIndicator color="#fff" />
-										<Text>Logging in...</Text>
-									</>
-								) : (
-									<>
-										<Text>Login</Text>
-									</>
-								)}
-							</Text>
+							{isSubmitting ? (
+								<View className="flex-row items-center justify-center">
+									<ActivityIndicator size="small" color="#FFF1F1" />
+									<Text className="text-interactive-primary-foreground text-lg font-montserrat-bold ml-3">
+										Logging in...
+									</Text>
+								</View>
+							) : (
+								<Text className="text-interactive-primary-foreground text-lg font-montserrat-bold text-center">
+									Login
+								</Text>
+							)}
 						</TouchableOpacity>
 
-						<View className="flex-row justify-center">
-							<Text className="text-gray-600">
-								Don&apos;t have an account?{' '}
+						{/* Divider */}
+						<View className="flex-row items-center mb-6">
+							<View className="flex-1 h-px bg-border-subtle" />
+							<Text className="text-text-muted font-montserrat text-sm mx-4">or</Text>
+							<View className="flex-1 h-px bg-border-subtle" />
+						</View>
+
+						{/* Register Link */}
+						<View className="flex-row justify-center items-center">
+							<Text className="text-text-muted font-montserrat text-base">
+								Don&apos;t have an account? 
 							</Text>
 							<TouchableOpacity
 								onPress={() => router.push('/(auth)/register')}
+								className="ml-1"
 							>
-								<Text className="text-violet-600 font-semibold">
+								<Text className="text-interactive-primary font-montserrat-bold text-base">
 									Register here
 								</Text>
 							</TouchableOpacity>
 						</View>
 					</View>
+
+					{/* Footer */}
+					<View className="mt-8 items-center">
+						<Text className="text-text-inverse/80 font-montserrat text-sm text-center">
+							By signing in, you agree to our Terms of Service{'\n'}and Privacy Policy
+						</Text>
+					</View>
 				</ScrollView>
 			</SafeAreaView>
-		</LinearGradient>
+		</View>
 	);
 }

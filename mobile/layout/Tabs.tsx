@@ -12,10 +12,9 @@ interface TabItem {
 }
 
 const tabs: TabItem[] = [
-	{ name: 'Home', route: '/', icon: 'home' },
+	{ name: 'My Bookings', route: '/', icon: 'calendar' },
 	{ name: 'Areas', route: '/areas', icon: 'map-marker' },
 	{ name: 'Rooms', route: '/rooms', icon: 'bed' },
-	{ name: 'My Bookings', route: '/bookings', icon: 'calendar' },
 	{ name: 'Profile', route: '/profile', icon: 'user' },
 ];
 
@@ -65,7 +64,6 @@ export default function Tabs() {
 								onPress={() => handleTabPress(tab.route)}
 								className="flex-1 items-center justify-center"
 								activeOpacity={0.7}
-								style={{ minHeight: 60 }}
 							>
 								<View className="items-center relative px-2 py-1">
 									{/* Icon container */}
@@ -73,8 +71,8 @@ export default function Tabs() {
 										<View className="p-2.5 rounded-xl">
 											<FontAwesome
 												name={tab.icon}
-												size={25}
-												color={isActive ? '#7c3aed' : '#78716c'}
+												size={30}
+												color={isActive ? '#6F00FF' : '#57534e'}
 											/>
 										</View>
 									</View>

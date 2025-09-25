@@ -1,5 +1,7 @@
+import { IsVerified } from '@/types/GuestUser.types';
+
 interface ColorMap {
-    [key: string]: string;
+	[key: string]: string;
 }
 
 export const pesoFormatter = new Intl.NumberFormat('en-PH', {
@@ -109,16 +111,34 @@ export const formatStatus = (status: string): string => {
 };
 
 /**
- * Format a status color based on the status string
+ * Format a status color based on the status string using brand colors
  */
 export const colorMap: ColorMap = {
-    pending: 'bg-yellow-500',
-    reserved: 'bg-purple-500',
-    checked_in: 'bg-green-500',
-    checked_out: 'bg-blue-500',
-    completed: 'bg-gray-500',
-    cancelled: 'bg-red-500',
-    rejected: 'bg-red-700',
+	pending: 'bg-feedback-warning-DEFAULT',
+	reserved: 'bg-interactive-primary',
+	checked_in: 'bg-feedback-success-DEFAULT',
+	checked_out: 'bg-feedback-info-DEFAULT',
+	completed: 'bg-text-primary',
+	cancelled: 'bg-feedback-error-DEFAULT',
+	rejected: 'bg-feedback-error-DEFAULT',
+};
+
+export const getStatusColor = (status: string): string => {
+	return colorMap[status] || 'bg-interactive-primary';
+};
+
+export const statusStyles: Record<string, object> = {
+	pending: { backgroundColor: '#F59E0B' }, // feedback-warning-DEFAULT
+	reserved: { backgroundColor: '#6F00FF' }, // interactive-primary
+	checked_in: { backgroundColor: '#10B981' }, // feedback-success-DEFAULT
+	checked_out: { backgroundColor: '#3B82F6' }, // feedback-info-DEFAULT
+	completed: { backgroundColor: '#3B0270' }, // text-primary
+	cancelled: { backgroundColor: '#EF4444' }, // feedback-error-DEFAULT
+	rejected: { backgroundColor: '#EF4444' }, // feedback-error-DEFAULT
+};
+
+export const getStatusStyle = (status: string) => {
+	return statusStyles[status] || { backgroundColor: '#6F00FF' };
 };
 
 /**
@@ -177,4 +197,54 @@ export const formatDiscountedPrice = (
 		return pesoFormatter.format(discountedPrice);
 	}
 	return pesoFormatter.format(price);
+};
+
+/**
+ * Display the guest user's verification status in profile.tsx
+ * Returns text, color, backgroundColor, borderColor, icon, and isVerified
+ */
+export const getVerificationDisplay = (status: IsVerified) => {
+	switch (status) {
+		case IsVerified.VERIFIED:
+			return {
+				text: 'VERIFIED',
+				color: 'bg-feedback-success-DEFAULT',
+				textColor: 'text-feedback-success-dark',
+				bgColor: 'bg-feedback-success-light',
+				borderColor: 'border-feedback-success-DEFAULT',
+				icon: '✓',
+				isVerified: true,
+			};
+		case IsVerified.PENDING:
+			return {
+				text: 'PENDING',
+				color: 'bg-feedback-warning-DEFAULT',
+				textColor: 'text-feedback-warning-dark',
+				bgColor: 'bg-feedback-warning-light',
+				borderColor: 'border-feedback-warning-DEFAULT',
+				icon: '⏳',
+				isVerified: false,
+			};
+		case IsVerified.REJECTED:
+			return {
+				text: 'REJECTED',
+				color: 'bg-feedback-error-DEFAULT',
+				textColor: 'text-feedback-error-dark',
+				bgColor: 'bg-feedback-error-light',
+				borderColor: 'border-feedback-error-DEFAULT',
+				icon: '✗',
+				isVerified: false,
+			};
+		case IsVerified.UNVERIFIED:
+		default:
+			return {
+				text: 'UNVERIFIED',
+				color: 'bg-feedback-error-DEFAULT',
+				textColor: 'text-feedback-error-dark',
+				bgColor: 'bg-feedback-error-light',
+				borderColor: 'border-feedback-error-DEFAULT',
+				icon: '!',
+				isVerified: false,
+			};
+	}
 };

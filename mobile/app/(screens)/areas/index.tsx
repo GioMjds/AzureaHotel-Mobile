@@ -1,9 +1,8 @@
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { area } from '@/services/Area';
-import AreaCard from '@/components/AreaCard';
-import { ScrollAwareView } from '@/components/ScrollAwareScreen';
+import AreaCard from '@/components/areas/AreaCard';
 import { Area } from '@/types/Area.types';
 
 export default function AreasScreen() {
@@ -55,17 +54,16 @@ export default function AreasScreen() {
 			</View>
 
 			{/* Areas List */}
-			<ScrollAwareView
-				type="flatlist"
-				data={data?.data || []}
-				renderItem={({ item }: { item: Area }) => <AreaCard item={item} />}
-				keyExtractor={(item: Area) => item.id.toString()}
+			<FlatList
+				data={data?.data as Area[]}
+				renderItem={({ item }) => <AreaCard item={item} />}
+				keyExtractor={(item) => item.id.toString()}
 				contentContainerStyle={{ paddingTop: 16, paddingBottom: 20 }}
 				showsVerticalScrollIndicator={false}
 				ListEmptyComponent={
-					<View className="flex-1 justify-center items-center py-20">
-						<Text className="text-neutral-500 font-montserrat text-center">
-							No areas available at the moment
+					<View className="flex-1 justify-center items-center mt-10">
+						<Text className="text-neutral-600 font-montserrat">
+							No areas available.
 						</Text>
 					</View>
 				}

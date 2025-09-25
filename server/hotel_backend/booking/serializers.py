@@ -115,7 +115,6 @@ class BookingSerializer(serializers.ModelSerializer):
         user = instance.user if hasattr(instance, 'user') else None
         discount_percent = 0
         
-        
         # Apply PWD/Senior Discount if user is eligible
         if user and getattr(user, 'is_senior_or_pwd', False):
             discount_percent = PWD_SENIOR_DISCOUNT_PERCENT
