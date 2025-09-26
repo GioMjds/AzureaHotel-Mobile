@@ -1,14 +1,27 @@
 import { Link } from 'expo-router';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
 import { UserBooking } from '@/types/Bookings.types';
 import { formatDate, formatTime, getStatusStyle, pesoFormatter } from '@/utils/formatters';
+import { useBookingReview } from '@/hooks/useBookingReview';
+import FeedbackModal from './FeedbackModal';
+import { Ionicons } from '@expo/vector-icons';
 
 interface BookingCardProps {
 	item: UserBooking;
 }
 
 const BookingCard = ({ item }: BookingCardProps) => {
+	const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
 	const isAreaBooking = item.is_venue_booking;
+
+	// Check if this is a checked-out booking and if it has been reviewed
+	const isCheckedOut = item.status.toLowerCase() === 'checked_out';
+	const { data: reviewData } = useBookingReview(
+		item.id, 
+		isCheckedOut // Only fetch review data for checked-out bookings
+	);
+	const hasReview = reviewData?.hasReview || false;
 
 	const propertyName = isAreaBooking
 		? item.area_details?.area_name
@@ -47,7 +60,7 @@ const BookingCard = ({ item }: BookingCardProps) => {
 			<View className="p-6">
 				{/* Property Name & Creation Date */}
 				<View className="mb-4">
-					<Text className="text-2xl font-playfair-bold text-text-primary mb-1">
+					<Text className="text-4xl font-playfair-bold text-text-primary mb-1">
 						{propertyName}
 					</Text>
 					<Text className="text-text-muted font-montserrat text-sm">
@@ -106,13 +119,13 @@ const BookingCard = ({ item }: BookingCardProps) => {
 				</View>
 
 				{/* Payment Information */}
-				<View className="border border-border-DEFAULT rounded-xl p-4 mb-4">
+				<View className="border border-border-default rounded-xl p-4 mb-4">
 					<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-3">
 						Payment Details
 					</Text>
 					
 					<View className="flex-row items-center justify-between mb-2">
-						<Text className="text-text-primary font-montserrat text-sm">Method:</Text>
+						<Text className="text-text-primary font-montserrat text-sm">Payment Method:</Text>
 						<Text className="text-text-primary font-montserrat-bold text-sm capitalize">
 							{item.payment_method}
 						</Text>
@@ -161,7 +174,7 @@ const BookingCard = ({ item }: BookingCardProps) => {
 									</View>
 								</View>
 							) : (
-								<Text className="text-interactive-primary-DEFAULT font-playfair-bold text-xl">
+								<Text className="text-interactive-primary font-montserrat-bold text-3xl">
 									{pesoFormatter.format(item.total_amount || item.total_price)}
 								</Text>
 							)}
@@ -171,7 +184,7 @@ const BookingCard = ({ item }: BookingCardProps) => {
 							href={`/booking/${item.id}` as any} 
 							asChild
 						>
-							<TouchableOpacity className='bg-interactive-primary-DEFAULT px-6 py-3 rounded-xl shadow-sm active:bg-interactive-primary-pressed'>
+							<TouchableOpacity className='bg-interactive-primary px-6 py-3 rounded-xl shadow-sm active:bg-interactive-primary-pressed'>
 								<Text className="text-interactive-primary-foreground font-montserrat-bold text-sm">
 									View Details
 								</Text>
@@ -179,6 +192,58 @@ const BookingCard = ({ item }: BookingCardProps) => {
 						</Link>
 					</View>
 				</View>
+
+				{/* Review Section for Checked Out Bookings */}
+				{isCheckedOut && !hasReview && (
+					<View className="bg-feedback-success-light rounded-xl p-4 mb-4 border border-feedback-success-DEFAULT">
+						<View className="flex-row items-center justify-between">
+							<View className="flex-1 mr-4">
+								<Text className="text-feedback-success-dark font-montserrat-bold text-sm mb-1">
+									How was your stay?
+								</Text>
+								<Text className="text-feedback-success-dark font-montserrat text-xs">
+									Share your experience with other guests
+								</Text>
+							</View>
+							<TouchableOpacity
+								onPress={() => setFeedbackModalVisible(true)}
+								className="bg-feedback-success-DEFAULT px-4 py-2 rounded-lg shadow-sm active:bg-green-600 flex-row items-center"
+							>
+								<Ionicons 
+									name="star" 
+									size={16} 
+									color="white" 
+									style={{ marginRight: 4 }}
+								/>
+								<Text className="text-white font-montserrat-bold text-sm">
+									Leave Review
+								</Text>
+							</TouchableOpacity>
+						</View>
+					</View>
+				)}
+
+				{/* Review Status for Checked Out Bookings that have been reviewed */}
+				{isCheckedOut && hasReview && (
+					<View className="bg-background-subtle rounded-xl p-4 mb-4 border border-border-subtle">
+						<View className="flex-row items-center">
+							<Ionicons 
+								name="checkmark-circle" 
+								size={20} 
+								color="#10B981" 
+								style={{ marginRight: 8 }}
+							/>
+							<View>
+								<Text className="text-text-primary font-montserrat-bold text-sm">
+									Review Submitted
+								</Text>
+								<Text className="text-text-muted font-montserrat text-xs">
+									Thank you for sharing your experience!
+								</Text>
+							</View>
+						</View>
+					</View>
+				)}
 
 				{/* Special Request */}
 				{item.special_request && (
@@ -214,6 +279,13 @@ const BookingCard = ({ item }: BookingCardProps) => {
 					</View>
 				)}
 			</View>
+
+			{/* Feedback Modal */}
+			<FeedbackModal
+				visible={feedbackModalVisible}
+				onClose={() => setFeedbackModalVisible(false)}
+				bookingItem={item}
+			/>
 		</View>
 	);
 };

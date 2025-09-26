@@ -5,7 +5,6 @@ export const useAuth = () => {
     const {
         user,
         isAuthenticated,
-        isLoading,
         fetchUser,
         clearAuth
     } = useAuthStore();
@@ -35,7 +34,7 @@ export const useAuth = () => {
     return {
         user,
         isAuthenticated,
-        isLoading: isLoading || loginMutation.isPending || logoutMutation.isPending,
+        isLoading: loginMutation.isPending || logoutMutation.isPending,
         login,
         logout,
         refetchUser: fetchUser,

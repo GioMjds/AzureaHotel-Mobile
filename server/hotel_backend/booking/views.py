@@ -515,7 +515,7 @@ def booking_reviews(request, booking_id):
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+# @permission_classes([IsAuthenticated])
 def user_reviews(request):
     reviews = Reviews.objects.filter(user=request.user).order_by('-created_at')
     serializer = ReviewSerializer(reviews, many=True)

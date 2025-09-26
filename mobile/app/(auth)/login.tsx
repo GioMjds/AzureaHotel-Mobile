@@ -6,7 +6,7 @@ import {
 	View,
 	Image,
 	ScrollView,
-	ActivityIndicator
+	ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,8 +16,8 @@ import { useAuthMutations } from '@/hooks/useAuthMutations';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 interface LoginFormData {
-    email: string;
-    password: string;
+	email: string;
+	password: string;
 }
 
 export default function LoginScreen() {
@@ -28,7 +28,7 @@ export default function LoginScreen() {
 	const {
 		control,
 		handleSubmit,
-		formState: { errors, isSubmitting },
+		formState: { errors },
 	} = useForm<LoginFormData>({
 		defaultValues: {
 			email: '',
@@ -38,7 +38,7 @@ export default function LoginScreen() {
 	});
 
 	const onSubmit: SubmitHandler<LoginFormData> = (data) => {
-		loginMutation.mutateAsync(data);
+		loginMutation.mutate(data);
 	};
 
 	const togglePasswordVisibility = () => setShowPassword(!showPassword);
@@ -55,7 +55,6 @@ export default function LoginScreen() {
 				/>
 				{/* Decorative Elements */}
 				<View className="absolute top-20 right-8 w-32 h-32 rounded-full bg-brand-accent opacity-20" />
-				<View className="absolute top-40 right-16 w-20 h-20 rounded-full bg-text-inverse opacity-15" />
 				<View className="absolute bottom-32 left-8 w-24 h-24 rounded-full bg-brand-accent opacity-25" />
 			</View>
 
@@ -70,7 +69,7 @@ export default function LoginScreen() {
 					{/* Main Login Card */}
 					<View className="w-full max-w-md bg-surface-default/95 backdrop-blur-xl rounded-3xl p-8 self-center shadow-2xl border border-border-subtle">
 						{/* Logo and Branding Section */}
-						<View className="items-center mb-8">
+						<View className="items-center mb-2">
 							<View className="bg-brand-primary/10 rounded-full p-4 mb-4">
 								<Image
 									source={require('@/assets/images/logo.png')}
@@ -85,11 +84,9 @@ export default function LoginScreen() {
 
 						{/* Welcome Text */}
 						<View className="mb-8 text-center">
-							<Text className="text-3xl font-playfair-bold text-text-primary mb-3 text-center">
-								Welcome Back!
-							</Text>
 							<Text className="text-text-secondary font-montserrat text-lg text-center leading-6">
-								Sign in to access your bookings and explore luxury accommodations
+								Sign in to access your bookings and explore
+								luxury accommodations
 							</Text>
 						</View>
 
@@ -101,12 +98,13 @@ export default function LoginScreen() {
 							<Controller
 								control={control}
 								name="email"
-								rules={{ 
+								rules={{
 									required: 'Email is required',
 									pattern: {
 										value: /\S+@\S+\.\S+/,
-										message: 'Please enter a valid email address'
-									}
+										message:
+											'Please enter a valid email address',
+									},
 								}}
 								render={({
 									field: { onChange, onBlur, value },
@@ -123,14 +121,22 @@ export default function LoginScreen() {
 											autoCapitalize="none"
 										/>
 										<View className="absolute left-4 top-1/2 transform -translate-y-1/2">
-											<FontAwesome name="envelope" size={20} color="#6F00FF" />
+											<FontAwesome
+												name="envelope"
+												size={20}
+												color="#6F00FF"
+											/>
 										</View>
 									</View>
 								)}
 							/>
 							{errors.email && (
 								<View className="flex-row items-center mt-2 ml-1">
-									<FontAwesome name="exclamation-circle" size={16} color="#EF4444" />
+									<FontAwesome
+										name="exclamation-circle"
+										size={16}
+										color="#EF4444"
+									/>
 									<Text className="text-feedback-error-DEFAULT font-montserrat text-sm ml-2">
 										{errors.email.message}
 									</Text>
@@ -147,12 +153,13 @@ export default function LoginScreen() {
 								<Controller
 									control={control}
 									name="password"
-									rules={{ 
+									rules={{
 										required: 'Password is required',
 										minLength: {
 											value: 6,
-											message: 'Password must be at least 6 characters'
-										}
+											message:
+												'Password must be at least 6 characters',
+										},
 									}}
 									render={({
 										field: { onChange, onBlur, value },
@@ -169,14 +176,26 @@ export default function LoginScreen() {
 									)}
 								/>
 								<View className="absolute left-4 top-1/2 transform -translate-y-1/2">
-									<FontAwesome name="lock" size={20} color="#6F00FF" />
+									<FontAwesome
+										name="lock"
+										pressRetentionOffset={{
+											top: 10,
+											bottom: 10,
+											left: 10,
+											right: 10,
+										}}
+										size={20}
+										color="#6F00FF"
+									/>
 								</View>
 								<TouchableOpacity
 									className="absolute right-4 top-1/2 transform -translate-y-1/2 p-2"
 									onPress={togglePasswordVisibility}
 								>
 									<FontAwesome
-										name={showPassword ? "eye-slash" : "eye"}
+										name={
+											showPassword ? 'eye-slash' : 'eye'
+										}
 										size={20}
 										color="#6F00FF"
 									/>
@@ -184,7 +203,11 @@ export default function LoginScreen() {
 							</View>
 							{errors.password && (
 								<View className="flex-row items-center mt-2 ml-1">
-									<FontAwesome name="exclamation-circle" size={16} color="#EF4444" />
+									<FontAwesome
+										name="exclamation-circle"
+										size={16}
+										color="#EF4444"
+									/>
 									<Text className="text-feedback-error-DEFAULT font-montserrat text-sm ml-2">
 										{errors.password.message}
 									</Text>
@@ -193,63 +216,65 @@ export default function LoginScreen() {
 						</View>
 
 						{/* Forgot Password Link */}
-						<TouchableOpacity 
-							className="self-end mb-8"
-							onPress={() => router.push('/(auth)/forgot-pass')}
-						>
-							<Text className="text-interactive-primary font-montserrat-bold text-sm">
-								Forgot Password?
-							</Text>
-						</TouchableOpacity>
+						<View className="flex-row items-center mb-4">
+							<TouchableOpacity
+								activeOpacity={0.8}
+								onPress={() =>
+									router.push('/(auth)/forgot-pass')
+								}
+							>
+								<Text className="text-interactive-primary font-montserrat-bold text-sm">
+									Forgot Password?
+								</Text>
+							</TouchableOpacity>
+						</View>
 
 						{/* Login Button */}
 						<TouchableOpacity
-							className={`bg-interactive-primary rounded-2xl p-4 mb-6 shadow-lg ${isSubmitting ? 'opacity-70' : ''}`}
+							className={`bg-interactive-primary rounded-2xl p-4 mb-2 shadow-lg ${loginMutation.isPending ? 'opacity-70' : ''}`}
 							onPress={handleSubmit(onSubmit)}
-							disabled={isSubmitting}
+							disabled={loginMutation.isPending}
 							activeOpacity={0.8}
 						>
-							{isSubmitting ? (
+							{loginMutation.isPending ? (
 								<View className="flex-row items-center justify-center">
-									<ActivityIndicator size="small" color="#FFF1F1" />
-									<Text className="text-interactive-primary-foreground text-lg font-montserrat-bold ml-3">
-										Logging in...
-									</Text>
+									<ActivityIndicator
+										size="small"
+										color="#FFF1F1"
+									/>
 								</View>
 							) : (
-								<Text className="text-interactive-primary-foreground text-lg font-montserrat-bold text-center">
+								<Text className="text-interactive-primary-foreground text-xl font-montserrat-bold text-center">
 									Login
 								</Text>
 							)}
 						</TouchableOpacity>
 
-						{/* Divider */}
-						<View className="flex-row items-center mb-6">
-							<View className="flex-1 h-px bg-border-subtle" />
-							<Text className="text-text-muted font-montserrat text-sm mx-4">or</Text>
-							<View className="flex-1 h-px bg-border-subtle" />
-						</View>
-
 						{/* Register Link */}
-						<View className="flex-row justify-center items-center">
-							<Text className="text-text-muted font-montserrat text-base">
-								Don&apos;t have an account? 
-							</Text>
-							<TouchableOpacity
-								onPress={() => router.push('/(auth)/register')}
-								className="ml-1"
-							>
-								<Text className="text-interactive-primary font-montserrat-bold text-base">
-									Register here
+						<View className="flex-col space-y-2 items-center mt-2">
+							<View className="flex-row items-center">
+								<Text className="text-text-muted font-montserrat text-base">
+									Don&apos;t have an account?
 								</Text>
-							</TouchableOpacity>
+								<TouchableOpacity
+									onPress={() =>
+										router.push('/(auth)/register')
+									}
+									className="ml-1"
+								>
+									<Text className="text-interactive-primary font-montserrat-bold text-base">
+										Register here
+									</Text>
+								</TouchableOpacity>
+							</View>
 						</View>
 					</View>
 
 					{/* Footer */}
 					<View className="mt-8 items-center">
 						<Text className="text-text-inverse/80 font-montserrat text-sm text-center">
-							By signing in, you agree to our Terms of Service{'\n'}and Privacy Policy
+							By signing in, you agree to our Terms of Service
+							{'\n'}and Privacy Policy
 						</Text>
 					</View>
 				</ScrollView>

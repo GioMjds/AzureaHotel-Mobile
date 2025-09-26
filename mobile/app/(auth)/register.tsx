@@ -35,7 +35,7 @@ export default function RegisterScreen() {
 	const {
 		control,
 		handleSubmit,
-		formState: { errors, isSubmitting },
+		formState: { errors },
 		watch,
 	} = useForm<RegisterFormData>({
 		defaultValues: {
@@ -83,90 +83,119 @@ export default function RegisterScreen() {
 	const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
 	return (
-		<LinearGradient
-			colors={['#7c3aed', '#a78bfa']}
-			start={{ x: 0, y: 0 }}
-			end={{ x: 1, y: 1 }}
-			style={{ flex: 1 }}
-		>
-			<SafeAreaView className="flex-1 p-5 justify-center">
+		<View className="flex-1 bg-background-default">
+			{/* Background Gradient Overlay */}
+			<View className="absolute inset-0">
+				<LinearGradient
+					colors={['#6F00FF', '#3B0270', '#E9B3FB']}
+					start={{ x: 0, y: 0 }}
+					end={{ x: 1, y: 1 }}
+					style={{ flex: 1 }}
+				/>
+				{/* Decorative Elements */}
+				<View className="absolute top-20 right-8 w-32 h-32 rounded-full bg-brand-accent opacity-20" />
+				<View className="absolute bottom-32 left-8 w-24 h-24 rounded-full bg-brand-accent opacity-25" />
+			</View>
+
+			<SafeAreaView className="flex-1 p-6 justify-center">
 				<ScrollView
 					contentContainerStyle={{
 						flexGrow: 1,
 						justifyContent: 'center',
 					}}
+					showsVerticalScrollIndicator={false}
 				>
-					<View className="w-full max-w-md bg-gray-100/65 rounded-2xl p-8 self-center shadow-lg">
-						{/* Logo Container */}
-						<View className="flex-row items-center justify-center mb-6">
-							<Image
-								source={require('@/assets/images/logo.png')}
-								className="w-16 h-16 mr-2"
-							/>
-							<Text className="text-2xl font-bold text-gray-800">
-								Azurea
+					{/* Main Registration Card */}
+					<View className="w-full max-w-md bg-surface-default/95 backdrop-blur-xl rounded-3xl p-8 self-center shadow-2xl border border-border-subtle">
+						{/* Logo and Branding Section */}
+						<View className="items-center mb-2">
+							<View className="bg-brand-primary/10 rounded-full p-4 mb-4">
+								<Image
+									source={require('@/assets/images/logo.png')}
+									className="w-16 h-16"
+								/>
+							</View>
+							<Text className="text-3xl font-playfair-bold text-text-primary mb-2">
+								Azurea Hotel
+							</Text>
+							<View className="w-16 h-1 bg-brand-primary rounded-full" />
+						</View>
+
+						{/* Welcome Text */}
+						<View className="mb-8 text-center">
+							<Text className="text-text-secondary font-montserrat text-lg text-center leading-6">
+								Create your account to start booking luxury accommodations
 							</Text>
 						</View>
 
-						<Text className="text-4xl font-bold text-center text-gray-800 mb-1">
-							Create Your Account
-						</Text>
-						<Text className="text-gray-600 text-center text-lg mb-6">
-							Register to start booking with Azurea Hotel!
-						</Text>
-
-						{/* Email Field */}
-						<View className="mb-5">
+						{/* Email Input */}
+						<View className="mb-6">
+							<Text className="text-text-primary font-montserrat-bold text-sm mb-2 ml-1">
+								Email Address
+							</Text>
 							<Controller
 								control={control}
 								name="email"
-								rules={{
+								rules={{ 
 									required: 'Email is required',
 									pattern: {
-										value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-										message: 'Please enter a valid email address',
-									},
+										value: /\S+@\S+\.\S+/,
+										message: 'Please enter a valid email address'
+									}
 								}}
 								render={({
 									field: { onChange, onBlur, value },
 								}) => (
-									<TextInput
-										className="bg-white/50 border-2 border-gray-200 rounded-xl p-4 text-gray-800 text-xl"
-										placeholder="Email"
-										value={value}
-										onChangeText={onChange}
-										onBlur={onBlur}
-										keyboardType="email-address"
-										autoCapitalize="none"
-									/>
+									<View className="relative">
+										<TextInput
+											className={`bg-input-background border-2 ${errors.email ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 pl-12 text-input-text font-montserrat text-lg`}
+											placeholder="Enter your email"
+											placeholderTextColor="#E9B3FB"
+											value={value}
+											onChangeText={onChange}
+											onBlur={onBlur}
+											keyboardType="email-address"
+											autoCapitalize="none"
+										/>
+										<View className="absolute left-4 top-1/2 transform -translate-y-1/2">
+											<FontAwesome name="envelope" size={20} color="#6F00FF" />
+										</View>
+									</View>
 								)}
 							/>
 							{errors.email && (
-								<Text className="text-red-500 mt-2">
-									{errors.email.message}
-								</Text>
+								<View className="flex-row items-center mt-2 ml-1">
+									<FontAwesome name="exclamation-circle" size={16} color="#EF4444" />
+									<Text className="text-feedback-error-DEFAULT text-sm ml-2 font-montserrat">
+										{errors.email.message}
+									</Text>
+								</View>
 							)}
 						</View>
 
-						{/* Password Field */}
-						<View className="mb-5">
+						{/* Password Input */}
+						<View className="mb-6">
+							<Text className="text-text-primary font-montserrat-bold text-sm mb-2 ml-1">
+								Password
+							</Text>
 							<View className="relative">
 								<Controller
 									control={control}
 									name="password"
-									rules={{
+									rules={{ 
 										required: 'Password is required',
 										minLength: {
 											value: 8,
-											message: 'Password must be at least 8 characters',
-										},
+											message: 'Password must be at least 8 characters'
+										}
 									}}
 									render={({
 										field: { onChange, onBlur, value },
 									}) => (
 										<TextInput
-											className="bg-white/50 border-2 border-gray-200 rounded-xl p-4 text-gray-800 text-xl pr-12"
-											placeholder="Password"
+											className={`bg-input-background border-2 ${errors.password ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 pl-12 pr-14 text-input-text font-montserrat text-lg`}
+											placeholder="Enter your password"
+											placeholderTextColor="#E9B3FB"
 											value={value}
 											onChangeText={onChange}
 											onBlur={onBlur}
@@ -174,34 +203,40 @@ export default function RegisterScreen() {
 										/>
 									)}
 								/>
+								<View className="absolute left-4 top-1/2 transform -translate-y-1/2">
+									<FontAwesome 
+										name="lock"
+										pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }} 
+										size={20} 
+										color="#6F00FF"
+									/>
+								</View>
 								<TouchableOpacity
-									className="absolute right-3 top-2 p-2"
+									className="absolute right-4 top-1/2 transform -translate-y-1/2 p-2"
 									onPress={togglePasswordVisibility}
 								>
-									{showPassword ? (
-										<FontAwesome
-											name="eye-slash"
-											size={24}
-											color="black"
-										/>
-									) : (
-										<FontAwesome
-											name="eye"
-											size={24}
-											color="black"
-										/>
-									)}
+									<FontAwesome
+										name={showPassword ? "eye-slash" : "eye"}
+										size={20}
+										color="#6F00FF"
+									/>
 								</TouchableOpacity>
 							</View>
 							{errors.password && (
-								<Text className="text-red-500 mt-2">
-									{errors.password.message}
-								</Text>
+								<View className="flex-row items-center mt-2 ml-1">
+									<FontAwesome name="exclamation-circle" size={16} color="#EF4444" />
+									<Text className="text-feedback-error-DEFAULT text-sm ml-2 font-montserrat">
+										{errors.password.message}
+									</Text>
+								</View>
 							)}
 						</View>
 
-						{/* Confirm Password Field */}
-						<View className="mb-5">
+						{/* Confirm Password Input */}
+						<View className="mb-6">
+							<Text className="text-text-primary font-montserrat-bold text-sm mb-2 ml-1">
+								Confirm Password
+							</Text>
 							<View className="relative">
 								<Controller
 									control={control}
@@ -215,8 +250,9 @@ export default function RegisterScreen() {
 										field: { onChange, onBlur, value },
 									}) => (
 										<TextInput
-											className="bg-white/50 border-2 border-gray-200 rounded-xl p-4 text-gray-800 text-xl pr-12"
-											placeholder="Confirm Password"
+											className={`bg-input-background border-2 ${errors.confirmPassword ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 pl-12 pr-14 text-input-text font-montserrat text-lg`}
+											placeholder="Confirm your password"
+											placeholderTextColor="#E9B3FB"
 											value={value}
 											onChangeText={onChange}
 											onBlur={onBlur}
@@ -224,93 +260,105 @@ export default function RegisterScreen() {
 										/>
 									)}
 								/>
+								<View className="absolute left-4 top-1/2 transform -translate-y-1/2">
+									<FontAwesome 
+										name="lock"
+										pressRetentionOffset={{ top: 10, bottom: 10, left: 10, right: 10 }} 
+										size={20} 
+										color="#6F00FF"
+									/>
+								</View>
 								<TouchableOpacity
-									className="absolute right-3 top-2 p-2"
+									className="absolute right-4 top-1/2 transform -translate-y-1/2 p-2"
 									onPress={toggleConfirmPasswordVisibility}
 								>
-									{showConfirmPassword ? (
-										<FontAwesome
-											name="eye-slash"
-											size={24}
-											color="black"
-										/>
-									) : (
-										<FontAwesome
-											name="eye"
-											size={24}
-											color="black"
-										/>
-									)}
+									<FontAwesome
+										name={showConfirmPassword ? "eye-slash" : "eye"}
+										size={20}
+										color="#6F00FF"
+									/>
 								</TouchableOpacity>
 							</View>
 							{errors.confirmPassword && (
-								<Text className="text-red-500 mt-2">
-									{errors.confirmPassword.message}
-								</Text>
+								<View className="flex-row items-center mt-2 ml-1">
+									<FontAwesome name="exclamation-circle" size={16} color="#EF4444" />
+									<Text className="text-feedback-error-DEFAULT text-sm ml-2 font-montserrat">
+										{errors.confirmPassword.message}
+									</Text>
+								</View>
 							)}
 						</View>
 
 						{/* Register Button */}
 						<TouchableOpacity
-							className={`bg-violet-600 rounded-xl p-3 mb-3 ${
-								isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-							}`}
+							className={`bg-interactive-primary rounded-2xl p-4 mb-2 shadow-lg ${sendRegisterOTPMutation.isPending ? 'opacity-70' : ''}`}
 							onPress={handleSubmit(onSubmit)}
-							disabled={isSubmitting}
+							disabled={sendRegisterOTPMutation.isPending}
+							activeOpacity={0.8}
 						>
-							<Text className="text-white text-2xl uppercase text-center font-semibold">
-								{isSubmitting ? (
-									<View className="flex-row items-center justify-center">
-										<ActivityIndicator color="#fff" />
-										<Text className="ml-2">Creating Account...</Text>
-									</View>
-								) : (
-									'Register'
-								)}
-							</Text>
+							{sendRegisterOTPMutation.isPending ? (
+								<View className="flex-row items-center justify-center">
+									<ActivityIndicator size="small" color="#FFF1F1" />
+									<Text className="text-interactive-primary-foreground text-lg font-montserrat-bold ml-2">
+										Creating Account...
+									</Text>
+								</View>
+							) : (
+								<Text className="text-interactive-primary-foreground text-lg font-montserrat-bold text-center">
+									Create Account
+								</Text>
+							)}
 						</TouchableOpacity>
 
 						{/* Divider */}
-						<View className="flex-row items-center mb-3">
-							<View className="flex-1 h-px bg-violet-600" />
-							<Text className="mx-4 text-lg text-gray-600">OR</Text>
-							<View className="flex-1 h-px bg-violet-600" />
+						<View className="flex-row items-center mb-2">
+							<View className="flex-1 h-px bg-border-subtle" />
+							<Text className="text-text-muted font-montserrat text-sm mx-4">or</Text>
+							<View className="flex-1 h-px bg-border-subtle" />
 						</View>
 
 						{/* Google Register Button */}
 						<TouchableOpacity
-							className="border border-violet-500 rounded-xl p-4 mb-6 flex-row justify-center items-center"
+							className="bg-transparent border-2 border-interactive-outline-border rounded-2xl p-4 mb-6 flex-row justify-center items-center active:bg-interactive-outline-hover"
 							onPress={() => {
-								Alert.alert('Info', 'Google registration coming soon!');
+								Alert.alert('Coming Soon', 'Google registration will be available soon!');
 							}}
 						>
 							<FontAwesome
 								name="google"
-								size={24}
-								color="#7c3aed"
-								className="mr-2"
+								size={20}
+								color="#6F00FF"
+								style={{ marginRight: 8 }}
 							/>
-							<Text className="text-gray-800 text-lg font-medium">
-								Register with Google
+							<Text className="text-interactive-outline-foreground text-base font-montserrat-bold">
+								Continue with Google
 							</Text>
 						</TouchableOpacity>
 
 						{/* Login Link */}
-						<View className="flex-row justify-center">
-							<Text className="text-gray-600">
-								Already have an account?{' '}
+						<View className="flex-row justify-center items-center">
+							<Text className="text-text-muted font-montserrat text-base">
+								Already have an account? 
 							</Text>
 							<TouchableOpacity
 								onPress={() => router.push('/(auth)/login')}
+								className="ml-1"
 							>
-								<Text className="text-violet-600 font-semibold">
+								<Text className="text-interactive-primary font-montserrat-bold text-base">
 									Login here
 								</Text>
 							</TouchableOpacity>
 						</View>
 					</View>
+
+					{/* Footer */}
+					<View className="mt-8 items-center">
+						<Text className="text-text-inverse/80 font-montserrat text-sm text-center">
+							By creating an account, you agree to our Terms of Service{'\n'}and Privacy Policy
+						</Text>
+					</View>
 				</ScrollView>
 			</SafeAreaView>
-		</LinearGradient>
+		</View>
 	);
 }

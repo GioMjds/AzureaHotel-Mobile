@@ -32,16 +32,12 @@ export function useAuthMutations() {
         mutationFn: async ({ email, password }: { email: string; password: string }) => {
             return await auth.login(email, password);
         },
-        onMutate: () => {
-            setIsLoading(true);
-        },
         onSuccess: async (data) => {
             if (data.user && data.access_token && data.refresh_token) {
                 await storeTokens(data.access_token, data.refresh_token);
                 await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(data.user));
                 setUser(data.user);
                 setIsAuthenticated(true);
-                setIsLoading(false);
                 queryClient.invalidateQueries({ queryKey: ['user'] });
                 queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
             } else {
@@ -51,10 +47,6 @@ export function useAuthMutations() {
         onError: (error) => {
             logger.error(`Login error: ${error}`);
             setIsLoading(false);
-        },
-        meta: {
-            showSuccessNotification: true,
-            successMessage: 'Login successful!',
         },
     });
 
@@ -80,10 +72,6 @@ export function useAuthMutations() {
             setIsAuthenticated(false);
             setIsLoading(false);
             queryClient.clear();
-        },
-        meta: {
-            showSuccessNotification: true,
-            successMessage: 'Logged out successfully!',
         },
     });
 

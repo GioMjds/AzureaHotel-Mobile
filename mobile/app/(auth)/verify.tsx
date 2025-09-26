@@ -14,8 +14,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as SecureStore from 'expo-secure-store';
 import { httpClient } from '@/configs/axios';
+import { auth } from '@/services/UserAuth';
 import { ApiRoutes } from '@/configs/axios.routes';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -37,7 +39,7 @@ export default function VerifyRegisterOTPScreen() {
     const {
         control,
         handleSubmit,
-        formState: { errors, isSubmitting },
+        formState: { errors },
     } = useForm<VerifyFormData>({
         defaultValues: {
             otp: '',
@@ -45,7 +47,6 @@ export default function VerifyRegisterOTPScreen() {
         mode: 'onSubmit',
     });
 
-    // Load stored email and password on component mount
     useEffect(() => {
         const loadStoredData = async () => {
             try {
@@ -89,18 +90,12 @@ export default function VerifyRegisterOTPScreen() {
     }, [countdown]);
 
     const verifyOTPMutation = useMutation({
-        mutationFn: ({ otp }: { otp: string }) => httpClient.post(ApiRoutes.VERIFY_OTP, {
-            email,
-            password,
-            otp,
-            first_name: 'Guest',
-            last_name: '',
-        }),
-        onSuccess: async (data) => {
-            // Clear stored registration data
+        mutationFn: async ({ otp }: { otp: string }) => {
+            return await auth.verifyOtp(email, password, otp, 'Guest', '');
+        },
+        onSuccess: async () => {
             await SecureStore.deleteItemAsync(REGISTRATION_EMAIL_KEY);
             await SecureStore.deleteItemAsync(REGISTRATION_PASSWORD_KEY);
-            
             await login(email, password);
         },
         onError: (error: any) => {
@@ -140,120 +135,158 @@ export default function VerifyRegisterOTPScreen() {
     };
 
     return (
-        <LinearGradient
-            colors={['#7c3aed', '#a78bfa']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ flex: 1 }}
-        >
-            <SafeAreaView className="flex-1 p-5 justify-center">
+        <View className="flex-1 bg-background-default">
+            {/* Background Gradient Overlay */}
+            <View className="absolute inset-0">
+                <LinearGradient
+                    colors={['#6F00FF', '#3B0270', '#E9B3FB']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{ flex: 1 }}
+                />
+                {/* Decorative Elements */}
+                <View className="absolute top-20 right-8 w-32 h-32 rounded-full bg-brand-accent opacity-20" />
+                <View className="absolute top-40 right-16 w-20 h-20 rounded-full bg-text-inverse opacity-15" />
+                <View className="absolute bottom-32 left-8 w-24 h-24 rounded-full bg-brand-accent opacity-25" />
+            </View>
+
+            <SafeAreaView className="flex-1 p-6 justify-center">
                 <ScrollView
                     contentContainerStyle={{
                         flexGrow: 1,
                         justifyContent: 'center',
                     }}
+                    showsVerticalScrollIndicator={false}
                 >
-                    <View className="w-full max-w-md bg-gray-100/65 rounded-2xl p-8 self-center shadow-lg">
-                        {/* Logo Container */}
-                        <View className="flex-row items-center justify-center mb-6">
-                            <Image
-                                source={require('@/assets/images/logo.png')}
-                                className="w-16 h-16 mr-2"
-                            />
-                            <Text className="text-2xl font-bold text-gray-800">
-                                Azurea
+                    {/* Main Verification Card */}
+                    <View className="w-full max-w-md bg-surface-default/95 backdrop-blur-xl rounded-3xl p-8 self-center shadow-2xl border border-border-subtle">
+                        {/* Logo and Branding Section */}
+                        <View className="items-center mb-2">
+                            <View className="bg-brand-primary/10 rounded-full p-4 mb-4">
+                                <Image
+                                    source={require('@/assets/images/logo.png')}
+                                    className="w-16 h-16"
+                                />
+                            </View>
+                            <Text className="text-3xl font-playfair-bold text-text-primary mb-2">
+                                Azurea Hotel
+                            </Text>
+                            <View className="w-16 h-1 bg-brand-primary rounded-full" />
+                        </View>
+
+                        {/* Welcome Text */}
+                        <View className="mb-8 text-center">
+                            <Text className="text-2xl font-playfair-semibold text-text-primary text-center mb-2">
+                                Verify Your Email
+                            </Text>
+                            <Text className="text-text-secondary font-montserrat text-base text-center leading-6 mb-1">
+                                Enter the verification code sent to
+                            </Text>
+                            <Text className="text-interactive-primary font-montserrat-bold text-base text-center">
+                                {email}
                             </Text>
                         </View>
 
-                        <Text className="text-4xl font-bold text-center text-gray-800 mb-1">
-                            Verify Your Email
-                        </Text>
-                        <Text className="text-gray-600 text-center text-lg mb-2">
-                            Enter the OTP sent to
-                        </Text>
-                        <Text className="text-violet-600 text-center text-lg font-semibold mb-6">
-                            {email}
-                        </Text>
-
-                        {/* OTP Input Field */}
-                        <View className="mb-5">
+                        {/* OTP Input */}
+                        <View className="mb-6">
+                            <Text className="text-text-primary font-montserrat-bold text-sm mb-2 ml-1">
+                                Verification Code
+                            </Text>
                             <Controller
                                 control={control}
                                 name="otp"
                                 rules={{
-                                    required: 'OTP is required',
+                                    required: 'Verification code is required',
                                     pattern: {
                                         value: /^\d{6}$/,
-                                        message: 'OTP must be 6 digits',
+                                        message: 'Code must be 6 digits',
                                     },
                                 }}
                                 render={({
                                     field: { onChange, onBlur, value },
                                 }) => (
-                                    <TextInput
-                                        className="bg-white/50 border-2 border-gray-200 rounded-xl p-4 text-gray-800 text-xl text-center"
-                                        placeholder="Enter 6-digit OTP"
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        keyboardType="numeric"
-                                        maxLength={6}
-                                    />
+                                    <View className="relative">
+                                        <TextInput
+                                            className={`bg-input-background border-2 ${errors.otp ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 pl-12 text-input-text font-montserrat text-lg text-center tracking-widest`}
+                                            placeholder="Enter 6-digit code"
+                                            placeholderTextColor="#E9B3FB"
+                                            value={value}
+                                            onChangeText={onChange}
+                                            onBlur={onBlur}
+                                            keyboardType="numeric"
+                                            maxLength={6}
+                                        />
+                                        <View className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                                            <FontAwesome name="shield" size={20} color="#6F00FF" />
+                                        </View>
+                                    </View>
                                 )}
                             />
                             {errors.otp && (
-                                <Text className="text-red-500 mt-2 text-center">
-                                    {errors.otp.message}
-                                </Text>
+                                <View className="flex-row items-center mt-2 ml-1">
+                                    <FontAwesome name="exclamation-circle" size={16} color="#EF4444" />
+                                    <Text className="text-feedback-error-DEFAULT text-sm ml-2 font-montserrat">
+                                        {errors.otp.message}
+                                    </Text>
+                                </View>
                             )}
                         </View>
 
                         {/* Verify Button */}
                         <TouchableOpacity
-                            className={`bg-violet-600 rounded-xl p-3 mb-4 ${
-                                isSubmitting ? 'opacity-50' : ''
-                            }`}
+                            className={`bg-interactive-primary rounded-2xl p-4 mb-6 shadow-lg ${verifyOTPMutation.isPending ? 'opacity-70' : ''}`}
                             onPress={handleSubmit(onSubmit)}
-                            disabled={isSubmitting}
+                            disabled={verifyOTPMutation.isPending}
+                            activeOpacity={0.8}
                         >
-                            <Text className="text-white text-2xl uppercase text-center font-semibold">
-                                {isSubmitting ? (
-                                    <View className="flex-row items-center justify-center">
-                                        <ActivityIndicator color="#fff" />
-                                        <Text className="ml-2">Verifying...</Text>
-                                    </View>
-                                ) : (
-                                    'Verify OTP'
-                                )}
-                            </Text>
+                            {verifyOTPMutation.isPending ? (
+                                <View className="flex-row items-center justify-center">
+                                    <ActivityIndicator size="small" color="#FFF1F1" />
+                                    <Text className="text-interactive-primary-foreground text-lg font-montserrat-bold ml-2">
+                                        Verifying...
+                                    </Text>
+                                </View>
+                            ) : (
+                                <Text className="text-interactive-primary-foreground text-lg font-montserrat-bold text-center">
+                                    Verify Code
+                                </Text>
+                            )}
                         </TouchableOpacity>
 
+                        {/* Countdown Timer and Resend */}
+                        {!canResend && (
+                            <View className="mb-4 items-center">
+                                <Text className="text-text-muted font-montserrat text-sm text-center">
+                                    Resend code in {formatTime(countdown)}
+                                </Text>
+                            </View>
+                        )}
+
                         {/* Resend OTP */}
-                        <View className="flex-row justify-center items-center mb-4">
-                            <Text className="text-gray-600 mr-2">Didn&apos;t receive OTP?</Text>
+                        <View className="flex-row justify-center items-center mb-6">
+                            <Text className="text-text-muted font-montserrat text-base">
+                                Didn&apos;t receive the code? 
+                            </Text>
                             <TouchableOpacity
                                 onPress={handleResendOTP}
                                 disabled={!canResend || resendOTPMutation.isPending}
+                                className="ml-1"
+                                activeOpacity={0.8}
                             >
-                                <Text className={`font-semibold ${
-                                    canResend ? 'text-violet-600' : 'text-gray-400'
+                                <Text className={`font-montserrat-bold text-base ${
+                                    canResend && !resendOTPMutation.isPending 
+                                        ? 'text-interactive-primary' 
+                                        : 'text-text-disabled'
                                 }`}>
                                     {resendOTPMutation.isPending ? 'Sending...' : 'Resend'}
                                 </Text>
                             </TouchableOpacity>
                         </View>
 
-                        {/* Countdown Timer */}
-                        {!canResend && (
-                            <Text className="text-gray-500 text-center mb-4">
-                                Resend available in {formatTime(countdown)}
-                            </Text>
-                        )}
-
                         {/* Back to Register Link */}
-                        <View className="flex-row justify-center">
-                            <Text className="text-gray-600">
-                                Wrong email?{' '}
+                        <View className="flex-row justify-center items-center">
+                            <Text className="text-text-muted font-montserrat text-base">
+                                Wrong email? 
                             </Text>
                             <TouchableOpacity
                                 onPress={async () => {
@@ -261,15 +294,24 @@ export default function VerifyRegisterOTPScreen() {
                                     await SecureStore.deleteItemAsync(REGISTRATION_PASSWORD_KEY);
                                     router.replace('/(auth)/register');
                                 }}
+                                className="ml-1"
+                                activeOpacity={0.8}
                             >
-                                <Text className="text-violet-600 font-semibold">
+                                <Text className="text-interactive-primary font-montserrat-bold text-base">
                                     Go back
                                 </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
+
+                    {/* Footer */}
+                    <View className="mt-8 items-center">
+                        <Text className="text-text-inverse/80 font-montserrat text-sm text-center">
+                            Check your email and spam folder{'\n'}for the verification code
+                        </Text>
+                    </View>
                 </ScrollView>
             </SafeAreaView>
-        </LinearGradient>
+        </View>
     );
 }
