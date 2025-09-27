@@ -1,7 +1,7 @@
 import { View, Text, ActivityIndicator } from "react-native";
-import { useAuth } from "@/hooks/useAuth";
 import { Redirect } from "expo-router";
 import { ReactNode } from "react";
+import useAuthStore from "@/store/AuthStore";
 
 interface ProtectedRouteProps {
     children: ReactNode;
@@ -10,12 +10,12 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, fallback, requireAuth }: ProtectedRouteProps) => {
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated, isLoading, isInitialized } = useAuthStore();
 
-    if (isLoading) {
+    if (!isInitialized || isLoading) {
         return (
             <View className="flex-1 justify-center items-center">
-                <ActivityIndicator size="large" />
+                <ActivityIndicator size="large" color="#6F00FF" />
                 <Text className="mt-4">Loading...</Text>
             </View>
         );

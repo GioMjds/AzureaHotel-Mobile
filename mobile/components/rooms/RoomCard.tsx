@@ -28,15 +28,15 @@ const RoomCard = ({ item }: RoomCardProps) => {
 
 				{/* Discount Badge */}
 				{item.discount_percent > 0 && (
-					<View className="absolute top-3 right-3 bg-accent-pink rounded-full px-3 py-1">
-						<Text className="text-white font-montserrat-bold text-sm">
+					<View className="absolute top-4 right-4 bg-feedback-error-DEFAULT rounded-full px-3 py-1">
+						<Text className="text-white font-montserrat-bold text-md">
 							{item.discount_percent}% OFF
 						</Text>
 					</View>
 				)}
 
 				{/* Status Badge */}
-				<View className="absolute top-3 left-3">
+				<View className="absolute top-4 left-4">
 					<View
 						className={`px-3 py-1 rounded-full ${
 							item.status === 'available'
@@ -44,7 +44,7 @@ const RoomCard = ({ item }: RoomCardProps) => {
 								: 'bg-red-500'
 						}`}
 					>
-						<Text className="text-white font-montserrat-bold text-sm capitalize">
+						<Text className="text-white font-montserrat-bold text-md capitalize">
 							{item.status}
 						</Text>
 					</View>

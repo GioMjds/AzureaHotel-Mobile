@@ -176,11 +176,8 @@ export default function BookingDetailsScreen() {
                             <View className="flex-row items-start space-x-3">
                                 <Ionicons name="location" size={20} color="#8b5cf6" className="mt-1" />
                                 <View className="flex-1">
-                                    <Text className="text-xl font-playfair-bold text-gray-900 mb-1">
-                                        {propertyName || 'Unknown Property'}
-                                    </Text>
-                                    <Text className="text-gray-600 font-montserrat text-sm">
-                                        {calculateNights()} {calculateNights() === 1 ? 'night' : 'nights'} • {bookingData.number_of_guests} {bookingData.number_of_guests === 1 ? 'guest' : 'guests'}
+                                    <Text className="text-4xl font-playfair-bold text-gray-900 mb-1">
+                                        {propertyName}
                                     </Text>
                                 </View>
                             </View>

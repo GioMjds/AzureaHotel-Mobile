@@ -609,9 +609,6 @@ def user_login(request):
         
         user = CustomUsers.objects.filter(email=email).first()
         
-        # if not user.role == 'guest':
-        #     return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
-        
         if user.is_archived:
             return Response({'error': 'User account is archived'}, status=status.HTTP_403_FORBIDDEN)
         
@@ -650,7 +647,7 @@ def user_login(request):
             httponly=True,
             secure=False,
             samesite='Lax',
-            max_age=timedelta(days=1)
+            max_age=timedelta(days=30)
         )
         
         response.set_cookie(
@@ -659,7 +656,7 @@ def user_login(request):
             httponly=True,
             secure=False,
             samesite='Lax',
-            max_age=timedelta(days=7)
+            max_age=timedelta(weeks=54)
         )
         return response
     except Exception as e:

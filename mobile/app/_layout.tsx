@@ -33,10 +33,10 @@ import {
 SplashScreen.preventAutoHideAsync();
 
 function AuthInitializer() {
-	const { fetchUser } = useAuthStore();
+	const { initializeAuth } = useAuthStore();
 
 	useEffect(() => {
-		fetchUser();
+		initializeAuth();
 	}, []);
 
 	return null;

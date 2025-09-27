@@ -8,7 +8,6 @@ import {
 	Alert,
 	ActivityIndicator,
 } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { UserBooking } from '@/types/Bookings.types';
@@ -29,9 +28,7 @@ const FeedbackModal = ({
 	const [rating, setRating] = useState<number>(0);
 	const [comment, setComment] = useState<string>('');
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-	const [dragOffset, setDragOffset] = useState(0);
 	const queryClient = useQueryClient();
-	// Remove gestureActive state, not needed with Gesture API
 
 	const { mutate: submitReview } = useMutation({
 		mutationFn: async (reviewData: {
@@ -86,25 +83,6 @@ const FeedbackModal = ({
 		onClose();
 	};
 
-	// Header swipe-to-close with native modal behavior
-	const headerPanGesture = Gesture.Pan()
-		.onUpdate((event) => {
-			// Track the drag offset for visual feedback
-			if (event.translationY >= 0) {
-				setDragOffset(event.translationY);
-			}
-		})
-		.onEnd((event) => {
-			// Reset drag offset
-			setDragOffset(0);
-
-			// Close modal if dragged down far enough
-			if (event.translationY > 100) {
-				handleClose();
-			}
-		})
-		.enabled(!isSubmitting);
-
 	return (
 		<Modal
 			visible={visible}
@@ -112,61 +90,34 @@ const FeedbackModal = ({
 			presentationStyle="pageSheet"
 			onRequestClose={handleClose}
 		>
-			<View
-				className="flex-1 bg-background-elevate"
-				style={{ transform: [{ translateY: dragOffset }] }}
-			>
-				{/* Enhanced Header with swipe-to-close */}
-				<GestureDetector gesture={headerPanGesture}>
-					<View className="border-b border-border-subtle px-6 py-4 shadow-sm bg-background-elevated">
-						<View className="flex-row items-center justify-between mb-3">
-							<TouchableOpacity
-								onPress={handleClose}
-								disabled={isSubmitting}
-								className="p-2 -ml-2 rounded-full active:bg-background-subtle"
-							>
+			<View className="flex-1 bg-background-elevated">
+				<View className="border-b border-border-subtle px-6 py-4 shadow-sm bg-background-elevated">
+					<View className="flex-row items-center justify-between mb-3">
+						<TouchableOpacity
+							onPress={handleClose}
+							disabled={isSubmitting}
+							className="p-2 -ml-2 rounded-full active:bg-background-subtle"
+						>
+							<Ionicons name="close" size={24} color="#3B0270" />
+						</TouchableOpacity>
+
+						<View className="flex-1 items-center">
+							<View className="flex-row items-center mb-1">
 								<Ionicons
-									name="close"
-									size={24}
-									color="#3B0270"
+									name="star"
+									size={20}
+									color="#6F00FF"
+									style={{ marginRight: 8 }}
 								/>
-							</TouchableOpacity>
-
-							<View className="flex-1 items-center">
-								<View className="flex-row items-center mb-1">
-									<Ionicons
-										name="star"
-										size={20}
-										color="#6F00FF"
-										style={{ marginRight: 8 }}
-									/>
-									<Text className="font-playfair-bold text-xl text-text-primary">
-										Leave Review
-									</Text>
-								</View>
+								<Text className="font-playfair-bold text-xl text-text-primary">
+									Leave Review
+								</Text>
 							</View>
-
-							<View className="w-10" />
 						</View>
 
-						<View className="bg-background-subtle rounded-xl p-4 border border-border-subtle">
-							<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-1">
-								Your Stay
-							</Text>
-							<Text className="text-text-primary font-playfair-medium text-lg">
-								{bookingItem.is_venue_booking
-									? bookingItem.area_details?.area_name
-									: bookingItem.room_details?.room_name}
-							</Text>
-							<Text className="text-text-muted font-montserrat text-sm mt-1">
-								Booking #{bookingItem.id} •{' '}
-								{bookingItem.is_venue_booking
-									? 'Venue'
-									: 'Room'}
-							</Text>
-						</View>
+						<View className="w-10" />
 					</View>
-				</GestureDetector>
+				</View>
 
 				<ScrollView
 					className="flex-1 bg-background-default px-6"
@@ -210,33 +161,15 @@ const FeedbackModal = ({
 								</TouchableOpacity>
 							))}
 						</View>
-
-						{rating > 0 && (
-							<View className="bg-background-elevated rounded-xl p-4 border border-border-subtle">
-								<Text className="text-center text-text-primary font-montserrat-bold text-base">
-									{rating === 1 &&
-										'⭐ Poor - We apologize for the experience'}
-									{rating === 2 &&
-										"⭐⭐ Fair - There's room for improvement"}
-									{rating === 3 &&
-										'⭐⭐⭐ Good - A solid experience'}
-									{rating === 4 &&
-										'⭐⭐⭐⭐ Very Good - Great stay!'}
-									{rating === 5 &&
-										'⭐⭐⭐⭐⭐ Excellent - Outstanding experience!'}
-								</Text>
-							</View>
-						)}
 					</View>
 
 					{/* Review Text Section */}
 					<View className="mb-8">
-						<Text className="text-lg font-playfair-bold text-text-primary mb-3">
+						<Text className="text-2xl font-playfair-bold text-text-primary mb-3">
 							Share your experience
 						</Text>
-						<Text className="text-text-muted font-montserrat text-sm mb-6">
-							Help other guests by sharing what made your stay
-							special
+						<Text className="text-text-primary font-montserrat text-lg mb-6">
+							Help other guests by sharing what made your stay special
 						</Text>
 
 						<View className="bg-background-elevated rounded-xl border border-input-border overflow-hidden">
@@ -269,7 +202,7 @@ const FeedbackModal = ({
 				</ScrollView>
 
 				{/* Enhanced Footer Actions */}
-				<View className="bg-background-elevated border-t border-border-subtle px-6 py-6 shadow-sm">
+				<View className="bg-background-elevated border-t border-border-subtle p-6 shadow-sm">
 					<View className="flex-row space-x-4 mb-4">
 						<TouchableOpacity
 							onPress={handleClose}
@@ -282,9 +215,9 @@ const FeedbackModal = ({
 						</TouchableOpacity>
 						<TouchableOpacity
 							onPress={handleSubmit}
-							disabled={isSubmitting || rating === 0}
+							disabled={isSubmitting || rating === 0 || comment.length < 1}
 							className={`flex-1 py-4 rounded-xl shadow-sm ${
-								isSubmitting || rating === 0
+								isSubmitting || rating === 0 || comment.length < 1
 									? 'bg-interactive-primary-disabled'
 									: 'bg-interactive-primary active:bg-interactive-primary-pressed'
 							}`}
@@ -315,18 +248,6 @@ const FeedbackModal = ({
 								)}
 							</View>
 						</TouchableOpacity>
-					</View>
-
-					<View className="flex-row items-center justify-center">
-						<Ionicons
-							name="star"
-							size={14}
-							color="#6F00FF"
-							style={{ marginRight: 4 }}
-						/>
-						<Text className="text-text-muted font-montserrat text-xs text-center">
-							Rating is required • Review text is optional
-						</Text>
 					</View>
 				</View>
 			</View>

@@ -12,23 +12,11 @@ export const useAuth = () => {
     const { loginMutation, logoutMutation } = useAuthMutations();
 
     const login = async (email: string, password: string) => {
-        return new Promise((resolve, reject) => {
-            loginMutation.mutate(
-                { email, password },
-                {
-                    onSuccess: () => resolve({ success: true, message: 'Login successful' }),
-                    onError: (error) => reject({ success: false, message: error.message || 'Login failed' })
-                }
-            );
-        });
+        await loginMutation.mutateAsync({ email, password });
     };
 
     const logout = async () => {
-        return new Promise<void>((resolve) => {
-            logoutMutation.mutate(undefined, {
-                onSettled: () => resolve() // Always resolve, even on error
-            });
-        });
+        await logoutMutation.mutateAsync();
     };
 
     return {
