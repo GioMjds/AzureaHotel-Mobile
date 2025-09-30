@@ -97,7 +97,7 @@ export default function GetRoomScreen() {
 
 					{/* Discount Badge */}
 					{roomData.discount_percent > 0 && (
-						<View className="absolute top-4 right-4 bg-accent-pink rounded-full px-3 py-2">
+						<View className="absolute top-4 right-4 bg-feedback-error-DEFAULT rounded-full px-3 py-2">
 							<Text className="text-white font-montserrat-bold text-sm">
 								{roomData.discount_percent}% OFF
 							</Text>

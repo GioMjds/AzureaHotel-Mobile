@@ -6,6 +6,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { GuestResponse, IsVerified } from "@/types/GuestUser.types";
 import { getVerificationDisplay } from "@/utils/formatters";
 import { useAuthMutations } from "@/hooks/useAuthMutations";
+import { userSettings } from "@/constants/settings";
+import { Link } from "expo-router";
+import { FontAwesome } from "@expo/vector-icons";
 
 export default function ProfileScreen() {
     const { user } = useAuth();
@@ -72,53 +75,50 @@ export default function ProfileScreen() {
     }
 
     const guest = data.data;
+    const guestFullName = `${guest.first_name} ${guest.last_name}`;
     const verificationStatus = getVerificationDisplay(guest.is_verified);
 
     return (
         <SafeAreaView className="flex-1 bg-background-default">
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                {/* Enhanced Header with Gradient Effect */}
-                <View className="bg-brand-primary px-6 pb-12 pt-6 relative">
-                    <View className="absolute inset-0 bg-gradient-to-br from-brand-primary to-brand-secondary opacity-90" />
-                    <View className="relative z-10">
-                        <Text className="text-4xl font-playfair-bold text-text-inverse mb-2">
-                            My Profile
-                        </Text>
-                        <Text className="text-brand-accent font-montserrat text-lg opacity-90">
-                            Manage your account information
-                        </Text>
-                    </View>
-                    {/* Decorative Elements */}
-                    <View className="absolute top-8 right-6 w-20 h-20 rounded-full bg-brand-accent opacity-10" />
-                    <View className="absolute top-16 right-16 w-12 h-12 rounded-full bg-brand-accent opacity-20" />
-                </View>
-
-                {/* Enhanced Profile Card with Glassmorphism Effect */}
-                <View className="mx-4 -mt-10 bg-surface-default/95 backdrop-blur-xl rounded-3xl shadow-2xl p-6 mb-6 border border-border-subtle">
-                    {/* Profile Image and Basic Info with Enhanced Layout */}
-                    <View className="items-center mb-8">
-                        <View className="relative mb-4">
-                            <View className="w-28 h-28 rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary p-1">
-                                <Image
-                                    source={{ uri: guest.profile_image, cache: 'default' }}
-                                    className="w-full h-full rounded-full bg-neutral-200"
-                                />
-                            </View>
-                            <View className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-4 border-white shadow-lg flex items-center justify-center ${verificationStatus.color}`}>
-                                <Text className="text-white text-xs font-bold">{verificationStatus.icon}</Text>
+                {/* Profile Card with Modern Design */}
+                <View className="bg-surface-default rounded-3xl shadow-xl mx-4 mb-6 border-2 border-brand-primary overflow-hidden">
+                    <View className="p-6">
+                        <View className="flex-row items-center justify-between">
+                            {/* Left side - Profile Image and Info */}
+                            <View className="flex-row items-center flex-1">
+                                <View className="relative mr-4">
+                                    <View className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary p-1">
+                                        <Image
+                                            source={{ uri: guest.profile_image, cache: 'default' }}
+                                            className="w-full h-full rounded-full bg-neutral-200"
+                                        />
+                                    </View>
+                                    <View className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white shadow-lg flex items-center justify-center ${verificationStatus.color}`}>
+                                        <Text className="text-white text-xs font-bold">{verificationStatus.icon}</Text>
+                                    </View>
+                                </View>
+                                
+                                <View className="flex-1">
+                                    <Text className="text-4xl font-playfair-bold text-text-primary mb-1">
+                                        {guestFullName}
+                                    </Text>
+                                    <View className="flex-row items-center">
+                                        <FontAwesome name="envelope" size={16} color="#6B7280" className="mr-2" />
+                                        <Text className="text-text-secondary font-montserrat text-base">
+                                            {guest.email}
+                                        </Text>
+                                    </View>
+                                </View>
                             </View>
                         </View>
-                        <Text className="text-3xl font-playfair-bold text-text-primary text-center mb-2">
-                            {guest.first_name} {guest.last_name}
-                        </Text>
-                        <Text className="text-text-secondary font-montserrat text-lg text-center">
-                            {guest.email}
-                        </Text>
                     </View>
-
+                </View>
+                
+                <View className="bg-surface-default/95 backdrop-blur-xl border-brand-primary rounded-3xl shadow-2xl mx-4 p-6 mb-6 border-2">
                     {/* Enhanced Verification Status with Better Visual Hierarchy */}
                     <View className={`p-6 rounded-2xl mb-6 border-l-4 ${verificationStatus.bgColor} ${verificationStatus.borderColor}`}>
-                        <View className="flex-row items-center justify-between mb-2">
+                        <View className="flex-row items-center justify-between">
                             <View className="flex-row items-center">
                                 <View className={`w-3 h-3 rounded-full mr-3 ${verificationStatus.color}`} />
                                 <Text className={`font-playfair-semibold text-lg ${verificationStatus.textColor}`}>
@@ -150,92 +150,28 @@ export default function ProfileScreen() {
                         )}
                     </View>
 
-                    {/* Enhanced Information Cards */}
-                    <View className="space-y-4">
-                        {[
-                            { label: 'ID Type', value: guest.valid_id_type_display || 'Not provided', icon: '🆔' },
-                            { label: 'Senior/PWD Status', value: guest.is_senior_or_pwd ? 'Eligible' : 'Not applicable', icon: '👥', highlight: guest.is_senior_or_pwd },
-                            { label: 'Last Booking', value: guest.last_booking_date ? new Date(guest.last_booking_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'No bookings yet', icon: '📅' },
-                            { label: 'Member Since', value: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), icon: '⭐' }
-                        ].map((item, index) => (
-                            <View key={index} className="bg-background-default/50 rounded-2xl p-4 flex-row items-center justify-between">
-                                <View className="flex-row items-center flex-1">
-                                    <Text className="text-2xl mr-3">{item.icon}</Text>
-                                    <View className="flex-1">
-                                        <Text className="text-text-muted font-montserrat text-sm mb-1">{item.label}</Text>
-                                        <Text className={`font-playfair-semibold text-base ${item.highlight ? 'text-feedback-success-DEFAULT' : 'text-text-primary'}`}>
-                                            {item.value}
-                                        </Text>
+                    {/* Settings List */}
+                    <View className="space-y-3">
+                        <Text className="text-2xl font-playfair-bold text-text-primary mb-4">Account Settings</Text>
+                        {userSettings.map((setting) => (
+                            <Link key={setting.label} href={setting.href as any} asChild>
+                                <TouchableOpacity 
+                                    className="bg-background-default/50 rounded-2xl p-4 flex-row items-center justify-between"
+                                    activeOpacity={0.5}
+                                >
+                                    <View className="flex-row items-center flex-1">
+                                        <View className="w-10 h-10 bg-brand-primary/10 rounded-full items-center justify-center mr-3">
+                                            <Text className="text-brand-primary text-lg">⚙️</Text>
+                                        </View>
+                                        <View className="flex-1">
+                                            <Text className="text-text-primary font-montserrat text-xl">
+                                                {setting.label}
+                                            </Text>
+                                        </View>
                                     </View>
-                                </View>
-                            </View>
+                                </TouchableOpacity>
+                            </Link>
                         ))}
-                    </View>
-                </View>
-
-                {/* Enhanced ID Documents Section */}
-                {(guest.valid_id_front || guest.valid_id_back) && (
-                    <View className="mx-4 bg-surface-default/95 backdrop-blur-xl rounded-3xl shadow-2xl p-6 mb-6 border border-border-subtle">
-                        <View className="flex-row items-center mb-6">
-                            <Text className="text-2xl mr-3">📄</Text>
-                            <Text className="text-2xl font-playfair-bold text-text-primary">
-                                ID Documents
-                            </Text>
-                        </View>
-                        <View className="flex-row justify-between space-x-4">
-                            {guest.valid_id_front && (
-                                <View className="flex-1">
-                                    <View className="bg-brand-primary/10 rounded-xl p-3 mb-3">
-                                        <Text className="text-brand-primary font-montserrat-bold text-center text-sm">FRONT SIDE</Text>
-                                    </View>
-                                    <View className="rounded-2xl overflow-hidden shadow-lg border border-border-subtle">
-                                        <Image
-                                            source={{ uri: guest.valid_id_front }}
-                                            className="w-full h-32 bg-neutral-200"
-                                        />
-                                    </View>
-                                </View>
-                            )}
-                            {guest.valid_id_back && (
-                                <View className="flex-1">
-                                    <View className="bg-brand-primary/10 rounded-xl p-3 mb-3">
-                                        <Text className="text-brand-primary font-montserrat-bold text-center text-sm">BACK SIDE</Text>
-                                    </View>
-                                    <View className="rounded-2xl overflow-hidden shadow-lg border border-border-subtle">
-                                        <Image
-                                            source={{ uri: guest.valid_id_back }}
-                                            className="w-full h-32 bg-neutral-200"
-                                        />
-                                    </View>
-                                </View>
-                            )}
-                        </View>
-                    </View>
-                )}
-
-                {/* Enhanced Account Details */}
-                <View className="mx-4 bg-surface-default/95 backdrop-blur-xl rounded-3xl shadow-2xl p-6 mb-8 border border-border-subtle">
-                    <View className="flex-row items-center mb-6">
-                        <Text className="text-2xl mr-3">⚙️</Text>
-                        <Text className="text-2xl font-playfair-bold text-text-primary">
-                            Account Details
-                        </Text>
-                    </View>
-                    <View className="space-y-4">
-                        <View className="bg-background-default/50 rounded-2xl p-4 flex-row justify-between items-center">
-                            <Text className="text-text-muted font-montserrat">User ID</Text>
-                            <View className="bg-brand-primary/10 px-3 py-1 rounded-full">
-                                <Text className="text-brand-primary font-montserrat-bold">#{guest.id}</Text>
-                            </View>
-                        </View>
-                        <View className="bg-background-default/50 rounded-2xl p-4 flex-row justify-between items-center">
-                            <Text className="text-text-muted font-montserrat">Account Status</Text>
-                            <View className={`px-4 py-2 rounded-full ${verificationStatus.isVerified ? 'bg-feedback-success-DEFAULT' : 'bg-feedback-warning-DEFAULT'}`}>
-                                <Text className="text-white font-montserrat-bold text-sm">
-                                    {verificationStatus.isVerified ? 'ACTIVE' : 'VERIFICATION REQUIRED'}
-                                </Text>
-                            </View>
-                        </View>
                     </View>
                 </View>
 
@@ -244,7 +180,7 @@ export default function ProfileScreen() {
                         onPress={() => logoutMutation.mutate()}
                         className="bg-feedback-error-DEFAULT px-8 py-4 rounded-xl shadow-sm active:bg-red-600"
                     >
-                        <Text>
+                        <Text className="text-text-inverse font-montserrat-bold">
                             Logout
                         </Text>
                     </Pressable>

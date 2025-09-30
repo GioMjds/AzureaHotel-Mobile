@@ -110,7 +110,6 @@ module.exports = {
 				'raleway-bold': ['Raleway_700Bold'],
 			},
 
-			// Additional utilities for React Native
 			spacing: {
 				'safe-top': '44px',      // iOS safe area top
 				'safe-bottom': '34px',   // iOS safe area bottom

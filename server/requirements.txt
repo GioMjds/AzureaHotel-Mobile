@@ -18,3 +18,4 @@ daphne==4.1.0
 whitenoise
 django-ipware
 mysqlclient
+firebase-admin

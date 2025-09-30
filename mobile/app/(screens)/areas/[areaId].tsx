@@ -67,8 +67,8 @@ export default function GetAreaScreen() {
 				>
 					<FontAwesome name="arrow-left" size={20} color="#6b7280" />
 				</TouchableOpacity>
-				<Text className="text-3xl font-montserrat-bold text-neutral-800 flex-1">
-					{areaData.area_name}
+				<Text className="text-3xl font-playfair-bold text-neutral-800 flex-1">
+					Area Details
 				</Text>
 			</View>
 
@@ -109,7 +109,7 @@ export default function GetAreaScreen() {
 
 					{/* Discount Badge */}
 					{areaData.discount_percent > 0 && (
-						<View className="absolute top-4 right-4 bg-accent-pink rounded-full px-3 py-2">
+						<View className="absolute top-4 right-4 bg-feedback-error-DEFAULT rounded-full px-3 py-2">
 							<Text className="text-white font-montserrat-bold text-sm">
 								{areaData.discount_percent}% OFF
 							</Text>
@@ -122,7 +122,7 @@ export default function GetAreaScreen() {
 					{/* Header */}
 					<View className="flex-row justify-between items-start mb-4">
 						<View className="flex-1">
-							<Text className="text-3xl font-montserrat-bold text-neutral-800 mb-1">
+							<Text className="text-5xl font-playfair-bold text-neutral-800 mb-1">
 								{areaData.area_name}
 							</Text>
 						</View>

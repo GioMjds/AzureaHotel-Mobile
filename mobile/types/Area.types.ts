@@ -25,3 +25,29 @@ export interface Area {
 export interface FetchAreaResponse {
     data: Area[];
 }
+
+export interface GetAreaById {
+    id: number;
+    area_name: string;
+    description: string;
+    images: AreaImage[];
+    status: string;
+    capacity: number;
+    price_per_hour: string;
+    discounted_price: string | null;
+    discount_percent: number;
+    senior_discounted_price: number;
+    average_rating: number;
+    reviews: Reviews[];
+    price_per_hour_numeric: number;
+    discounted_price_numeric: number | null;
+}
+
+export interface GetAreaBookings {
+    id: number;
+    check_in_date: string;
+    check_out_date: string;
+    status: string;
+    start_time: string | null;
+    end_time: string | null;
+}

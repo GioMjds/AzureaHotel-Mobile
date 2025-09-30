@@ -609,6 +609,9 @@ def user_login(request):
         
         user = CustomUsers.objects.filter(email=email).first()
         
+        if user is None:
+            return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        
         if user.is_archived:
             return Response({'error': 'User account is archived'}, status=status.HTTP_403_FORBIDDEN)
         

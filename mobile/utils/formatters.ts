@@ -208,7 +208,7 @@ export const getVerificationDisplay = (status: IsVerified) => {
 		case IsVerified.VERIFIED:
 			return {
 				text: 'VERIFIED',
-				color: 'bg-feedback-success-DEFAULT',
+				color: 'bg-green-600',
 				textColor: 'text-feedback-success-dark',
 				bgColor: 'bg-feedback-success-light',
 				borderColor: 'border-feedback-success-DEFAULT',

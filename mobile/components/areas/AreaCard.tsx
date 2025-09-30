@@ -54,12 +54,12 @@ const AreaCard = ({ item }: AreaCardProps) => {
 			{/* Area Details */}
 			<View className="p-4">
 				<View className="flex-row justify-between items-start mb-2">
-					<Text className="text-3xl font-montserrat-bold text-neutral-800 flex-1">
+					<Text className="text-4xl font-playfair-bold text-neutral-800 flex-1">
 						{item.area_name}
 					</Text>
 					{/* Rating */}
 					{item.average_rating > 0 && (
-						<View className="flex-row items-center bg-violet-100 px-2 py-1 rounded-full">
+						<View className="flex-row items-center bg-violet-100 px-3 py-1 rounded-full">
 							<Text className="text-violet-700 font-montserrat-bold text-sm">
 								★
 							</Text>

@@ -32,7 +32,7 @@ const BookingCard = ({ item }: BookingCardProps) => {
 		: item.room_details?.images?.[0]?.room_image;
 
 	return (
-		<View className="bg-background-elevated rounded-2xl mx-4 mb-4 overflow-hidden border border-border-DEFAULT shadow-sm">
+		<View className="bg-background-elevated rounded-2xl mx-4 mb-4 overflow-hidden border-brand-primary border-2 shadow-sm">
 			{/* Property Image */}
 			<View className="h-48 bg-background-subtle relative">
 				{propertyImage && (
@@ -154,7 +154,7 @@ const BookingCard = ({ item }: BookingCardProps) => {
 				<View className="border-t border-border-DEFAULT pt-4 mb-4">
 					<View className="flex-row items-center justify-between">
 						<View className="flex-1">
-							<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-1">
+							<Text className="text-text-secondary font-montserrat-bold text-lg uppercase tracking-wide mb-1">
 								Total Amount
 							</Text>
 							{item.discount_percent > 0 && item.discounted_price ? (
@@ -163,11 +163,11 @@ const BookingCard = ({ item }: BookingCardProps) => {
 										{pesoFormatter.format(item.original_price)}
 									</Text>
 									<View className="flex-row items-center">
-										<Text className="text-interactive-primary-DEFAULT font-playfair-bold text-xl">
+										<Text className="text-interactive-primary-DEFAULT font-montserrat-bold text-2xl">
 											{pesoFormatter.format(item.discounted_price)}
 										</Text>
-										<View className="bg-feedback-success-light px-2 py-1 rounded-full ml-2">
-											<Text className="text-feedback-success-dark font-montserrat-bold text-xs">
+										<View className="bg-green-600 px-3 py-1 rounded-full ml-2">
+											<Text className="text-white font-montserrat-bold text-xs">
 												{item.discount_percent}% OFF
 											</Text>
 										</View>
@@ -207,7 +207,7 @@ const BookingCard = ({ item }: BookingCardProps) => {
 							</View>
 							<TouchableOpacity
 								onPress={() => setFeedbackModalVisible(true)}
-								className="bg-feedback-success-DEFAULT px-4 py-2 rounded-lg shadow-sm active:bg-green-600 flex-row items-center"
+								className="bg-green-600 px-4 py-2 rounded-lg shadow-sm flex-row items-center"
 							>
 								<Ionicons 
 									name="star" 
@@ -215,7 +215,7 @@ const BookingCard = ({ item }: BookingCardProps) => {
 									color="white" 
 									style={{ marginRight: 4 }}
 								/>
-								<Text className="text-white font-montserrat-bold text-sm">
+								<Text className="text-black font-montserrat-bold text-sm">
 									Leave Review
 								</Text>
 							</TouchableOpacity>
