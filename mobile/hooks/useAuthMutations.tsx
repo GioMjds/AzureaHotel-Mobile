@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { auth } from '@/services/UserAuth';
 import useAuthStore from '@/store/AuthStore';
+import { FirebaseAuthService } from '@/services/firebase/FirebaseAuth';
 import * as SecureStore from 'expo-secure-store';
 import { Logger } from '@/configs/logger';
 
@@ -38,6 +39,15 @@ export function useAuthMutations() {
                 await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(data.user));
                 setUser(data.user);
                 setIsAuthenticated(true);
+                
+                // Authenticate with Firebase after Django login
+                try {
+                    await FirebaseAuthService.authenticateWithFirebase();
+                    console.log('✅ Firebase authentication successful');
+                } catch (error) {
+                    console.warn('⚠️ Firebase authentication failed, but continuing...', error);
+                }
+                
                 queryClient.invalidateQueries({ queryKey: ['user'] });
                 queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
             } else {
@@ -59,6 +69,9 @@ export function useAuthMutations() {
             setIsLoading(true);
         },
         onSuccess: async () => {
+            // Sign out from Firebase first
+            await FirebaseAuthService.signOutFromFirebase();
+            
             await clearStoredData();
             setUser(null);
             setIsAuthenticated(false);
@@ -67,6 +80,9 @@ export function useAuthMutations() {
         },
         onError: async (error) => {
             logger.error(`Logout error: ${error}`);
+            
+            // Even if logout fails, clear local data and Firebase auth
+            await FirebaseAuthService.signOutFromFirebase();
             await clearStoredData();
             setUser(null);
             setIsAuthenticated(false);

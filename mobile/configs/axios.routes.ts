@@ -9,6 +9,7 @@ class Routes {
 export class ApiRoutes {
     static readonly TOKEN = `${Routes.API}/token`;
     static readonly TOKEN_REFRESH = `${Routes.API}/token/refresh`;
+    static readonly FIREBASE_TOKEN = `${Routes.API}/firebase_token`;
     static readonly USER_AUTH = `${Routes.API}/auth/user`;
     static readonly LOGIN = `${Routes.API}/auth/login`;
     static readonly VERIFY_OTP = `${Routes.API}/auth/verify`;

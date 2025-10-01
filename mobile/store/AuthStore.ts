@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import * as SecureStore from 'expo-secure-store';
 import { Guest } from "@/types/GuestUser.types";
+import { FirebaseAuthService } from "@/services/firebase/FirebaseAuth";
 import { auth } from '@/services/UserAuth';
 
 // SecureStore keys
@@ -23,6 +24,7 @@ interface Actions {
     initializeAuth: () => Promise<void>;
     fetchUser: () => Promise<void>;
     clearAuth: () => Promise<void>;
+    authenticateFirebase: () => Promise<boolean>;
 }
 
 // Helper functions
@@ -38,17 +40,23 @@ const useAuthStore = create<State & Actions>((set, get) => ({
     isLoading: true,
     isInitialized: false,
     
-    setUser: (user) => set({ user, isAuthenticated: !!user }),
+    setUser: (user) => {
+        set({ user, isAuthenticated: !!user });
+        if (user) {
+            const { authenticateFirebase } = get();
+            authenticateFirebase().catch(error => {
+                console.warn('Auto Firebase authentication failed:', error);
+            });
+        }
+    },
     setIsAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
     setIsLoading: (isLoading) => set({ isLoading }),
     setIsInitialized: (isInitialized) => set({ isInitialized }),
     
-    // Fast initialization with stored data, then background verification
     initializeAuth: async () => {
         try {
             set({ isLoading: true, isInitialized: false });
             
-            // Quick check for stored token and user data
             const [accessToken, storedUserData] = await Promise.all([
                 SecureStore.getItemAsync(ACCESS_TOKEN_KEY),
                 SecureStore.getItemAsync(USER_DATA_KEY)
@@ -56,7 +64,6 @@ const useAuthStore = create<State & Actions>((set, get) => ({
             
             if (accessToken && storedUserData) {
                 try {
-                    // Parse and set stored user data immediately for faster UI response
                     const userData = JSON.parse(storedUserData);
                     set({ 
                         user: userData, 
@@ -65,7 +72,6 @@ const useAuthStore = create<State & Actions>((set, get) => ({
                         isInitialized: true 
                     });
                     
-                    // Verify authentication in background (non-blocking)
                     get().fetchUser();
                 } catch (parseError) {
                     console.error('Error parsing stored user data:', parseError);
@@ -78,7 +84,6 @@ const useAuthStore = create<State & Actions>((set, get) => ({
                     });
                 }
             } else {
-                // No stored auth data - user needs to login
                 set({ 
                     user: null, 
                     isAuthenticated: false, 
@@ -116,21 +121,30 @@ const useAuthStore = create<State & Actions>((set, get) => ({
             }
         } catch (error) {
             console.error('Fetch user error:', error);
-            // Don't clear auth on network errors if we have stored data
             const storedUserData = await SecureStore.getItemAsync(USER_DATA_KEY);
             if (!storedUserData) {
                 await clearStoredData();
                 set({ user: null, isAuthenticated: false, isLoading: false });
             } else {
-                // Keep existing state but stop loading
                 set({ isLoading: false });
             }
         }
     },
     
     clearAuth: async () => {
+        await FirebaseAuthService.signOutFromFirebase();
         await clearStoredData();
         set({ user: null, isAuthenticated: false, isLoading: false });
+    },
+    
+    authenticateFirebase: async (): Promise<boolean> => {
+        try {
+            const success = await FirebaseAuthService.authenticateWithFirebase();
+            return success;
+        } catch (error) {
+            console.error('❌ Error during Firebase authentication:', error);
+            return false;
+        }
     }
 }));
 

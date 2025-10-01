@@ -45,15 +45,16 @@ export class ApiClient {
                 config.withCredentials = true;
                 try {
                     const accessToken = await SecureStore.getItemAsync('access_token');
-                    if (accessToken) {
-                        config.headers.Authorization = `Bearer ${accessToken}`;
-                    }
+                    config.headers.Authorization = `Bearer ${accessToken}`;
                 } catch (error) {
-                    console.error(`Error retrieving access token: ${error}`);
+                    console.error(`❌ Error retrieving access token: ${error}`);
                 }
                 return config;
             },
-            (error) => Promise.reject(error)
+            (error) => {
+                console.error('❌ Request interceptor error:', error);
+                return Promise.reject(error);
+            }
         );
 
         this.axiosInstance.interceptors.response.use(
@@ -68,7 +69,6 @@ export class ApiClient {
                         const refreshToken = await SecureStore.getItemAsync('refresh_token');
                         
                         if (refreshToken) {
-                            // Try to refresh the token
                             const response = await axios.post(
                                 `${this.baseUrl}/api/token/refresh`,
                                 { refresh: refreshToken },

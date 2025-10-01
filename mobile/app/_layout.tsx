@@ -33,11 +33,25 @@ import {
 SplashScreen.preventAutoHideAsync();
 
 function AuthInitializer() {
-	const { initializeAuth } = useAuthStore();
+	const { initializeAuth, authenticateFirebase } = useAuthStore();
 
 	useEffect(() => {
-		initializeAuth();
-	}, []);
+		const initApp = async () => {
+			await initializeAuth();
+
+			const currentState = useAuthStore.getState();
+			if (currentState.user && currentState.isAuthenticated) {
+				try {
+					await authenticateFirebase();
+					console.log('✅ Firebase initialized with existing user');
+				} catch (error) {
+					console.warn('⚠️ Firebase initialization failed for existing user:', error);
+				}
+			}
+		};
+		
+		initApp();
+	}, [initializeAuth, authenticateFirebase]);
 
 	return null;
 }

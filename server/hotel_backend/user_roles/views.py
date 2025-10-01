@@ -21,6 +21,7 @@ from asgiref.sync import async_to_sync
 from io import BytesIO
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from .service.firebase import firebase_service
 import os
 import uuid
 import requests
@@ -113,6 +114,45 @@ def create_booking_notification(user, notification_type, booking_id, message):
         return None
 
 # Create your views here.
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def get_firebase_token(request):
+    """
+    Generate a Firebase custom token for the authenticated Django user.
+    This allows React Native to authenticate with Firebase using Django's auth.
+    """
+    try:
+        user = request.user
+        
+        if not firebase_service.is_available():
+            return Response({
+                'error': "Firebase service not available"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        firebase_token = firebase_service.create_custom_token(
+            user_id=str(user.id),
+            additional_claims={
+                'email': user.email,
+                'is_verified': user.is_verified,
+                'role': 'guest'
+            }
+        )
+        
+        if not firebase_token:
+            return Response({
+                'error': "Failed to generate Firebase token"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        response_data = {
+            'firebase_token': firebase_token,
+            'user_id': user.id,
+            'uid': f"django_user_{user.id}"
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def auth_logout(request):

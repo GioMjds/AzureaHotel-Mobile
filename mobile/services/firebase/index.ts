@@ -267,8 +267,11 @@ class FirebaseRealtimeService {
 				is_online: isOnline,
 				last_seen: Date.now(),
 			});
-		} catch (error) {
-			console.error('Failed to update user presence:', error);
+		} catch (error: any) {
+			// Only log non-permission errors to reduce noise
+			if (error.code !== 'PERMISSION_DENIED') {
+				console.warn('Failed to update user presence:', error);
+			}
 		}
 	}
 
