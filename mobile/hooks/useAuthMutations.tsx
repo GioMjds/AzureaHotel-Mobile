@@ -22,6 +22,7 @@ const clearStoredData = async () => {
     await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
     await SecureStore.deleteItemAsync(USER_DATA_KEY);
+    await SecureStore.deleteItemAsync('firebase_uid');
 };
 
 export function useAuthMutations() {
@@ -39,8 +40,7 @@ export function useAuthMutations() {
                 await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(data.user));
                 setUser(data.user);
                 setIsAuthenticated(true);
-                
-                // Authenticate with Firebase after Django login
+
                 try {
                     await FirebaseAuthService.authenticateWithFirebase();
                     console.log('✅ Firebase authentication successful');
@@ -55,7 +55,7 @@ export function useAuthMutations() {
             }
         },
         onError: (error) => {
-            logger.error(`Login error: ${error}`);
+            console.error(`Login error: ${error}`);
             setIsLoading(false);
         },
     });
@@ -69,9 +69,7 @@ export function useAuthMutations() {
             setIsLoading(true);
         },
         onSuccess: async () => {
-            // Sign out from Firebase first
             await FirebaseAuthService.signOutFromFirebase();
-            
             await clearStoredData();
             setUser(null);
             setIsAuthenticated(false);
@@ -80,8 +78,6 @@ export function useAuthMutations() {
         },
         onError: async (error) => {
             logger.error(`Logout error: ${error}`);
-            
-            // Even if logout fails, clear local data and Firebase auth
             await FirebaseAuthService.signOutFromFirebase();
             await clearStoredData();
             setUser(null);

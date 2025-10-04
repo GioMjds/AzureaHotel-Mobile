@@ -455,7 +455,7 @@ export default function AreaBookingCalendar() {
 					<Text className="text-text-primary font-playfair-semibold text-3xl text-center">
 						Book Your Area
 					</Text>
-					<View className="w-10" /> {/* Spacer for balance */}
+					<View className="w-10" />
 				</View>
 			</View>
 			<ScrollView className="flex-1 bg-background-default">
@@ -575,12 +575,11 @@ export default function AreaBookingCalendar() {
 							<View className="flex-row justify-between mb-2">
 								{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(
 									(day, dayIndex) => (
-										<Text
-											key={`weekday-${dayIndex}-${day}`}
-											className="text-text-muted font-montserrat-bold text-center flex-1"
-										>
-											{day}
-										</Text>
+										<View key={`weekday-${dayIndex}-${day}`} className="flex-1">
+											<Text className="text-text-muted font-montserrat-bold text-center">
+												{day}
+											</Text>
+										</View>
 									)
 								)}
 							</View>

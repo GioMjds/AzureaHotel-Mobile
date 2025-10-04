@@ -41,7 +41,7 @@ const ConfirmBookingModal: React.FC<ConfirmBookingModalProps> = ({
 			opacity.value = withTiming(0, { duration: 100 });
 			scale.value = withTiming(0.95, { duration: 100 });
 		}
-	}, [isVisible]);
+	}, [isVisible, opacity, scale]);
 
 	const overlayAnimatedStyle = useAnimatedStyle(() => ({
 		opacity: opacity.value,
@@ -61,8 +61,8 @@ const ConfirmBookingModal: React.FC<ConfirmBookingModalProps> = ({
 			onRequestClose={onClose}
 		>
 			<Animated.View
-				style={overlayAnimatedStyle}
-				className="absolute inset-0 bg-black/40 justify-center items-center p-6"
+				style={[overlayAnimatedStyle, { flex: 1 }]}
+				className="bg-black/40 justify-center items-center p-6"
 			>
 				<Animated.View
 					style={modalAnimatedStyle}

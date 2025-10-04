@@ -43,9 +43,12 @@ class BookingService {
 
 		formData.append('firstName', reservationData.firstName);
 		formData.append('lastName', reservationData.lastName);
-		formData.append('phoneNumber', reservationData.phoneNumber);
+		// Ensure phone number is in correct format
+		const cleanedPhone = reservationData.phoneNumber.replace(/\s+/g, '');
+		formData.append('phoneNumber', cleanedPhone);
 		formData.append('specialRequests', reservationData.specialRequests || '');
-		formData.append('areaId', reservationData.areaId);
+		// Backend expects 'roomId' for venue bookings (area ID is sent as roomId)
+		formData.append('roomId', reservationData.areaId);
 		formData.append('isVenueBooking', 'true');
 		formData.append('status', reservationData.status || 'pending');
 
@@ -54,9 +57,8 @@ class BookingService {
 			const formattedStartDate = startDate.toISOString().split('T')[0];
 			formData.append('checkIn', formattedStartDate);
 
-			const hours = startDate.getHours().toString().padStart(2, '0');
-			const minutes = startDate.getMinutes().toString().padStart(2, '0');
-			formData.append('startTime', `${hours}:${minutes}`);
+			// Set start time to 8:00 AM for area bookings
+			formData.append('startTime', '08:00');
 		}
 
 		if (reservationData.endTime) {
@@ -64,9 +66,8 @@ class BookingService {
 			const formattedEndDate = endDate.toISOString().split('T')[0];
 			formData.append('checkOut', formattedEndDate);
 
-			const hours = endDate.getHours().toString().padStart(2, '0');
-			const minutes = endDate.getMinutes().toString().padStart(2, '0');
-			formData.append('endTime', `${hours}:${minutes}`);
+			// Set end time to 5:00 PM for area bookings
+			formData.append('endTime', '17:00');
 		}
 
 		formData.append('totalPrice', reservationData.totalPrice?.toString() || '0');
@@ -79,6 +80,20 @@ class BookingService {
 		) {
 			formData.append('paymentProof', reservationData.paymentProof);
 		}
+
+		// Log what we're sending for debugging
+		console.log('Area Booking - FormData being sent:');
+		console.log('- firstName:', reservationData.firstName);
+		console.log('- lastName:', reservationData.lastName);
+		console.log('- phoneNumber:', cleanedPhone);
+		console.log('- roomId (areaId):', reservationData.areaId);
+		console.log('- isVenueBooking: true');
+		console.log('- checkIn:', new Date(reservationData.startTime).toISOString().split('T')[0]);
+		console.log('- checkOut:', new Date(reservationData.endTime).toISOString().split('T')[0]);
+		console.log('- totalPrice:', reservationData.totalPrice);
+		console.log('- numberOfGuests:', reservationData.numberOfGuests);
+		console.log('- paymentMethod:', reservationData.paymentMethod);
+		console.log('- paymentProof:', reservationData.paymentProof ? 'Attached' : 'None');
 
         return await httpClient.post(BookingRoutes.BOOKINGS, formData, {
             headers: {

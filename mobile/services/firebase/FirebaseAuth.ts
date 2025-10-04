@@ -3,6 +3,9 @@ import { auth as firebaseAuth } from '@/configs/firebase';
 import { signInWithCustomToken } from 'firebase/auth';
 import * as SecureStore from 'expo-secure-store';
 import { ApiRoutes } from '@/configs/axios.routes';
+import { Logger } from '@/configs/logger';
+
+const logger = Logger.getInstance({ context: 'FirebaseAuth' });
 
 export class FirebaseAuthService {
     /**
@@ -11,6 +14,15 @@ export class FirebaseAuthService {
      */
     static async authenticateWithFirebase(): Promise<boolean> {
         try {
+            logger.debug('🔄 Starting Firebase authentication...');
+            
+            // First check if we have a valid access token
+            const accessToken = await SecureStore.getItemAsync('access_token');
+            if (!accessToken) {
+                logger.warn('⚠️ No access token found, skipping Firebase auth');
+                return false;
+            }
+
             const response = await httpClient.post<{
                 firebase_token: string;
                 user_id: number;
@@ -20,26 +32,19 @@ export class FirebaseAuthService {
             const { firebase_token } = response;
 
             if (!firebase_token) {
-                console.error('❌ No Firebase token in response');
-                console.error('Full response:', response);
+                logger.error(`❌ No Firebase token in response`);
+                logger.error(`Full response: ${JSON.stringify(response)}`);
                 return false;
             }
+            
+            logger.debug('🔑 Received Firebase token, signing in...');
             
             const userCredential = await signInWithCustomToken(
                 firebaseAuth,
                 firebase_token
             );
-            try {
-                await userCredential.user.getIdTokenResult();
-            } catch (tokenError) {
-                console.error('❌ Failed to get ID token claims:', tokenError);
-                console.log('✅ Firebase authenticated successfully:', {
-                    uid: userCredential.user.uid,
-                    email: userCredential.user.email || 'No email in Firebase user object',
-                    isAnonymous: userCredential.user.isAnonymous,
-                    providerData: userCredential.user.providerData
-                });
-            }
+            
+            logger.debug(`✅ Firebase sign-in successful: ${userCredential.user.uid}`);
 
             // Store Firebase UID for reference
             await SecureStore.setItemAsync(
@@ -47,29 +52,40 @@ export class FirebaseAuthService {
                 userCredential.user.uid
             );
 
+            // Verify token claims
+            try {
+                const idTokenResult = await userCredential.user.getIdTokenResult();
+                logger.debug(`🎫 Firebase ID token claims: ${JSON.stringify(idTokenResult.claims)}`);
+            } catch (tokenError) {
+                logger.warn(`⚠️ Could not get ID token claims: ${tokenError}`);
+            }
+
             return true;
         } catch (error: any) {
-            console.error('❌ Firebase authentication failed:', {
-                message: error.message,
-                code: error.code,
-                stack: error.stack?.split('\n').slice(0, 5).join('\n'),
-                name: error.name,
-                response: error.response?.data || 'No response data'
-            });
+            logger.error(`❌ Firebase authentication failed: ${error.message}`);
             
             // Check specific error types
             if (error.code?.includes('auth/')) {
-                console.error('🔥 Firebase Auth Error:', error.code);
+                logger.error('🔥 Firebase Auth Error:', error.code);
+                
+                // Handle specific Firebase auth errors
+                switch (error.code) {
+                    case 'auth/invalid-custom-token':
+                        logger.error('Invalid custom token format from backend');
+                        break;
+                    case 'auth/custom-token-mismatch':
+                        logger.error('Custom token project ID mismatch');
+                        break;
+                    default:
+                        logger.error('Unknown Firebase auth error');
+                }
             } else if (error.response) {
-                console.error('🌐 HTTP Error:', {
-                    status: error.response.status,
-                    statusText: error.response.statusText,
-                    data: error.response.data
-                });
+                logger.error(`🌐 HTTP Error: ${error.response.status} ${error.response.statusText}`);
             } else if (error.request) {
-                console.error('📡 Network Error:', error.request);
+                logger.error('📡 Network Error - no response received');
             }
             
+            // Return false but don't throw - allow app to continue without Firebase
             return false;
         }
     }
@@ -79,10 +95,13 @@ export class FirebaseAuthService {
      */
     static async signOutFromFirebase(): Promise<void> {
         try {
-            await firebaseAuth.signOut();
+            if (firebaseAuth.currentUser) {
+                await firebaseAuth.signOut();
+                logger.debug('✅ Firebase sign-out successful');
+            }
             await SecureStore.deleteItemAsync('firebase_uid');
         } catch (error) {
-            console.error('❌ Firebase sign out failed:', error);
+            logger.error(`❌ Firebase sign out failed: ${error}`);
         }
     }
 

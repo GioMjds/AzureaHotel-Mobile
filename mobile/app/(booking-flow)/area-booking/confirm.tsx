@@ -33,6 +33,7 @@ interface FormData {
 
 export default function ConfirmAreaBookingScreen() {
     const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [gcashProof, setGcashProof] = useState<string | null>(null);
     const [gcashFile, setGcashFile] = useState<any>(null);
     const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
@@ -162,6 +163,7 @@ export default function ConfirmAreaBookingScreen() {
 		if (!areaId || !startTime || !endTime || !totalPrice || !pendingFormData) return;
 
 		setShowConfirmModal(false);
+		setIsSubmitting(true);
 
 		try {
 			let finalPrice = parseFloat(totalPrice);
@@ -202,12 +204,69 @@ export default function ConfirmAreaBookingScreen() {
 				paymentProof: gcashFile,
 			};
 
+			console.log('Sending reservation data:', {
+				...reservationData,
+				paymentProof: gcashFile ? 'File attached' : 'No file'
+			});
+
 			await booking.createAreaBooking(reservationData);
+			
+			// Keep the loading screen visible for a moment before navigating
+			setTimeout(() => {
+				setIsSubmitting(false);
+				Alert.alert(
+					'Booking Successful!',
+					'Your venue booking has been submitted. You will receive a confirmation shortly.',
+					[
+						{
+							text: 'OK',
+							onPress: () => router.replace('/(screens)'),
+						},
+					]
+				);
+			}, 1500);
 		} catch (error: any) {
 			console.error('Booking error:', error);
+			console.error('Error response:', error.response);
+			console.error('Error response data:', error.response?.data);
+			setIsSubmitting(false);
+			
+			// Extract error message from response
+			let errorMessage = 'Failed to create booking. Please try again.';
+			
+			if (error.response?.data) {
+				const errorData = error.response.data;
+				console.log('Error data type:', typeof errorData);
+				console.log('Error data:', JSON.stringify(errorData, null, 2));
+				
+				// Handle error object with nested errors
+				if (errorData.error) {
+					if (typeof errorData.error === 'string') {
+						errorMessage = errorData.error;
+					} else if (typeof errorData.error === 'object') {
+						// Convert error object to readable message
+						const errorMessages = Object.entries(errorData.error)
+							.map(([key, value]) => {
+								if (Array.isArray(value)) {
+									return `${key}: ${value.join(', ')}`;
+								}
+								return `${key}: ${value}`;
+							})
+							.join('\n');
+						errorMessage = errorMessages || errorMessage;
+					}
+				} else if (errorData.message) {
+					errorMessage = errorData.message;
+				} else if (typeof errorData === 'string') {
+					errorMessage = errorData;
+				}
+			} else if (error.message) {
+				errorMessage = error.message;
+			}
+			
 			Alert.alert(
 				'Booking Failed',
-				error.message || 'Failed to create booking. Please try again.'
+				errorMessage
 			);
 		}
 	};

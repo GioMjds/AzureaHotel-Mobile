@@ -27,6 +27,7 @@ import uuid
 import requests
 import cloudinary
 import cloudinary.uploader
+import traceback
 
 def save_google_profile_image_to_cloudinary(image_url):
     try:
@@ -93,7 +94,7 @@ def create_booking_notification(user, notification_type, booking_id, message):
             notification_type=clean_type,
             booking=booking
         )
-        
+                
         try:
             channel_layer = get_channel_layer()
             notification_data = NotificationSerializer(notification).data
@@ -124,23 +125,33 @@ def get_firebase_token(request):
     try:
         user = request.user
         
+        if not user or not user.is_authenticated:
+            return Response({
+                'error': "User not authenticated"
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
         if not firebase_service.is_available():
             return Response({
-                'error': "Firebase service not available"
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                'error': "Firebase service not available",
+                'details': "Firebase Admin SDK is not properly configured"
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
+        # Create custom token with user claims
         firebase_token = firebase_service.create_custom_token(
             user_id=str(user.id),
             additional_claims={
                 'email': user.email,
+                'username': user.username,
                 'is_verified': user.is_verified,
-                'role': 'guest'
+                'role': 'guest',
+                'django_user_id': user.id
             }
         )
         
         if not firebase_token:
             return Response({
-                'error': "Failed to generate Firebase token"
+                'error': "Failed to generate Firebase token",
+                'details': "Token generation returned None"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         response_data = {
@@ -151,7 +162,13 @@ def get_firebase_token(request):
 
         return Response(response_data, status=status.HTTP_200_OK)
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        error_trace = traceback.format_exc()
+        
+        return Response({
+            'error': 'Internal server error',
+            'message': str(e),
+            'trace': error_trace if os.getenv('MODE') == 'development' else None
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -161,7 +178,7 @@ def auth_logout(request):
         response = Response({'message': 'User logged out successfully'}, status=status.HTTP_200_OK)
         response.delete_cookie('access_token')
         response.delete_cookie('refresh_token')
-        
+        response.delete_cookie('firebase_uid')
         return response
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

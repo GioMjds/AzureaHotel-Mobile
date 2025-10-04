@@ -43,12 +43,34 @@ export class ApiClient {
         this.axiosInstance.interceptors.request.use(
             async (config) => {
                 config.withCredentials = true;
-                try {
-                    const accessToken = await SecureStore.getItemAsync('access_token');
-                    config.headers.Authorization = `Bearer ${accessToken}`;
-                } catch (error) {
-                    console.error(`❌ Error retrieving access token: ${error}`);
+                
+                // Don't add auth header for public endpoints
+                const publicEndpoints = [
+                    '/api/auth/login',
+                    '/api/auth/register',
+                    '/api/auth/verify',
+                    '/api/auth/resend_otp',
+                    '/api/auth/forgot_password',
+                    '/api/auth/verify_reset_otp',
+                    '/api/auth/reset_password',
+                    '/api/auth/google-auth',
+                ];
+                
+                const isPublicEndpoint = publicEndpoints.some(endpoint => 
+                    config.url?.includes(endpoint)
+                );
+                
+                if (!isPublicEndpoint) {
+                    try {
+                        const accessToken = await SecureStore.getItemAsync('access_token');
+                        if (accessToken) {
+                            config.headers.Authorization = `Bearer ${accessToken}`;
+                        }
+                    } catch (error) {
+                        console.error(`❌ Error retrieving access token: ${error}`);
+                    }
                 }
+                
                 return config;
             },
             (error) => {
@@ -62,7 +84,29 @@ export class ApiClient {
             async (error: AxiosError) => {
                 const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
-                if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+                // Public endpoints that don't need token refresh
+                const publicEndpoints = [
+                    '/api/auth/login',
+                    '/api/auth/register',
+                    '/api/auth/verify',
+                    '/api/auth/resend_otp',
+                    '/api/auth/forgot_password',
+                    '/api/auth/verify_reset_otp',
+                    '/api/auth/reset_password',
+                    '/api/auth/google-auth',
+                ];
+                
+                const isPublicEndpoint = publicEndpoints.some(endpoint => 
+                    originalRequest?.url?.includes(endpoint)
+                );
+
+                // Only attempt token refresh for protected endpoints
+                if (
+                    error.response?.status === 401 && 
+                    originalRequest && 
+                    !originalRequest._retry &&
+                    !isPublicEndpoint
+                ) {
                     originalRequest._retry = true;
 
                     try {

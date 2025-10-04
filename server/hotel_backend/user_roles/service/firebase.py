@@ -1,107 +1,232 @@
-import firebase_admin # type: ignore
-from firebase_admin import credentials, auth as firebase_auth # type: ignore
-from django.conf import settings
+import firebase_admin
+from firebase_admin import credentials, auth, messaging, db
+import logging
+from datetime import datetime
 import os
-from typing import Dict, Any, Optional
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 class FirebaseService:
     _instance = None
-    
+    _initialized = False
+
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._initialize_firebase()
+            cls._instance = super(FirebaseService, cls).__new__(cls)
         return cls._instance
-    
-    @classmethod
-    def _initialize_firebase(cls):
-        if not firebase_admin._apps:
+
+    def __init__(self):
+        if not self._initialized:
+            self._initialize_firebase()
+            FirebaseService._initialized = True
+
+    def _initialize_firebase(self):
+        try:
+            # Check if Firebase is already initialized
+            firebase_admin.get_app()
+            logger.info("Firebase already initialized")
+        except ValueError:
+            # Firebase not initialized, initialize it
             try:
-                # Check environment variables
-                project_id = os.getenv('FIREBASE_PROJECT_ID')
-                private_key = os.getenv('FIREBASE_PRIVATE_KEY')
-                client_email = os.getenv('FIREBASE_CLIENT_EMAIL')
-                database_url = os.getenv('FIREBASE_DATABASE_URL')
+                # Get the path to the service account key
+                base_dir = Path(__file__).resolve().parent.parent.parent.parent
+                cred_path = base_dir / 'azureahotel-mobile-firebase-adminsdk-fbsvc-37eb3239af.json'
                 
-                # Production: Use environment variables
-                if settings.DEBUG:
-                    # Development: Use service account file
-                    service_account_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH')
-                    
-                    if service_account_path and os.path.exists(service_account_path):
-                        cred = credentials.Certificate(service_account_path)
-                    else:
-                        cred = credentials.Certificate({
-                            "type": "service_account",
-                            "project_id": project_id,
-                            "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
-                            "private_key": private_key.replace('\\n', '\n') if private_key else '',
-                            "client_email": client_email,
-                            "client_id": os.getenv('FIREBASE_CLIENT_ID'),
-                            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                            "token_uri": "https://oauth2.googleapis.com/token",
-                        })
-                else:
-                    # Production: Use environment variables only
-                    cred = credentials.Certificate({
-                        "type": "service_account",
-                        "project_id": project_id,
-                        "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
-                        "private_key": private_key.replace('\\n', '\n') if private_key else '',
-                        "client_email": client_email,
-                        "client_id": os.getenv('FIREBASE_CLIENT_ID'),
-                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                        "token_uri": "https://oauth2.googleapis.com/token",
-                    })
+                if not cred_path.exists():
+                    logger.error(f"Firebase credentials file not found at {cred_path}")
+                    return
                 
+                cred = credentials.Certificate(str(cred_path))
+                
+                # Initialize with Realtime Database URL
                 firebase_admin.initialize_app(cred, {
-                    'databaseURL': database_url
+                    'databaseURL': 'https://azureahotel-mobile-default-rtdb.firebaseio.com/'
                 })
+                
+                logger.info("✅ Firebase initialized successfully with Realtime Database")
             except Exception as e:
-                print(f"❌ Firebase initialization error: {e}")
-                return
-    
+                logger.error(f"Failed to initialize Firebase: {str(e)}")
+
     def is_available(self) -> bool:
         """Check if Firebase is properly initialized"""
-        return len(firebase_admin._apps) > 0
-    
-    # NEW: Create custom Firebase token for Django users
-    def create_custom_token(self, user_id: str, additional_claims: Dict[str, Any] = None) -> Optional[str]:
-        """
-        Create a custom Firebase token for Django authenticated users
-        This allows React Native to authenticate with Firebase using Django's auth
-        """
-        if not self.is_available():
-            print("Firebase not available, cannot create custom token")
-            return None
-        
         try:
-            uid = f"django_user_{user_id}"
-            
-            # Add custom claims
+            firebase_admin.get_app()
+            return True
+        except ValueError:
+            return False
+
+    def create_custom_token(self, user_id: str, additional_claims: dict = None) -> str:
+        """Create a Firebase custom token for the given user"""
+        try:
+            if not self.is_available():
+                raise Exception("Firebase not initialized")
+
             claims = additional_claims or {}
-            claims['django_user_id'] = int(user_id)
-            claims['auth_source'] = 'django'
-            
-            # Create custom token
-            custom_token = firebase_auth.create_custom_token(uid, claims)
-
-            return custom_token.decode('utf-8') if isinstance(custom_token, bytes) else custom_token
+            custom_token = auth.create_custom_token(user_id, claims)
+            return custom_token.decode('utf-8')
         except Exception as e:
-            print(f"Failed to create custom Firebase token for user {user_id}: {e}")
-            return None
-    
-    # NEW: Verify custom token
-    def verify_custom_token(self, token: str) -> Optional[Dict[str, Any]]:
-        """Verify a Firebase custom token"""
-        if not self.is_available():
-            return None
-        
+            logger.error(f"Error creating custom token: {str(e)}")
+            raise
+
+    def send_booking_update(self, booking_id: int, user_id: int, status: str, additional_data: dict = None):
+        """Send booking update notification via Firebase Realtime Database"""
         try:
-            decoded_token = firebase_auth.verify_id_token(token)
-            return decoded_token
-        except Exception as e:
-            print(f"Failed to verify Firebase token: {e}")
-            return None
+            if not self.is_available():
+                logger.warning("Firebase not available for sending booking update")
+                return False
 
+            logger.info(f"📱 Booking update for user {user_id}: Booking #{booking_id} - Status: {status}")
+            logger.info(f"   Additional data: {additional_data}")
+            
+            # Write to Firebase Realtime Database
+            ref = db.reference('/')
+            
+            # Update booking-updates node
+            booking_update_ref = ref.child('booking-updates').child(str(booking_id))
+            booking_update_ref.set({
+                'booking_id': booking_id,
+                'user_id': user_id,
+                'status': status,
+                'timestamp': datetime.now().isoformat(),
+                'data': additional_data or {}
+            })
+            
+            # Update user-bookings node (for quick user lookup)
+            user_bookings_ref = ref.child('user-bookings').child(f'user_{user_id}').child(str(booking_id))
+            user_bookings_ref.set({
+                'booking_id': booking_id,
+                'status': status,
+                'timestamp': datetime.now().isoformat(),
+                'is_venue_booking': additional_data.get('is_venue_booking', False) if additional_data else False
+            })
+            
+            # Create notification for user
+            notification_ref = ref.child('notifications').child(f'user_{user_id}').push()
+            notification_ref.set({
+                'type': 'booking_update',
+                'booking_id': booking_id,
+                'status': status,
+                'message': f'Booking #{booking_id} status: {status}',
+                'timestamp': datetime.now().isoformat(),
+                'read': False,
+                'data': additional_data or {}
+            })
+            
+            logger.info(f"✅ Successfully wrote booking update to Firebase")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error sending booking update to Firebase: {str(e)}")
+            return False
+
+    def send_room_availability_update(self, room_id: int, is_available: bool, current_bookings: list):
+        """Send room availability update to Firebase"""
+        try:
+            if not self.is_available():
+                logger.warning("Firebase not available for room availability update")
+                return False
+
+            logger.info(f"🏠 Room {room_id} availability update: {'Available' if is_available else 'Booked'}")
+            logger.info(f"   Current bookings: {current_bookings}")
+            
+            # Update Firebase Realtime Database
+            ref = db.reference('/')
+            room_ref = ref.child('room-availability').child(str(room_id))
+            room_ref.set({
+                'room_id': room_id,
+                'is_available': is_available,
+                'current_bookings': current_bookings,
+                'last_updated': datetime.now().isoformat()
+            })
+            
+            logger.info(f"✅ Successfully wrote room availability to Firebase")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating room availability in Firebase: {str(e)}")
+            return False
+
+    def send_area_availability_update(self, area_id: int, is_available: bool, current_bookings: list):
+        """Send area availability update to Firebase"""
+        try:
+            if not self.is_available():
+                logger.warning("Firebase not available for area availability update")
+                return False
+
+            logger.info(f"📍 Area {area_id} availability update: {'Available' if is_available else 'Booked'}")
+            logger.info(f"   Current bookings: {current_bookings}")
+            
+            # Update Firebase Realtime Database
+            ref = db.reference('/')
+            area_ref = ref.child('area-availability').child(str(area_id))
+            area_ref.set({
+                'area_id': area_id,
+                'is_available': is_available,
+                'current_bookings': current_bookings,
+                'last_updated': datetime.now().isoformat()
+            })
+            
+            logger.info(f"✅ Successfully wrote area availability to Firebase")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating area availability in Firebase: {str(e)}")
+            return False
+
+    def broadcast_admin_notification(self, message: str, data: dict, notification_type: str = 'general'):
+        """Broadcast notification to admin dashboard"""
+        try:
+            if not self.is_available():
+                logger.warning("Firebase not available for admin notification")
+                return False
+
+            logger.info(f"📢 Admin notification ({notification_type}): {message}")
+            logger.info(f"   Data: {data}")
+            
+            # Write to Firebase Realtime Database
+            ref = db.reference('/')
+            admin_notifications_ref = ref.child('admin-notifications').push()
+            admin_notifications_ref.set({
+                'type': notification_type,
+                'message': message,
+                'data': data,
+                'timestamp': datetime.now().isoformat(),
+                'read': False
+            })
+            
+            logger.info(f"✅ Successfully wrote admin notification to Firebase")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error broadcasting admin notification to Firebase: {str(e)}")
+            return False
+
+    def send_user_notification(self, user_id: int, notification_data: dict):
+        """Send notification to specific user"""
+        try:
+            if not self.is_available():
+                logger.warning("Firebase not available for user notification")
+                return False
+
+            logger.info(f"📬 User notification for user {user_id}")
+            logger.info(f"   Data: {notification_data}")
+            
+            # Write to Firebase Realtime Database
+            ref = db.reference('/')
+            user_notifications_ref = ref.child('notifications').child(f'user_{user_id}').push()
+            user_notifications_ref.set({
+                **notification_data,
+                'timestamp': datetime.now().isoformat(),
+                'read': False
+            })
+            
+            logger.info(f"✅ Successfully wrote user notification to Firebase")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error sending user notification to Firebase: {str(e)}")
+            return False
+
+# Create singleton instance
 firebase_service = FirebaseService()
