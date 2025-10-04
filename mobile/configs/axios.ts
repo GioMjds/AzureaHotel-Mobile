@@ -131,14 +131,6 @@ export class ApiClient {
             withCredentials: true,
         }
     }
-
-    withFormData(data: FormData): RequestConfig {
-        return {
-            data,
-            headers: { 'Content-Type': 'multipart/form-data' },
-            withCredentials: true,
-        }
-    }
 }
 
 export const httpClient = new ApiClient();

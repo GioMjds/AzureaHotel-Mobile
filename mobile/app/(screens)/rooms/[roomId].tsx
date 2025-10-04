@@ -7,7 +7,7 @@ import {
 	View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { room } from '@/services/Room';
 import { pesoFormatter } from '@/utils/formatters';
@@ -16,6 +16,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import PhotoGallery from '@/components/PhotoGallery';
 
 export default function GetRoomScreen() {
+	const router = useRouter();
 	const { roomId } = useLocalSearchParams();
 
 	const { data, isLoading, error } = useQuery({
@@ -110,11 +111,8 @@ export default function GetRoomScreen() {
 					{/* Header */}
 					<View className="flex-row justify-between items-start mb-4">
 						<View className="flex-1">
-							<Text className="text-3xl font-montserrat-bold text-neutral-800 mb-1">
+							<Text className="text-5xl font-playfair-bold text-neutral-800 mb-1">
 								{roomData.room_name}
-							</Text>
-							<Text className="text-neutral-600 capitalize text-md font-montserrat-bold">
-								Room Type: {roomData.room_type}
 							</Text>
 						</View>
 						{/* Rating */}
@@ -149,6 +147,16 @@ export default function GetRoomScreen() {
 								</Text>
 								<Text className="text-violet-600 capitalize font-montserrat-bold">
 									{''} {roomData.bed_type}
+								</Text>
+							</View>
+
+							<View className='flex-row justify-between items-center'>
+								<Text className="text-neutral-600 font-montserrat">
+									<FontAwesome name="building" size={16} />
+									{''} Room Type
+								</Text>
+								<Text className="text-violet-600 capitalize font-montserrat-bold">
+									{''} {roomData.room_type}
 								</Text>
 							</View>
 
@@ -331,6 +339,7 @@ export default function GetRoomScreen() {
 								? 'bg-violet-600'
 								: 'bg-neutral-400'
 						}`}
+						onPress={() => router.push(`/(booking-flow)/room-booking/${roomData.id}` as any)}
 						disabled={roomData.status !== 'available'}
 					>
 						<Text className="text-white font-montserrat-bold text-center text-lg">

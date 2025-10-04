@@ -24,10 +24,10 @@ import {
 	Image,
 } from 'react-native';
 import useAuthStore from '@/store/AuthStore';
-import { area } from '@/services/Area';
 import { GetAreaById, GetAreaBookings } from '@/types/Area.types';
 import { calculateAreaPricing } from '@/utils/pricing';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { booking } from '@/services/Booking';
 
 // Define local types based on the API responses
 interface BookingsByDate {
@@ -42,7 +42,7 @@ interface BookingsByDate {
 	};
 }
 
-const VenueBookingCalendarMobile = () => {
+export default function AreaBookingCalendar() {
 	const { user } = useAuthStore();
 	const { areaId } = useLocalSearchParams<{ areaId: string }>();
 	const router = useRouter();
@@ -68,8 +68,9 @@ const VenueBookingCalendarMobile = () => {
 		data: GetAreaById;
 	}>({
 		queryKey: ['area', areaId],
-		queryFn: () => area.getAreaById(areaId!),
+		queryFn: () => booking.getAreaById(areaId!),
 		enabled: !!areaId,
+		refetchInterval: 60000,
 	});
 
 	const areaData = areaResponse?.data;
@@ -84,9 +85,10 @@ const VenueBookingCalendarMobile = () => {
 				endOfMonth(addMonths(currentMonth, 1)),
 				'yyyy-MM-dd'
 			);
-			return await area.getAreaBookings(areaId!, startDate, endDate);
+			return await booking.getAreaBookings(areaId!, startDate, endDate);
 		},
 		enabled: !!areaId,
+		refetchInterval: 60000,
 	});
 
 	useEffect(() => {
@@ -123,13 +125,9 @@ const VenueBookingCalendarMobile = () => {
 	useEffect(() => {
 		if (areaData) {
 			const userForPricing = user
-				? {
-						...user,
-						username: user.email || `user_${user.id}`,
-					}
+				? { ...user, username: user.email || `user_${user.id}` }
 				: null;
 
-			// Convert GetAreaById to AreaData format for pricing calculation
 			const areaForPricing = {
 				...areaData,
 				price_per_hour: areaData.price_per_hour || '0',
@@ -273,7 +271,161 @@ const VenueBookingCalendarMobile = () => {
 		});
 	};
 
-	const months = [currentMonth, addMonths(currentMonth, 1)];
+	const renderPriceDisplay = () => {
+		if (!areaData) return null;
+
+		const isSeniorOrPwd = user?.is_senior_or_pwd;
+		const parsePrice = (val: string | number | null | undefined) => {
+			if (!val) return null;
+			if (typeof val === 'number') return val;
+			if (typeof val === 'string') {
+				return parseFloat(val.replace(/[^\d.]/g, ''));
+			}
+			return null;
+		};
+
+		const originalPrice = parsePrice(areaData.price_per_hour) || 0;
+		const adminDiscounted = parsePrice(areaData.discounted_price);
+		const seniorDiscounted = parsePrice(areaData.senior_discounted_price);
+
+		let displayDiscountedPrice: number | null = null;
+		let displayDiscountPercent = 0;
+
+		if (isSeniorOrPwd) {
+			const availableDiscounts = [];
+			if (adminDiscounted !== null && adminDiscounted < originalPrice) {
+				availableDiscounts.push({
+					price: adminDiscounted,
+					percent: areaData.discount_percent ?? 0,
+				});
+			}
+			if (seniorDiscounted !== null && seniorDiscounted < originalPrice) {
+				availableDiscounts.push({
+					price: seniorDiscounted,
+					percent: 20,
+				});
+			}
+			if (availableDiscounts.length > 0) {
+				const bestDiscount = availableDiscounts.reduce((best, current) =>
+					current.price < best.price ? current : best
+				);
+				displayDiscountedPrice = bestDiscount.price;
+				displayDiscountPercent = bestDiscount.percent;
+			}
+		} else {
+			if (adminDiscounted !== null && adminDiscounted < originalPrice) {
+				displayDiscountedPrice = adminDiscounted;
+				displayDiscountPercent = areaData.discount_percent ?? 0;
+			}
+		}
+
+		if (displayDiscountedPrice !== null) {
+			return (
+				<>
+					<Text className="text-neutral-500 line-through text-2xl font-montserrat">
+						₱{originalPrice.toLocaleString()}
+					</Text>
+					<View className="flex-row items-center">
+						<Text className="text-text-secondary font-montserrat-bold text-xl">
+							₱{displayDiscountedPrice.toLocaleString()}
+						</Text>
+						<Text className="text-feedback-success-DEFAULT font-montserrat-bold text-sm ml-1">
+							-{displayDiscountPercent}% OFF
+						</Text>
+					</View>
+				</>
+			);
+		} else {
+			return (
+				<Text className="text-text-secondary font-montserrat-bold text-2xl">
+					₱{originalPrice.toLocaleString()}
+				</Text>
+			);
+		}
+	};
+
+	const renderCalendarLegend = () => (
+		<View className="border-t border-border-default pt-4">
+			<Text className="text-text-primary font-montserrat-bold mb-3">
+				CALENDAR LEGEND
+			</Text>
+			<View className="flex-row flex-wrap">
+				<View className="flex-row items-center w-1/2 mb-2">
+					<View className="w-4 h-4 bg-surface-default border border-border-strong rounded-full mr-2" />
+					<Text className="text-text-primary font-montserrat text-sm">
+						Available
+					</Text>
+				</View>
+				<View className="flex-row items-center w-1/2 mb-2">
+					<View className="w-4 h-4 bg-violet-primary rounded-full mr-2" />
+					<Text className="text-text-primary font-montserrat text-sm">
+						Selected
+					</Text>
+				</View>
+				<View className="flex-row items-center w-1/2 mb-2">
+					<View className="w-4 h-4 bg-neutral-300 rounded-full mr-2" />
+					<Text className="text-text-primary font-montserrat text-sm">
+						Unavailable
+					</Text>
+				</View>
+				<View className="flex-row items-center w-1/2 mb-2">
+					<View className="w-4 h-4 bg-feedback-success-light border-2 border-feedback-success-DEFAULT rounded-full mr-2" />
+					<Text className="text-text-primary font-montserrat text-sm">
+						Reserved
+					</Text>
+				</View>
+				<View className="flex-row items-center w-1/2 mb-2">
+					<View className="w-4 h-4 bg-feedback-info-light border-2 border-feedback-info-DEFAULT rounded-full mr-2" />
+					<Text className="text-text-primary font-montserrat text-sm">
+						Checked In
+					</Text>
+				</View>
+			</View>
+		</View>
+	);
+
+	const renderCalendarMonth = (month: Date) => {
+		const monthStart = startOfMonth(month);
+		const monthEnd = endOfMonth(month);
+		const days = eachDayOfInterval({
+			start: monthStart,
+			end: monthEnd,
+		});
+		const startWeekday = monthStart.getDay();
+
+		const calendarDays = [];
+		for (let i = 0; i < startWeekday; i++) {
+			calendarDays.push(null);
+		}
+		calendarDays.push(...days);
+
+		return (
+			<View key={`month-${format(month, 'yyyy-MM')}`} className="mb-2">
+				<View className="flex-row flex-wrap">
+					{calendarDays.map((day, index) => (
+						<View
+							key={`${format(month, 'yyyy-MM')}-cell-${index}`}
+							className="w-[14.28%] aspect-square p-1"
+						>
+							{day ? (
+								<TouchableOpacity
+									className={`flex-1 items-center justify-center rounded-full ${getDateCellClass(day)}`}
+									onPress={() => handleDateClick(day)}
+									disabled={isDateUnavailable(day)}
+								>
+									<Text className={`text-sm ${getDateTextClass(day)}`}>
+										{format(day, 'd')}
+									</Text>
+								</TouchableOpacity>
+							) : (
+								<View className="flex-1" />
+							)}
+						</View>
+					))}
+				</View>
+			</View>
+		);
+	};
 
 	const prevMonth = () => setCurrentMonth(addMonths(currentMonth, -1));
 	const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
@@ -325,140 +477,13 @@ const VenueBookingCalendarMobile = () => {
 
 							<View className="p-4">
 								<View className="flex-row justify-between items-start mb-3">
-									<Text className="text-text-primary font-playfair-semibold text-xl flex-1 mr-2">
+									<Text className="text-text-primary font-playfair-semibold text-4xl flex-1 mr-2">
 										{areaData.area_name}
 									</Text>
 
 									{/* Price Display */}
 									<View className="items-end">
-										{(() => {
-											const isSeniorOrPwd =
-												user?.is_senior_or_pwd;
-											const parsePrice = (
-												val:
-													| string
-													| number
-													| null
-													| undefined
-											) => {
-												if (!val) return null;
-												if (typeof val === 'number')
-													return val;
-												if (typeof val === 'string') {
-													return parseFloat(
-														val.replace(
-															/[^\d.]/g,
-															''
-														)
-													);
-												}
-												return null;
-											};
-
-											const originalPrice =
-												parsePrice(
-													areaData.price_per_hour
-												) || 0;
-											const adminDiscounted = parsePrice(
-												areaData.discounted_price
-											);
-											const seniorDiscounted = parsePrice(
-												areaData.senior_discounted_price
-											);
-
-											let displayDiscountedPrice:
-												| number
-												| null = null;
-											let displayDiscountPercent = 0;
-
-											if (isSeniorOrPwd) {
-												const availableDiscounts = [];
-												if (
-													adminDiscounted !== null &&
-													adminDiscounted <
-														originalPrice
-												) {
-													availableDiscounts.push({
-														price: adminDiscounted,
-														percent:
-															areaData.discount_percent ??
-															0,
-													});
-												}
-												if (
-													seniorDiscounted !== null &&
-													seniorDiscounted <
-														originalPrice
-												) {
-													availableDiscounts.push({
-														price: seniorDiscounted,
-														percent: 20,
-													});
-												}
-												if (
-													availableDiscounts.length >
-													0
-												) {
-													const bestDiscount =
-														availableDiscounts.reduce(
-															(best, current) =>
-																current.price <
-																best.price
-																	? current
-																	: best
-														);
-													displayDiscountedPrice =
-														bestDiscount.price;
-													displayDiscountPercent =
-														bestDiscount.percent;
-												}
-											} else {
-												if (
-													adminDiscounted !== null &&
-													adminDiscounted <
-														originalPrice
-												) {
-													displayDiscountedPrice =
-														adminDiscounted;
-													displayDiscountPercent =
-														areaData.discount_percent ??
-														0;
-												}
-											}
-
-											if (
-												displayDiscountedPrice !== null
-											) {
-												return (
-													<>
-														<Text className="text-neutral-500 line-through text-sm font-montserrat">
-															₱
-															{originalPrice.toLocaleString()}
-														</Text>
-														<View className="flex-row items-center">
-															<Text className="text-text-secondary font-montserrat-bold text-lg">
-																₱
-																{displayDiscountedPrice.toLocaleString()}
-															</Text>
-															<Text className="text-feedback-success-DEFAULT font-montserrat-bold text-xs ml-1">
-																-
-																{
-																	displayDiscountPercent
-																}
-																% OFF
-															</Text>
-														</View>
-													</>
-												);
-											} else {
-												return (
-													<Text className="text-text-secondary font-montserrat-bold text-lg">
-														₱
-														{originalPrice.toLocaleString()}
-													</Text>
-												);
-											}
-										})()}
+										{renderPriceDisplay()}
 									</View>
 								</View>
 
@@ -486,59 +511,6 @@ const VenueBookingCalendarMobile = () => {
 							</View>
 						</View>
 					)}
-
-					{/* Selected Date Display */}
-					<View className="bg-surface-elevated rounded-2xl p-4 mb-6 border border-border-default">
-						<View className="flex-row items-center justify-between mb-3">
-							<View className="flex-row items-center">
-								<Ionicons
-									name="calendar-outline"
-									size={20}
-									color="#3B0270"
-								/>
-								<Text className="text-text-primary font-montserrat-bold ml-2 text-lg">
-									Selected Date
-								</Text>
-							</View>
-							<Text className="text-text-secondary font-montserrat-bold">
-								{selectedDate
-									? format(selectedDate, 'MMM dd, yyyy')
-									: 'Not selected'}
-							</Text>
-						</View>
-
-						{selectedDate && (
-							<View className="bg-violet-surface rounded-xl p-3 mt-2">
-								<View className="flex-row justify-between items-center">
-									<Text className="text-text-primary font-montserrat">
-										Date:
-									</Text>
-									<Text className="text-text-secondary font-montserrat-bold">
-										{format(
-											selectedDate,
-											'EEE, MMM dd, yyyy'
-										)}
-									</Text>
-								</View>
-								<View className="flex-row justify-between items-center mt-1">
-									<Text className="text-text-primary font-montserrat">
-										Time:
-									</Text>
-									<Text className="text-text-secondary font-montserrat-bold">
-										8:00 AM - 5:00 PM
-									</Text>
-								</View>
-								<View className="flex-row justify-between items-center mt-2 pt-2 border-t border-border-subtle">
-									<Text className="text-text-primary font-montserrat-bold text-lg">
-										Total:
-									</Text>
-									<Text className="text-text-secondary font-playfair-bold text-xl">
-										₱{price.toLocaleString()}
-									</Text>
-								</View>
-							</View>
-						)}
-					</View>
 
 					{/* Error Messages */}
 					{errorMessage && (
@@ -569,7 +541,7 @@ const VenueBookingCalendarMobile = () => {
 
 					{/* Calendar Section */}
 					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-default">
-						<Text className="text-text-primary font-playfair-semibold text-xl mb-4">
+						<Text className="text-text-primary text-center font-playfair-bold text-3xl mb-4">
 							Select Booking Date
 						</Text>
 
@@ -579,12 +551,12 @@ const VenueBookingCalendarMobile = () => {
 								onPress={prevMonth}
 								className="p-2"
 							>
-								<Text className="text-text-secondary font-montserrat-bold text-lg">
+								<Text className="text-text-secondary font-montserrat-bold text-3xl">
 									‹
 								</Text>
 							</TouchableOpacity>
 
-							<Text className="text-text-primary font-playfair-semibold text-lg">
+							<Text className="text-text-primary font-playfair-bold text-3xl">
 								{format(currentMonth, 'MMMM yyyy')}
 							</Text>
 
@@ -592,16 +564,16 @@ const VenueBookingCalendarMobile = () => {
 								onPress={nextMonth}
 								className="p-2"
 							>
-								<Text className="text-text-secondary font-montserrat-bold text-lg">
+								<Text className="text-text-secondary font-montserrat-bold text-3xl">
 									›
 								</Text>
 							</TouchableOpacity>
 						</View>
 
 						{/* Calendar Grid */}
-						<View className="mb-6">
+						<View className="mb-2">
 							<View className="flex-row justify-between mb-2">
-								{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(
+								{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(
 									(day, dayIndex) => (
 										<Text
 											key={`weekday-${dayIndex}-${day}`}
@@ -613,106 +585,56 @@ const VenueBookingCalendarMobile = () => {
 								)}
 							</View>
 
-							{months.map((month, monthIndex) => {
-								const monthStart = startOfMonth(month);
-								const monthEnd = endOfMonth(month);
-								const days = eachDayOfInterval({
-									start: monthStart,
-									end: monthEnd,
-								});
-								const startWeekday = monthStart.getDay();
-
-								const calendarDays = [];
-								for (let i = 0; i < startWeekday; i++) {
-									calendarDays.push(null);
-								}
-								calendarDays.push(...days);
-
-								return (
-									<View
-										key={`month-${format(month, 'yyyy-MM')}-${monthIndex}`}
-										className="mb-4"
-									>
-										<Text className="text-text-primary font-playfair-semibold text-center mb-3">
-											{format(month, 'MMMM yyyy')}
-										</Text>
-
-										<View className="flex-row flex-wrap">
-											{calendarDays.map((day, index) => (
-												<View
-													key={`${format(month, 'yyyy-MM')}-cell-${index}`}
-													className="w-[14.28%] aspect-square p-1"
-												>
-													{day ? (
-														<TouchableOpacity
-															className={`flex-1 items-center justify-center rounded-full ${getDateCellClass(day)}`}
-															onPress={() =>
-																handleDateClick(
-																	day
-																)
-															}
-															disabled={isDateUnavailable(
-																day
-															)}
-														>
-															<Text
-																className={`text-sm ${getDateTextClass(day)}`}
-															>
-																{format(
-																	day,
-																	'd'
-																)}
-															</Text>
-														</TouchableOpacity>
-													) : (
-														<View className="flex-1" />
-													)}
-												</View>
-											))}
-										</View>
-									</View>
-								);
-							})}
+							{renderCalendarMonth(currentMonth)}
 						</View>
 
 						{/* Calendar Legend */}
-						<View className="border-t border-border-default pt-4">
-							<Text className="text-text-primary font-montserrat-bold mb-3">
-								CALENDAR LEGEND
-							</Text>
-							<View className="flex-row flex-wrap">
-								<View className="flex-row items-center w-1/2 mb-2">
-									<View className="w-4 h-4 bg-surface-default border border-border-strong rounded-full mr-2" />
-									<Text className="text-text-primary font-montserrat text-sm">
-										Available
+						{renderCalendarLegend()}
+					</View>
+
+					{/* Selected Date Display */}
+					<View className="bg-surface-elevated rounded-2xl p-4 mb-6 border border-border-default">
+						<View className="flex-row items-center justify-between mb-3">
+							<View className="flex-row items-center">
+								<Ionicons
+									name="calendar-outline"
+									size={20}
+									color="#3B0270"
+								/>
+								<Text className="text-text-primary font-montserrat-bold ml-2 text-lg">
+									Selected Date
+								</Text>
+							</View>
+						</View>
+
+						{selectedDate && (
+							<View className="bg-violet-surface rounded-xl p-3 mt-2">
+								<View className="flex-row justify-between items-center">
+									<Text className="text-text-primary text-2xl font-montserrat">
+										Date:
+									</Text>
+									<Text className="text-text-secondary text-2xl font-montserrat-bold">
+										{format(selectedDate,'EEE, MMM dd, yyyy')}
 									</Text>
 								</View>
-								<View className="flex-row items-center w-1/2 mb-2">
-									<View className="w-4 h-4 bg-violet-primary rounded-full mr-2" />
-									<Text className="text-text-primary font-montserrat text-sm">
-										Selected
+								<View className="flex-row justify-between items-center mt-1">
+									<Text className="text-text-primary text-2xl font-montserrat">
+										Time:
+									</Text>
+									<Text className="text-text-secondary text-2xl font-montserrat-bold">
+										8:00 AM - 5:00 PM
 									</Text>
 								</View>
-								<View className="flex-row items-center w-1/2 mb-2">
-									<View className="w-4 h-4 bg-neutral-300 rounded-full mr-2" />
-									<Text className="text-text-primary font-montserrat text-sm">
-										Unavailable
+								<View className="flex-row justify-between items-center mt-2 pt-2 border-t border-border-subtle">
+									<Text className="text-text-primary font-montserrat-bold text-2xl">
+										Total:
 									</Text>
-								</View>
-								<View className="flex-row items-center w-1/2 mb-2">
-									<View className="w-4 h-4 bg-feedback-success-light border-2 border-feedback-success-DEFAULT rounded-full mr-2" />
-									<Text className="text-text-primary font-montserrat text-sm">
-										Reserved
-									</Text>
-								</View>
-								<View className="flex-row items-center w-1/2 mb-2">
-									<View className="w-4 h-4 bg-feedback-info-light border-2 border-feedback-info-DEFAULT rounded-full mr-2" />
-									<Text className="text-text-primary font-montserrat text-sm">
-										Checked In
+									<Text className="text-text-secondary font-montserrat-bold text-3xl">
+										₱ {price.toLocaleString()}
 									</Text>
 								</View>
 							</View>
-						</View>
+						)}
 					</View>
 
 					{/* Proceed Button */}
@@ -740,5 +662,3 @@ const VenueBookingCalendarMobile = () => {
 		</SafeAreaView>
 	);
 };
-
-export default VenueBookingCalendarMobile;

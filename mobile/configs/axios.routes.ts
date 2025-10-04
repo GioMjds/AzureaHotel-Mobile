@@ -52,7 +52,7 @@ export class BookingRoutes {
     static readonly AREA_BOOKINGS = (areaId: string) => `${Routes.BOOKING}/areas/${areaId}/bookings`;
     static readonly AREA_REVIEWS = (areaId: number) => `${Routes.BOOKING}/areas/${areaId}/reviews`;
     static readonly ROOM_DETAIL = (roomId: string) => `${Routes.BOOKING}/rooms/${roomId}`;
-    static readonly ROOM_BOOKINGS = (roomId: number) => `${Routes.BOOKING}/rooms/${roomId}/bookings`;
+    static readonly ROOM_BOOKINGS = (roomId: string) => `${Routes.BOOKING}/rooms/${roomId}/bookings`;
     static readonly ROOM_REVIEWS = (roomId: number) => `${Routes.BOOKING}/rooms/${roomId}/reviews`;
     static readonly CHECKOUT_RECEIPT = (bookingId: string) => `${Routes.BOOKING}/generate_checkout_e_receipt/${bookingId}`;
 

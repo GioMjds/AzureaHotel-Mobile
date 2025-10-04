@@ -126,16 +126,13 @@ export default function BookingsScreen() {
                 onStatusChange={setSelectedStatus} 
             />
 
+            <View className="py-2" />
+
             {/* Bookings List */}
             <FlatList
                 data={data?.data || []}
                 keyExtractor={(item) => item.id?.toString()}
                 renderItem={({ item }) => <BookingCard item={item} />}
-                contentContainerStyle={{
-                    paddingHorizontal: 16,
-                    paddingBottom: 100,
-                    flexGrow: 1,
-                }}
                 refreshControl={
                     <RefreshControl 
                         refreshing={isFetching} 
