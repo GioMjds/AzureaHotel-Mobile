@@ -112,8 +112,8 @@ const ConfirmingBooking: React.FC<ConfirmingBookingProps> = ({
 			statusBarTranslucent
 		>
 			<Animated.View
-				style={overlayStyle}
-				className="absolute inset-0 bg-brand-secondary/95 justify-center items-center"
+				style={[overlayStyle, { backgroundColor: 'white' }]}
+				className="absolute inset-0 justify-center items-center"
 			>
 				<Animated.View
 					style={containerStyle}
@@ -150,7 +150,7 @@ const ConfirmingBooking: React.FC<ConfirmingBookingProps> = ({
 
 					{/* Text Content */}
 					<View className="mt-12 items-center px-8">
-						<Text className="text-text-inverse font-playfair-bold text-2xl mb-2 text-center">
+						<Text className="text-violet-700 font-playfair-bold text-2xl mb-2 text-center">
 							Confirming Booking
 						</Text>
 						<Text className="text-brand-accent font-montserrat text-base text-center mb-4">

@@ -14,9 +14,6 @@ export class FirebaseAuthService {
      */
     static async authenticateWithFirebase(): Promise<boolean> {
         try {
-            logger.debug('🔄 Starting Firebase authentication...');
-            
-            // First check if we have a valid access token
             const accessToken = await SecureStore.getItemAsync('access_token');
             if (!accessToken) {
                 logger.warn('⚠️ No access token found, skipping Firebase auth');
@@ -61,31 +58,8 @@ export class FirebaseAuthService {
             }
 
             return true;
-        } catch (error: any) {
-            logger.error(`❌ Firebase authentication failed: ${error.message}`);
-            
-            // Check specific error types
-            if (error.code?.includes('auth/')) {
-                logger.error('🔥 Firebase Auth Error:', error.code);
-                
-                // Handle specific Firebase auth errors
-                switch (error.code) {
-                    case 'auth/invalid-custom-token':
-                        logger.error('Invalid custom token format from backend');
-                        break;
-                    case 'auth/custom-token-mismatch':
-                        logger.error('Custom token project ID mismatch');
-                        break;
-                    default:
-                        logger.error('Unknown Firebase auth error');
-                }
-            } else if (error.response) {
-                logger.error(`🌐 HTTP Error: ${error.response.status} ${error.response.statusText}`);
-            } else if (error.request) {
-                logger.error('📡 Network Error - no response received');
-            }
-            
-            // Return false but don't throw - allow app to continue without Firebase
+        } catch (error) {
+            logger.error(`❌ Firebase authentication failed: ${error}`);
             return false;
         }
     }

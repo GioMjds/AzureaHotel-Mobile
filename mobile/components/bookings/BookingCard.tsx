@@ -12,14 +12,13 @@ interface BookingCardProps {
 }
 
 const BookingCard = ({ item }: BookingCardProps) => {
-	const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+	const [feedbackModalVisible, setFeedbackModalVisible] = useState<boolean>(false);
 	const isAreaBooking = item.is_venue_booking;
 
-	// Check if this is a checked-out booking and if it has been reviewed
 	const isCheckedOut = item.status.toLowerCase() === 'checked_out';
 	const { data: reviewData } = useBookingReview(
 		item.id, 
-		isCheckedOut // Only fetch review data for checked-out bookings
+		isCheckedOut
 	);
 	const hasReview = reviewData?.hasReview || false;
 

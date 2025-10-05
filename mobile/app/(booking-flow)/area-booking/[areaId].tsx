@@ -591,51 +591,6 @@ export default function AreaBookingCalendar() {
 						{renderCalendarLegend()}
 					</View>
 
-					{/* Selected Date Display */}
-					<View className="bg-surface-elevated rounded-2xl p-4 mb-6 border border-border-default">
-						<View className="flex-row items-center justify-between mb-3">
-							<View className="flex-row items-center">
-								<Ionicons
-									name="calendar-outline"
-									size={20}
-									color="#3B0270"
-								/>
-								<Text className="text-text-primary font-montserrat-bold ml-2 text-lg">
-									Selected Date
-								</Text>
-							</View>
-						</View>
-
-						{selectedDate && (
-							<View className="bg-violet-surface rounded-xl p-3 mt-2">
-								<View className="flex-row justify-between items-center">
-									<Text className="text-text-primary text-2xl font-montserrat">
-										Date:
-									</Text>
-									<Text className="text-text-secondary text-2xl font-montserrat-bold">
-										{format(selectedDate,'EEE, MMM dd, yyyy')}
-									</Text>
-								</View>
-								<View className="flex-row justify-between items-center mt-1">
-									<Text className="text-text-primary text-2xl font-montserrat">
-										Time:
-									</Text>
-									<Text className="text-text-secondary text-2xl font-montserrat-bold">
-										8:00 AM - 5:00 PM
-									</Text>
-								</View>
-								<View className="flex-row justify-between items-center mt-2 pt-2 border-t border-border-subtle">
-									<Text className="text-text-primary font-montserrat-bold text-2xl">
-										Total:
-									</Text>
-									<Text className="text-text-secondary font-montserrat-bold text-3xl">
-										₱ {price.toLocaleString()}
-									</Text>
-								</View>
-							</View>
-						)}
-					</View>
-
 					{/* Proceed Button */}
 					<TouchableOpacity
 						onPress={handleProceed}

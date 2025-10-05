@@ -9,21 +9,53 @@ import {
     Image,
     RefreshControl
 } from "react-native";
+import { useState } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
 import { booking } from "@/services/Booking";
 import { UserBooking } from "@/types/Bookings.types";
-import { pesoFormatter, formatDate, colorMap } from "@/utils/formatters";
+import { pesoFormatter, formatDate } from "@/utils/formatters";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
+import CancellationModal from "@/components/ui/CancellationModal";
+import { guestCancellationReasons } from "@/constants/dropdown-options";
 
 export default function BookingDetailsScreen() {
+    const [isCancellationModalOpen, setIsCancellationModalOpen] = useState<boolean>(false);
+    
     const { bookingId } = useLocalSearchParams();
     const router = useRouter();
+    const queryClient = useQueryClient();
     
     const { data, isLoading, isError, error, refetch } = useQuery({
         queryKey: ['bookingDetails', bookingId],
         queryFn: () => booking.getBookingDetail(bookingId as string),
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+        retry: false,
     });
+
+    const cancelMutation = useMutation({
+        mutationFn: ({ bookingId, reason }: { bookingId: string; reason: string }) => {
+            return booking.cancelBooking(bookingId, reason);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['bookingDetails', bookingId] });
+            queryClient.invalidateQueries({ queryKey: ['userBookings'] });
+            
+            Alert.alert(
+                "Cancellation Submitted",
+                "Your cancellation request has been submitted successfully.",
+                [{ text: "OK", onPress: () => router.back() }]
+            );
+        },
+        onError: (error) => {
+            Alert.alert(
+                "Cancellation Failed",
+                error.message || "Failed to cancel booking. Please try again.",
+                [{ text: "OK" }]
+            );
+        }
+    })
 
     const bookingData: UserBooking = data?.data;
 
@@ -32,21 +64,47 @@ export default function BookingDetailsScreen() {
     };
 
     const handleCancelBooking = () => {
-        Alert.alert(
-            "Cancel Booking",
-            "Are you sure you want to cancel this booking?",
-            [
-                { text: "No", style: "cancel" },
-                { text: "Yes", style: "destructive", onPress: () => {
-                    // Implement cancel booking logic
-                    Alert.alert("Cancelled", "Your booking has been cancelled");
-                }}
-            ]
-        );
+        if (bookingData?.status === 'pending') {
+            setIsCancellationModalOpen(true);
+        } else {
+            Alert.alert(
+                "Cancel Booking",
+                "Are you sure you want to cancel this booking?",
+                [
+                    { text: "No", style: "cancel" },
+                    { 
+                        text: "Yes", 
+                        style: "destructive", 
+                        onPress: async () => {
+                            try {
+                                await cancelMutation.mutateAsync({
+                                    bookingId: bookingData.id.toString(),
+                                    reason: "Guest requested cancellation"
+                                });
+                            } catch (error) {
+                                console.error(`Cancellation error: ${error}`);
+                            }
+                        }
+                    }
+                ]
+            );
+        }
     };
 
-    const handleModifyBooking = () => {
-        Alert.alert("Modify Booking", "Booking modification feature will be implemented soon");
+    const handleConfirmCancellation = async (reason: string) => {
+        if (!reason.trim()) {
+            Alert.alert("Cancellation Reason Required", "Please provide a reason for cancellation.");
+            return;
+        }
+
+        try {
+            await cancelMutation.mutateAsync({
+                bookingId: bookingData.id.toString(),
+                reason: reason.trim()
+            });
+        } catch (error) {
+            console.error(`Cancellation error: ${error}`);
+        }
     };
 
     const calculateNights = () => {
@@ -66,6 +124,17 @@ export default function BookingDetailsScreen() {
             case 'checked_in': return <Ionicons name="log-in" {...iconProps} />;
             case 'checked_out': return <Ionicons name="log-out" {...iconProps} />;
             default: return <Ionicons name="alert-circle" {...iconProps} />;
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'confirmed': return 'bg-green-500';
+            case 'pending': return 'bg-yellow-500';
+            case 'cancelled': return 'bg-red-500';
+            case 'checked_in': return 'bg-blue-500';
+            case 'checked_out': return 'bg-purple-500';
+            default: return 'bg-gray-500';
         }
     };
 
@@ -131,7 +200,7 @@ export default function BookingDetailsScreen() {
                         <FontAwesome name="arrow-left" size={24} color="#374151" />
                     </TouchableOpacity>
                     <View className="flex-1 ml-4">
-                        <Text className="text-xl font-raleway text-gray-900">
+                        <Text className="text-3xl font-playfair-bold text-gray-900">
                             Booking Details
                         </Text>
                     </View>
@@ -147,17 +216,28 @@ export default function BookingDetailsScreen() {
                 }
             >
                 <View className="p-4 space-y-6">
-                    {/* Status Banner */}
-                    <View className={`${colorMap[bookingData.status]} rounded-2xl p-6`}>
-                        <View className="flex-row items-center justify-center space-x-3 mb-2">
-                            {getStatusIcon(bookingData.status)}
-                            <Text className="text-xl font-montserrat-bold text-white uppercase tracking-wide">
-                                {bookingData.status.replace('_', ' ')}
-                            </Text>
+                    {/* Booking Status Banner */}
+                    <View className={`${getStatusColor(bookingData.status)} rounded-2xl p-4`}>
+                        <View className="flex-row items-center justify-between">
+                            <View className="flex-row items-center space-x-3">
+                                {getStatusIcon(bookingData.status)}
+                                <View>
+                                    <Text className="text-white font-montserrat-bold text-lg capitalize">
+                                        {bookingData.status.replace('_', ' ')}
+                                    </Text>
+                                    <Text className="text-white/90 font-montserrat text-sm">
+                                        Booking Reference: #{bookingData.id}
+                                    </Text>
+                                </View>
+                            </View>
+                            {bookingData.status === 'pending' && (
+                                <View className="bg-white/20 px-3 py-1 rounded-full">
+                                    <Text className="text-white font-montserrat-bold text-xs">
+                                        Awaiting Confirmation
+                                    </Text>
+                                </View>
+                            )}
                         </View>
-                        <Text className="text-center text-white/90 font-montserrat text-sm">
-                            {isVenueBooking ? 'Area Booking' : 'Room Booking'}
-                        </Text>
                     </View>
 
                     {/* Property Image & Info */}
@@ -170,6 +250,11 @@ export default function BookingDetailsScreen() {
                                     resizeMode="cover"
                                 />
                                 <View className="absolute inset-0 bg-black/20" />
+                                <View className="absolute top-4 right-4 bg-black/60 px-3 py-1 rounded-full">
+                                    <Text className="text-white font-montserrat-bold text-sm capitalize">
+                                        {isVenueBooking ? 'Venue' : 'Room'} Booking
+                                    </Text>
+                                </View>
                             </View>
                         )}
                         <View className="p-6">
@@ -188,30 +273,44 @@ export default function BookingDetailsScreen() {
                     <View className="bg-white rounded-2xl shadow-sm p-6">
                         <View className="flex-row items-center space-x-3 mb-4">
                             <Ionicons name="calendar" size={20} color="#8b5cf6" />
-                            <Text className="text-lg font-playfair-bold text-gray-900">Stay Dates</Text>
+                            <Text className="text-lg font-playfair-bold text-gray-900">
+                                {isVenueBooking ? 'Event Dates' : 'Stay Dates'}
+                            </Text>
                         </View>
                         
                         <View className="flex-row space-x-4">
                             <View className="flex-1 space-y-1">
                                 <Text className="text-xs text-gray-500 uppercase tracking-wide font-montserrat-bold">
-                                    Check-in
+                                    {isVenueBooking ? 'Event Start' : 'Check-in'}
                                 </Text>
                                 <Text className="text-lg font-playfair-bold text-gray-900">
                                     {bookingData.check_in_date ? formatDate(bookingData.check_in_date) : 'N/A'}
                                 </Text>
-                                <Text className="text-sm text-gray-600 font-montserrat">After 3:00 PM</Text>
+                                <Text className="text-sm text-gray-600 font-montserrat">
+                                    {isVenueBooking ? 'As scheduled' : 'After 3:00 PM'}
+                                </Text>
                             </View>
                             
                             <View className="flex-1 space-y-1">
                                 <Text className="text-xs text-gray-500 uppercase tracking-wide font-montserrat-bold">
-                                    Check-out
+                                    {isVenueBooking ? 'Event End' : 'Check-out'}
                                 </Text>
                                 <Text className="text-lg font-playfair-bold text-gray-900">
                                     {bookingData.check_out_date ? formatDate(bookingData.check_out_date) : 'N/A'}
                                 </Text>
-                                <Text className="text-sm text-gray-600 font-montserrat">Before 12:00 PM</Text>
+                                <Text className="text-sm text-gray-600 font-montserrat">
+                                    {isVenueBooking ? 'As scheduled' : 'Before 12:00 PM'}
+                                </Text>
                             </View>
                         </View>
+
+                        {!isVenueBooking && (
+                            <View className="mt-4 pt-4 border-t border-gray-200">
+                                <Text className="text-sm text-gray-600 font-montserrat">
+                                    Duration: {calculateNights()} night{calculateNights() !== 1 ? 's' : ''}
+                                </Text>
+                            </View>
+                        )}
                     </View>
 
                     {/* Guest & Payment Info */}
@@ -219,7 +318,9 @@ export default function BookingDetailsScreen() {
                         <View className="flex-1 bg-white rounded-2xl shadow-sm p-6">
                             <View className="flex-row items-center space-x-3 mb-3">
                                 <Ionicons name="people" size={20} color="#8b5cf6" />
-                                <Text className="font-montserrat-bold text-gray-900 ml-2">No. of Guests</Text>
+                                <Text className="font-montserrat-bold text-gray-900 ml-2">
+                                    {isVenueBooking ? 'Event Guests' : 'No. of Guests'}
+                                </Text>
                             </View>
                             <Text className="text-2xl font-montserrat-bold text-gray-900">
                                 {bookingData.number_of_guests}
@@ -249,7 +350,7 @@ export default function BookingDetailsScreen() {
                         <View className="space-y-4">
                             <View className="flex-row justify-between items-center">
                                 <Text className="text-gray-600 font-montserrat">
-                                    Room Rate ({calculateNights()} nights)
+                                    {isVenueBooking ? 'Venue Rate' : `Room Rate (${calculateNights()} nights)`}
                                 </Text>
                                 <Text className="font-montserrat-bold text-gray-900">
                                     {pesoFormatter.format(bookingData.original_price)}
@@ -375,18 +476,27 @@ export default function BookingDetailsScreen() {
                                 className="flex-1 bg-red-600 active:bg-red-700 py-4 px-6 rounded-2xl items-center"
                                 onPress={handleCancelBooking}
                             >
-                                <Text className="text-white font-montserrat-bold">Cancel Booking</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                                className="flex-1 bg-violet-600 active:bg-violet-700 py-4 px-6 rounded-2xl items-center"
-                                onPress={handleModifyBooking}
-                            >
-                                <Text className="text-white font-montserrat-bold">Modify Booking</Text>
+                                <Text className="text-white font-montserrat-bold">
+                                    {bookingData.status === 'pending' ? 'Request Cancellation' : 'Cancel Booking'}
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     )}
                 </View>
             </ScrollView>
+
+            {/* Cancellation Modal for Pending Bookings */}
+            <CancellationModal
+                isOpen={isCancellationModalOpen}
+                onClose={() => setIsCancellationModalOpen(false)}
+                onConfirm={handleConfirmCancellation}
+                title="Request Cancellation"
+                description="Your booking is currently pending confirmation. Please provide a reason for your cancellation request."
+                reasonLabel="Select cancellation reason"
+                reasonPlaceholder="Please specify your reason for cancellation..."
+                confirmButtonText="Submit Cancellation"
+                reasons={guestCancellationReasons}
+            />
         </SafeAreaView>
     );
 }

@@ -227,47 +227,7 @@ export default function ConfirmAreaBookingScreen() {
 			}, 1500);
 		} catch (error: any) {
 			console.error('Booking error:', error);
-			console.error('Error response:', error.response);
-			console.error('Error response data:', error.response?.data);
 			setIsSubmitting(false);
-			
-			// Extract error message from response
-			let errorMessage = 'Failed to create booking. Please try again.';
-			
-			if (error.response?.data) {
-				const errorData = error.response.data;
-				console.log('Error data type:', typeof errorData);
-				console.log('Error data:', JSON.stringify(errorData, null, 2));
-				
-				// Handle error object with nested errors
-				if (errorData.error) {
-					if (typeof errorData.error === 'string') {
-						errorMessage = errorData.error;
-					} else if (typeof errorData.error === 'object') {
-						// Convert error object to readable message
-						const errorMessages = Object.entries(errorData.error)
-							.map(([key, value]) => {
-								if (Array.isArray(value)) {
-									return `${key}: ${value.join(', ')}`;
-								}
-								return `${key}: ${value}`;
-							})
-							.join('\n');
-						errorMessage = errorMessages || errorMessage;
-					}
-				} else if (errorData.message) {
-					errorMessage = errorData.message;
-				} else if (typeof errorData === 'string') {
-					errorMessage = errorData;
-				}
-			} else if (error.message) {
-				errorMessage = error.message;
-			}
-			
-			Alert.alert(
-				'Booking Failed',
-				errorMessage
-			);
 		}
 	};
 

@@ -197,8 +197,9 @@ def reservation_list(request):
     try:
         if request.method == 'GET':
             if not request.user.is_authenticated:
-                return Response({"error": "Authentication required to view reservations"}, 
-                                status=status.HTTP_401_UNAUTHORIZED)
+                return Response({
+                    "error": "Authentication required to view reservations"
+                }, status=status.HTTP_401_UNAUTHORIZED)
             
             bookings = Bookings.objects.all()
             serializer = BookingSerializer(bookings, many=True)
@@ -251,8 +252,9 @@ def area_reservations(request):
     try:
         if request.method == 'GET':
             if not request.user.is_authenticated:
-                return Response({"error": "Authentication required to view area reservations"}, 
-                                status=status.HTTP_401_UNAUTHORIZED)
+                return Response({
+                    "error": "Authentication required to view area reservations"
+                }, status=status.HTTP_401_UNAUTHORIZED)
                 
             bookings = Bookings.objects.filter(is_venue_booking=True).order_by('-created_at')
             serializer = BookingSerializer(bookings, many=True)

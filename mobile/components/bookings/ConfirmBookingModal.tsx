@@ -61,8 +61,8 @@ const ConfirmBookingModal: React.FC<ConfirmBookingModalProps> = ({
 			onRequestClose={onClose}
 		>
 			<Animated.View
-				style={[overlayAnimatedStyle, { flex: 1 }]}
-				className="bg-black/40 justify-center items-center p-6"
+				style={[overlayAnimatedStyle, { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)' }]}
+				className="justify-center items-center p-6"
 			>
 				<Animated.View
 					style={modalAnimatedStyle}
