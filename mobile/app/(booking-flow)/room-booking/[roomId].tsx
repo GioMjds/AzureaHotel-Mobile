@@ -27,7 +27,7 @@ import {
 } from 'react-native';
 import useAuthStore from '@/store/AuthStore';
 import { GetRoomById, GetRoomBookings } from '@/types/Room.types';
-import { calculateRoomPricing, formatPrice, getDiscountLabel } from '@/utils/pricing';
+import { calculateRoomPricing, formatPrice } from '@/utils/pricing';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { booking } from '@/services/Booking';
 
@@ -458,17 +458,17 @@ export default function RoomBookingCalendar() {
 			return (
 				<View className="mt-3 pt-3 border-t border-border-subtle">
 					<View className="flex-row justify-between items-center mb-1">
-						<Text className="text-neutral-500 line-through text-sm font-montserrat">
+						<Text className="text-neutral-500 line-through text-lg font-montserrat">
 							{formatPrice(originalPrice)}/night
 						</Text>
 						<View className="bg-feedback-success-light px-2 py-1 rounded-full">
-							<Text className="text-feedback-success-dark font-montserrat-bold text-xs">
+							<Text className="text-feedback-success-dark font-montserrat-bold text-sm">
 								{displayDiscountPercent}% OFF
 							</Text>
 						</View>
 					</View>
 					<View className="flex-row justify-between items-baseline">
-						<Text className="text-text-primary font-playfair-bold text-2xl">
+						<Text className="text-text-primary font-playfair-bold text-3xl">
 							{formatPrice(displayDiscountedPrice)}
 						</Text>
 						<Text className="text-text-muted font-montserrat text-sm">
@@ -491,60 +491,6 @@ export default function RoomBookingCalendar() {
 				</View>
 			);
 		}
-	};
-
-	const renderPriceDisplay = () => {
-		if (!roomData || !checkInDate || !checkOutDate) return null;
-
-		const pricingResult = calculateRoomPricing({
-			roomData: roomData as any,
-			userDetails: user ? { ...user, username: user.email || `user_${user.id}` } as any : null,
-			nights: numberOfNights
-		});
-
-		const hasDiscount = pricingResult.discountType !== 'none';
-
-		return (
-			<View className="mt-2">
-				{hasDiscount ? (
-					<>
-						<View className="flex-row justify-between">
-							<Text className="text-neutral-500 line-through text-sm font-montserrat">
-								Original Price:
-							</Text>
-							<Text className="text-neutral-500 line-through text-sm font-montserrat">
-								{formatPrice(pricingResult.originalPrice * numberOfNights)}
-							</Text>
-						</View>
-						<View className="flex-row justify-between">
-							<Text className="text-feedback-success-DEFAULT font-montserrat text-sm">
-								{getDiscountLabel(pricingResult.discountType, pricingResult.discountPercent)}:
-							</Text>
-							<Text className="text-feedback-success-DEFAULT font-montserrat text-sm">
-								-{formatPrice((pricingResult.originalPrice - pricingResult.finalPrice) * numberOfNights)}
-							</Text>
-						</View>
-						<View className="flex-row justify-between mt-1">
-							<Text className="text-text-secondary font-montserrat-bold text-lg">
-								Total Price:
-							</Text>
-							<Text className="text-text-secondary font-montserrat-bold text-lg">
-								{formatPrice(pricingResult.totalPrice)}
-							</Text>
-						</View>
-					</>
-				) : (
-					<View className="flex-row justify-between">
-						<Text className="text-text-secondary font-montserrat-bold text-lg">
-							Total Price:
-						</Text>
-						<Text className="text-text-secondary font-montserrat-bold text-lg">
-							{formatPrice(pricingResult.totalPrice)}
-						</Text>
-					</View>
-				)}
-			</View>
-		);
 	};
 
 	if (isLoadingRoom || isLoadingBookings) {
@@ -572,7 +518,7 @@ export default function RoomBookingCalendar() {
 					<Text className="text-text-primary font-playfair-semibold text-3xl text-center">
 						Book Your Room
 					</Text>
-					<View className="w-10" /> {/* Spacer for balance */}
+					<View className="w-10" />
 				</View>
 			</View>
 
@@ -596,23 +542,9 @@ export default function RoomBookingCalendar() {
 							<View className="p-4">
 								{/* Room Name and Type */}
 								<View className="mb-3">
-									<Text className="text-text-primary font-playfair-bold text-3xl mb-1">
+									<Text className="text-text-primary font-playfair-bold text-4xl mb-1">
 										{roomData.room_name}
 									</Text>
-									<View className="flex-row items-center">
-										<View className="bg-violet-light px-3 py-1 rounded-full">
-											<Text className="text-text-primary font-montserrat-bold text-xs">
-												{roomData.room_type}
-											</Text>
-										</View>
-										{roomData.status === 'available' && (
-											<View className="bg-feedback-success-light px-3 py-1 rounded-full ml-2">
-												<Text className="text-feedback-success-dark font-montserrat-bold text-xs">
-													Available
-												</Text>
-											</View>
-										)}
-									</View>
 								</View>
 
 								{/* Room Details */}
@@ -628,14 +560,25 @@ export default function RoomBookingCalendar() {
 										</Text>
 									</View>
 
-									<View className="flex-row items-center">
+									<View className="flex-row items-center mb-2">
 										<Ionicons
 											name="bed-outline"
 											size={18}
 											color="#6F00FF"
 										/>
 										<Text className="text-text-primary font-montserrat ml-2">
-											Bed Type: <Text className="font-montserrat-bold">{roomData.bed_type}</Text>
+											Room Type: <Text className="font-montserrat uppercase">{roomData.room_type}</Text>
+										</Text>
+									</View>
+									
+									<View className='flex-row items-center'>
+										<Ionicons
+											name="bed-outline"
+											size={18}
+											color="#6F00FF"
+										/>
+										<Text className="text-text-primary font-montserrat ml-2">
+											Bed Type: <Text className="font-montserrat uppercase">{roomData.bed_type}</Text>
 										</Text>
 									</View>
 								</View>
@@ -643,29 +586,22 @@ export default function RoomBookingCalendar() {
 								{/* Amenities */}
 								{roomData.amenities && roomData.amenities.length > 0 && (
 									<View className="mb-2">
-										<Text className="text-text-primary font-montserrat-bold text-sm mb-2">
+										<Text className="text-text-primary font-montserrat-bold text-md mb-2">
 											Amenities
 										</Text>
 										<View className="flex-row flex-wrap">
-											{roomData.amenities.slice(0, 4).map((amenity: any, index: number) => (
+											{roomData.amenities.map((amenity: any, index: number) => (
 												<View
 													key={index}
 													className="bg-background-subtle px-3 py-1.5 rounded-full mr-2 mb-2"
 												>
-													<Text className="text-text-primary font-montserrat text-xs">
+													<Text className="text-text-primary font-montserrat text-sm">
 														{typeof amenity === 'object' && 'description' in amenity 
 															? amenity.description 
 															: String(amenity)}
 													</Text>
 												</View>
 											))}
-											{roomData.amenities.length > 4 && (
-												<View className="bg-background-subtle px-3 py-1.5 rounded-full mb-2">
-													<Text className="text-text-primary font-montserrat-bold text-xs">
-														+{roomData.amenities.length - 4} more
-													</Text>
-												</View>
-											)}
 										</View>
 									</View>
 								)}
@@ -738,12 +674,12 @@ export default function RoomBookingCalendar() {
 								onPress={prevMonth}
 								className="p-2"
 							>
-								<Text className="text-text-secondary font-montserrat-bold text-lg">
+								<Text className="text-text-secondary font-montserrat-bold text-3xl">
 									‹
 								</Text>
 							</TouchableOpacity>
 
-							<Text className="text-text-primary font-playfair-semibold text-lg">
+							<Text className="text-text-primary font-playfair-semibold text-3xl">
 								{format(currentMonth, 'MMMM yyyy')}
 							</Text>
 
@@ -751,7 +687,7 @@ export default function RoomBookingCalendar() {
 								onPress={nextMonth}
 								className="p-2"
 							>
-								<Text className="text-text-secondary font-montserrat-bold text-lg">
+								<Text className="text-text-secondary font-montserrat-bold text-3xl">
 									›
 								</Text>
 							</TouchableOpacity>
@@ -777,49 +713,6 @@ export default function RoomBookingCalendar() {
 
 						{/* Calendar Legend */}
 						{renderCalendarLegend()}
-					</View>
-
-					{/* Selected Dates Display */}
-					<View className="bg-surface-elevated rounded-2xl p-4 mb-6 border border-border-default">
-						<Text className="text-text-primary font-playfair-semibold text-xl mb-4">
-							Selected Stay Dates
-						</Text>
-
-						<View className="space-y-3">
-							<View className="flex-row justify-between items-center">
-								<Text className="text-text-primary font-montserrat">
-									Check-in:
-								</Text>
-								<Text className="text-text-secondary font-montserrat-bold">
-									{checkInDate ? format(checkInDate, 'EEE, MMM dd, yyyy') : 'Select date'}
-								</Text>
-							</View>
-
-							<View className="flex-row justify-between items-center">
-								<Text className="text-text-primary font-montserrat">
-									Check-out:
-								</Text>
-								<Text className="text-text-secondary font-montserrat-bold">
-									{checkOutDate ? format(checkOutDate, 'EEE, MMM dd, yyyy') : 'Select date'}
-								</Text>
-							</View>
-
-							<View className="flex-row justify-between items-center">
-								<Text className="text-text-primary font-montserrat">
-									Nights:
-								</Text>
-								<Text className="text-text-secondary font-montserrat-bold">
-									{checkInDate && checkOutDate ? numberOfNights : 0}
-								</Text>
-							</View>
-						</View>
-
-						{/* Price Display */}
-						{checkInDate && checkOutDate && !isSameDayBooking && !maxDayExceed && (
-							<View className="mt-4 pt-4 border-t border-border-subtle">
-								{renderPriceDisplay()}
-							</View>
-						)}
 					</View>
 
 					{/* Proceed Button */}

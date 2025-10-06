@@ -257,14 +257,14 @@ const BookingCard = ({ item }: BookingCardProps) => {
 				)}
 
 				{/* Cancellation Information */}
-				{(item.cancellation_date || item.cancellation_reason) && (
+				{(item.status === 'rejected') && (
 					<View className="bg-feedback-error-light border border-feedback-error-DEFAULT rounded-xl p-4">
 						<Text className="text-feedback-error-dark font-montserrat-bold text-xs uppercase tracking-wide mb-2">
-							Cancellation Details
+							Rejection Details
 						</Text>
 						{item.cancellation_date && (
 							<View className="flex-row justify-between mb-1">
-								<Text className="text-feedback-error-dark font-montserrat text-sm">Cancelled on:</Text>
+								<Text className="text-feedback-error-dark font-montserrat text-sm">Rejected on:</Text>
 								<Text className="text-feedback-error-dark font-montserrat-bold text-sm">
 									{formatDate(item.cancellation_date)}
 								</Text>

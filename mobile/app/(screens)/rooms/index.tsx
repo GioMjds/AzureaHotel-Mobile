@@ -50,10 +50,10 @@ export default function RoomsScreen() {
 		<SafeAreaView className="flex-1 bg-neutral-50">
 			{/* Header */}
 			<View className="p-4 bg-white border-b border-neutral-200">
-				<Text className="text-3xl font-montserrat-bold text-neutral-800">
+				<Text className="text-4xl font-playfair-bold text-neutral-800">
 					Browse Rooms
 				</Text>
-				<Text className="text-neutral-600 font-montserrat text-lg mt-1">
+				<Text className="text-neutral-600 font-montserrat text-sm mt-1">
 					{data?.data?.length || 0} rooms available
 				</Text>
 			</View>

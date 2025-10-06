@@ -8,35 +8,67 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { auth } from '@/services/UserAuth';
 import BookingCard from '@/components/bookings/BookingCard';
 import StatusFilter from '@/components/bookings/StatusFilter';
 import { Ionicons } from '@expo/vector-icons';
-import { useFirebaseNotifications } from '@/hooks/useFirebaseNotifications';
 import { useBookingUpdates } from '@/hooks/useBookingUpdates';
 
 export default function BookingsScreen() {
     const [selectedStatus, setSelectedStatus] = useState<string>('');
 
-    const { data, isLoading, error, refetch, isFetching } = useQuery({
+    const { 
+        data, 
+        isLoading, 
+        error, 
+        refetch, 
+        isFetching,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage
+    } = useInfiniteQuery({
         queryKey: ['guest-bookings', selectedStatus],
-        queryFn: async () => {
+        queryFn: async ({ pageParam = 1 }) => {
             return await auth.getGuestBookings({
                 status: selectedStatus,
-                page: 1,
-                page_size: 10,
+                page: pageParam,
+                page_size: 5,
             });
         },
+        getNextPageParam: (lastPage, allPages) => {
+            const currentPage = lastPage?.pagination?.current_page || allPages.length;
+            const totalPages = lastPage?.pagination?.total_pages || 0;
+            
+            return currentPage < totalPages ? currentPage + 1 : undefined;
+        },
+        initialPageParam: 1,
     });
 
-    // Get Firebase notifications
-    const { unreadCount } = useFirebaseNotifications();
-
-    const bookingIds = data?.data?.map((booking: any) => booking.id) || [];
+    const allBookings = data?.pages?.flatMap(page => page.data) || [];
+    const bookingIds = allBookings.map((booking: any) => booking.id) || [];
     const firstBookingId = bookingIds.length > 0 ? bookingIds[0] : undefined;
 
-	useBookingUpdates(firstBookingId);
+    useBookingUpdates(firstBookingId);
+
+    const handleLoadMore = () => {
+        if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+        }
+    };
+
+    const renderFooter = () => {
+        if (!isFetchingNextPage) return null;
+        
+        return (
+            <View className="py-4 items-center">
+                <ActivityIndicator size="small" color="#6F00FF" />
+                <Text className="text-text-muted font-montserrat text-sm mt-2">
+                    Loading more bookings...
+                </Text>
+            </View>
+        );
+    };
 
     if (isLoading) {
         return (
@@ -98,14 +130,6 @@ export default function BookingsScreen() {
                     <Text className="text-3xl font-playfair-bold text-text-primary">
                         My Bookings
                     </Text>
-                    {/* Show notification count if there are unread notifications */}
-                    {unreadCount > 0 && (
-                        <View className="bg-interactive-primary-DEFAULT rounded-full px-3 py-1">
-                            <Text className="text-white font-montserrat-bold text-sm">
-                                {unreadCount} new
-                            </Text>
-                        </View>
-                    )}
                 </View>
                 <View className="flex-row items-center">
                     <Ionicons
@@ -130,17 +154,20 @@ export default function BookingsScreen() {
 
             {/* Bookings List */}
             <FlatList
-                data={data?.data || []}
-                keyExtractor={(item) => item.id?.toString()}
+                data={allBookings}
+                keyExtractor={(item, index) => `${item.id}-${index}`}
                 renderItem={({ item }) => <BookingCard item={item} />}
                 refreshControl={
                     <RefreshControl 
-                        refreshing={isFetching} 
+                        refreshing={isFetching && !isFetchingNextPage} 
                         onRefresh={refetch}
                         colors={['#6F00FF']}
                         tintColor="#6F00FF"
                     />
                 }
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={renderFooter}
                 ListEmptyComponent={() => (
                     <View className="flex-1 justify-center items-center py-12">
                         <Ionicons name="calendar-outline" size={64} color="#d1d5db" />
