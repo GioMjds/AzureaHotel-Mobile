@@ -39,10 +39,6 @@ interface BookingsByDate {
 }
 
 export default function RoomBookingCalendar() {
-	const { user } = useAuthStore();
-	const { roomId } = useLocalSearchParams<{ roomId: string }>();
-	const router = useRouter();
-
 	const [currentMonth, setCurrentMonth] = useState(new Date());
 	const [checkInDate, setCheckInDate] = useState<Date | null>(null);
 	const [checkOutDate, setCheckOutDate] = useState<Date | null>(null);
@@ -54,6 +50,10 @@ export default function RoomBookingCalendar() {
 	const [conflictMessage, setConflictMessage] = useState<string | null>(null);
 	const [isSameDayBooking, setIsSameDayBooking] = useState<boolean>(false);
 	const [maxDayExceed, setMaxDayExceed] = useState<boolean>(false);
+
+	const { user } = useAuthStore();
+	const { roomId } = useLocalSearchParams<{ roomId: string }>();
+	const router = useRouter();
 
 	const isVerifiedUser = user?.is_verified === 'verified';
 	const lastBookingDay = user?.last_booking_date;
@@ -307,8 +307,8 @@ export default function RoomBookingCalendar() {
 				pathname: './confirm',
 				params: {
 					roomId: roomId,
-					arrival: format(checkInDate, "yyyy-MM-dd"),
-					departure: format(checkOutDate, "yyyy-MM-dd"),
+					checkInDate: format(checkInDate, "yyyy-MM-dd"),
+					checkOutDate: format(checkOutDate, "yyyy-MM-dd"),
 					totalPrice: totalPrice.toString(),
 				},
 			});

@@ -43,7 +43,6 @@ export function useAuthMutations() {
 
                 try {
                     await FirebaseAuthService.authenticateWithFirebase();
-                    console.log('✅ Firebase authentication successful');
                 } catch (error) {
                     console.warn('⚠️ Firebase authentication failed, but continuing...', error);
                 }
@@ -60,7 +59,6 @@ export function useAuthMutations() {
         },
     });
 
-    // Logout mutation
     const logoutMutation = useMutation({
         mutationFn: async () => {
             return await auth.logout();

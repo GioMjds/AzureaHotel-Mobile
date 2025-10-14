@@ -1,9 +1,10 @@
-import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import { View, TouchableOpacity, Animated } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTabVisibilityStore } from '@/store/ScrollStore';
 import { useEffect, useRef } from 'react';
+import StyledText from '@/components/ui/StyledText';
 
 interface TabItem {
 	name: string;
@@ -78,14 +79,13 @@ export default function Tabs() {
 									</View>
 
 									{/* Tab label */}
-									<Text className={`text-md mt-1 ${isActive
-										? 'font-raleway text-md text-violet-600'
-										: 'font-raleway text-md text-neutral-600'
-									}`}
+									<StyledText
+										variant={isActive ? 'montserrat-bold' : 'montserrat-regular'}
+										style={{ marginTop: 4 }}
 										numberOfLines={1}
 									>
 										{tab.name}
-									</Text>
+									</StyledText>
 								</View>
 							</TouchableOpacity>
 						);

@@ -204,11 +204,6 @@ export default function ConfirmAreaBookingScreen() {
 				paymentProof: gcashFile,
 			};
 
-			console.log('Sending reservation data:', {
-				...reservationData,
-				paymentProof: gcashFile ? 'File attached' : 'No file'
-			});
-
 			await booking.createAreaBooking(reservationData);
 			
 			// Keep the loading screen visible for a moment before navigating

@@ -43,7 +43,6 @@ function AuthInitializer() {
 			if (currentState.user && currentState.isAuthenticated) {
 				try {
 					await authenticateFirebase();
-					console.log('✅ Firebase initialized with existing user');
 				} catch (error) {
 					console.warn('⚠️ Firebase initialization failed for existing user:', error);
 				}

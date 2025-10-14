@@ -82,6 +82,14 @@ class BookingService {
         });
 	}
 
+	async createRoomBooking(formData: FormData) {
+		return await httpClient.post(BookingRoutes.BOOKINGS, formData, {
+			headers: {
+				'Content-Type': 'multipart/form-data',
+			}
+		});
+	}
+
     async getAreaById(areaId: string) {
         return await httpClient.get(BookingRoutes.AREA_DETAIL(areaId));
     }
