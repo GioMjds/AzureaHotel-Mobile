@@ -48,7 +48,7 @@ function AuthInitializer() {
 				}
 			}
 		};
-		
+
 		initApp();
 	}, [initializeAuth, authenticateFirebase]);
 

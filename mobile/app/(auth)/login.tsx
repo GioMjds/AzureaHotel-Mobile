@@ -57,11 +57,11 @@ export default function LoginScreen() {
     const errorMessage = getErrorMessage();
 
     return (
-        <View className="flex-1 bg-background-default">
+        <View className="flex-1">
             {/* Background Gradient Overlay */}
             <View className="absolute inset-0">
                 <LinearGradient
-                    colors={['#6F00FF', '#3B0270', '#E9B3FB']}
+                    colors={['#6F00FF', '#E9B3FB']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={{ flex: 1 }}

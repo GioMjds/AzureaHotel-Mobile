@@ -83,11 +83,11 @@ export default function RegisterScreen() {
 	const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
 	return (
-		<View className="flex-1 bg-background-default">
+		<View className="flex-1">
 			{/* Background Gradient Overlay */}
 			<View className="absolute inset-0">
 				<LinearGradient
-					colors={['#6F00FF', '#3B0270', '#E9B3FB']}
+					colors={['#6F00FF', '#E9B3FB']}
 					start={{ x: 0, y: 0 }}
 					end={{ x: 1, y: 1 }}
 					style={{ flex: 1 }}
@@ -291,7 +291,7 @@ export default function RegisterScreen() {
 
 						{/* Register Button */}
 						<TouchableOpacity
-							className={`bg-interactive-primary rounded-2xl p-4 mb-2 shadow-lg ${sendRegisterOTPMutation.isPending ? 'opacity-70' : ''}`}
+							className={`bg-interactive-primary rounded-2xl p-4 mb-4 shadow-lg ${sendRegisterOTPMutation.isPending ? 'opacity-70' : ''}`}
 							onPress={handleSubmit(onSubmit)}
 							disabled={sendRegisterOTPMutation.isPending}
 							activeOpacity={0.8}
@@ -308,31 +308,6 @@ export default function RegisterScreen() {
 									Create Account
 								</Text>
 							)}
-						</TouchableOpacity>
-
-						{/* Divider */}
-						<View className="flex-row items-center mb-2">
-							<View className="flex-1 h-px bg-border-subtle" />
-							<Text className="text-text-muted font-montserrat text-sm mx-4">or</Text>
-							<View className="flex-1 h-px bg-border-subtle" />
-						</View>
-
-						{/* Google Register Button */}
-						<TouchableOpacity
-							className="bg-transparent border-2 border-interactive-outline-border rounded-2xl p-4 mb-6 flex-row justify-center items-center active:bg-interactive-outline-hover"
-							onPress={() => {
-								Alert.alert('Coming Soon', 'Google registration will be available soon!');
-							}}
-						>
-							<FontAwesome
-								name="google"
-								size={20}
-								color="#6F00FF"
-								style={{ marginRight: 8 }}
-							/>
-							<Text className="text-interactive-outline-foreground text-base font-montserrat-bold">
-								Continue with Google
-							</Text>
 						</TouchableOpacity>
 
 						{/* Login Link */}

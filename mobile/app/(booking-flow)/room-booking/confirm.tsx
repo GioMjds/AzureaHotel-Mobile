@@ -357,7 +357,7 @@ export default function ConfirmRoomBookingScreen() {
 								resizeMode="cover"
 							/>
 							<View className="p-4">
-								<Text className="text-text-primary font-playfair-semibold text-4xl mb-3">
+								<Text className="text-text-primary font-playfair-bold text-4xl mb-3">
 									{roomData.room_name}
 								</Text>
 								<View className="flex-row items-center mb-2">
@@ -393,12 +393,7 @@ export default function ConfirmRoomBookingScreen() {
 													key={amenity.id}
 													className="bg-background-subtle rounded-full px-3 py-1.5 flex-row items-center"
 												>
-													<Ionicons
-														name="checkmark-circle"
-														size={14}
-														color="#6F00FF"
-													/>
-													<Text className="text-text-primary font-montserrat text-xs ml-1">
+													<Text className="text-text-primary font-montserrat text-sm ml-1">
 														{amenity.description}
 													</Text>
 												</View>
