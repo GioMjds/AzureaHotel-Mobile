@@ -120,32 +120,6 @@ const PhotoGallery = ({
                 </>
             )}
 
-            {/* Image Indicator Dots */}
-            {images.length > 1 && (
-                <View className="absolute bottom-4 left-0 right-0 flex-row justify-center space-x-2">
-                    {images.map((_, index) => (
-                        <TouchableOpacity
-                            key={index}
-                            onPress={() => {
-                                setActiveIndex(index);
-                                scrollViewRef.current?.scrollTo({
-                                    x: index * screenWidth,
-                                    animated: true,
-                                });
-                            }}
-                        >
-                            <View
-                                className={`w-2 h-2 rounded-full ${
-                                    index === activeIndex
-                                        ? 'bg-white'
-                                        : 'bg-white/50'
-                                }`}
-                            />
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            )}
-
             {/* Image Counter */}
             {images.length > 1 && (
                 <View className="absolute top-4 right-4 bg-black/50 rounded-full px-3 py-1">

@@ -45,6 +45,7 @@ export default function RoomBookingCalendar() {
 	const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
 	const [numberOfNights, setNumberOfNights] = useState<number>(1);
 	const [totalPrice, setTotalPrice] = useState<number>(0);
+	const [pricingResult, setPricingResult] = useState<any>(null);
 	const [bookingsByDate, setBookingsByDate] = useState<BookingsByDate>({});
 	const [hasConflict, setHasConflict] = useState<boolean>(false);
 	const [conflictMessage, setConflictMessage] = useState<string | null>(null);
@@ -162,13 +163,14 @@ export default function RoomBookingCalendar() {
 				? { ...user, username: user.email || `user_${user.id}` }
 				: null;
 
-			const pricingResult = calculateRoomPricing({
+			const pricing = calculateRoomPricing({
 				roomData: roomData as any,
 				userDetails: userForPricing as any,
-				nights: days
+				nights: days,
 			});
 
-			setTotalPrice(pricingResult.totalPrice);
+			setPricingResult(pricing);
+			setTotalPrice(pricing.totalPrice);
 		}
 	}, [checkInDate, checkOutDate, roomData, user]);
 
@@ -475,6 +477,13 @@ export default function RoomBookingCalendar() {
 							per night
 						</Text>
 					</View>
+					{pricingResult && pricingResult.discountType === 'long_stay' && (
+						<View className="mt-3 bg-background-subtle p-3 rounded-lg">
+							<Text className="text-text-primary font-montserrat">
+								Long Stay Discount Applied: {pricingResult.discountPercent}% off
+							</Text>
+						</View>
+					)}
 				</View>
 			);
 		} else {
@@ -488,6 +497,13 @@ export default function RoomBookingCalendar() {
 							per night
 						</Text>
 					</View>
+					{pricingResult && pricingResult.discountType === 'long_stay' && (
+						<View className="mt-3 bg-background-subtle p-3 rounded-lg">
+							<Text className="text-text-primary font-montserrat">
+								Long Stay Discount Applied: {pricingResult.discountPercent}% off
+							</Text>
+						</View>
+					)}
 				</View>
 			);
 		}

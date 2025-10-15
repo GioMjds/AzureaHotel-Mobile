@@ -19,6 +19,7 @@ import { format, parseISO, differenceInDays } from 'date-fns';
 import { useForm, Controller } from 'react-hook-form';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import useAuthStore from '@/store/AuthStore';
+import { calculateRoomPricing, formatPrice, getDiscountLabel } from '@/utils/pricing';
 import { booking } from '@/services/Booking';
 import ConfirmBookingModal from '@/components/bookings/ConfirmBookingModal';
 import ConfirmingBooking from '@/components/ui/ConfirmingBooking';
@@ -113,6 +114,17 @@ export default function ConfirmRoomBookingScreen() {
 	};
 
 	const nights = calculateNights();
+
+	// Compute pricing result for display (keeps consistent with calendar)
+	const pricingResult = roomData
+		? (calculateRoomPricing
+			? calculateRoomPricing({
+				roomData: roomData as any,
+				userDetails: user ? { ...user, username: user.email || `user_${user.id}` } : null,
+				nights,
+			})
+		: null)
+		: null;
 
 	const handlePickImage = async () => {
 		const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -743,6 +755,18 @@ export default function ConfirmRoomBookingScreen() {
 									{parseFloat(totalPrice || '0').toLocaleString()}
 								</Text>
 							</View>
+
+							{/* Discount breakdown */}
+							{pricingResult && pricingResult.discountType !== 'none' && (
+								<View className="mt-3 p-3 bg-background-subtle rounded-lg">
+									<Text className="text-text-primary font-montserrat mb-1">
+										{getDiscountLabel(pricingResult.discountType, pricingResult.discountPercent)}
+									</Text>
+									<Text className="text-text-muted font-montserrat text-sm">
+										Price/night: {formatPrice(pricingResult.finalPrice)} • Original/night: {formatPrice(pricingResult.originalPrice)}
+									</Text>
+								</View>
+							)}
 						</View>
 					</View>
 

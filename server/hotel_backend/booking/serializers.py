@@ -113,11 +113,6 @@ class BookingSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         user = instance.user if hasattr(instance, 'user') else None
-        discount_percent = 0
-        
-        # Apply PWD/Senior Discount if user is eligible
-        if user and getattr(user, 'is_senior_or_pwd', False):
-            discount_percent = PWD_SENIOR_DISCOUNT_PERCENT
         
         nights = (instance.check_out_date - instance.check_in_date).days if instance.check_in_date and instance.check_out_date else 1
         
@@ -126,12 +121,33 @@ class BookingSerializer(serializers.ModelSerializer):
                 price_per_night = float(getattr(instance.room, 'price_per_night', None) or instance.room.room_price)
                 original_total = price_per_night * nights
                 
-                # Apply long stay discount if not PWD/Senior
-                if discount_percent == 0:
-                    if nights >= 7:
-                        discount_percent = 10
-                    elif nights >= 3:
-                        discount_percent = 5
+                # Build list of all applicable discounts
+                available_discounts = []
+                
+                # 1. Admin discount (from room.discount_percent)
+                admin_discount = int(instance.room.discount_percent or 0)
+                if admin_discount > 0:
+                    available_discounts.append(admin_discount)
+                
+                # 2. Senior/PWD discount (20%)
+                if user and getattr(user, 'is_senior_or_pwd', False):
+                    available_discounts.append(PWD_SENIOR_DISCOUNT_PERCENT)
+                
+                # 3. Long-stay discount
+                long_stay_discount = 0
+                if nights >= 7:
+                    long_stay_discount = 10
+                elif nights >= 3:
+                    long_stay_discount = 5
+                
+                if long_stay_discount > 0:
+                    available_discounts.append(long_stay_discount)
+                
+                # Select the best (highest) discount
+                if available_discounts:
+                    discount_percent = max(available_discounts)
+                else:
+                    discount_percent = 0
 
                 discounted_price = original_total * (1 - discount_percent / 100)
                 representation['original_price'] = original_total
@@ -331,11 +347,33 @@ class BookingRequestSerializer(serializers.Serializer):
                 
                 price_per_night = float(room.room_price)
                 
-                if discount_percent == 0:
-                    if nights >= 7:
-                        discount_percent = 10
-                    elif nights >= 3:
-                        discount_percent = 5
+                # Build list of all applicable discounts
+                available_discounts = []
+                
+                # 1. Admin discount (from room.discount_percent)
+                admin_discount = int(room.discount_percent or 0)
+                if admin_discount > 0:
+                    available_discounts.append(admin_discount)
+                
+                # 2. Senior/PWD discount (20%)
+                if discount_percent > 0:  # discount_percent is set earlier for senior/pwd users
+                    available_discounts.append(discount_percent)
+                
+                # 3. Long-stay discount
+                long_stay_discount = 0
+                if nights >= 7:
+                    long_stay_discount = 10
+                elif nights >= 3:
+                    long_stay_discount = 5
+                
+                if long_stay_discount > 0:
+                    available_discounts.append(long_stay_discount)
+                
+                # Select the best (highest) discount
+                if available_discounts:
+                    discount_percent = max(available_discounts)
+                else:
+                    discount_percent = 0
                 
                 discounted_price = price_per_night * (1 - discount_percent / 100)
                 total_price = discounted_price * nights

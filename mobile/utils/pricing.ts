@@ -1,3 +1,5 @@
+import { Amenities } from '@/types/Amenity.types';
+
 interface User {
 	id: number;
 	username: string;
@@ -21,6 +23,26 @@ interface AreaData {
 	discount_percent?: number;
 	capacity: number;
 	status: string;
+}
+
+interface RoomData {
+	id: number;
+	room_name: string;
+	room_type: string;
+	room_price?: string;
+	description: string;
+	images: {
+		id: number;
+		room_image: string;
+	}[];
+	discount_percent?: number;
+	discounted_price?: string;
+	discounted_price_numeric?: number;
+	senior_discounted_price?: number;
+	status: string;
+	max_guests: number;
+	amenities?: Amenities[];
+	price_per_night?: number;
 }
 
 interface PricingOptions {
@@ -81,19 +103,16 @@ export const calculateRoomPricing = ({
 	const seniorDiscounted = parsePrice(roomData.senior_discounted_price);
 	const backendDiscountPercent = roomData.discount_percent || 0;
 
-	// Calculate Long Stay Discount
-	let longStayDiscount = 0;
+	// Calculate Long Stay Discount percentage (based on original price)
+	let longStayDiscountPercent = 0;
 	if (nights >= 7) {
-		longStayDiscount = 10;
+		longStayDiscountPercent = 10;
 	} else if (nights >= 3) {
-		longStayDiscount = 5;
+		longStayDiscountPercent = 5;
 	}
-	const longStayDiscountedPrice =
-		longStayDiscount > 0
-			? originalPrice * (1 - longStayDiscount / 100)
-			: null;
 
 	// Collect all available discounts with their types
+	// Compare by calculating each discount on the ORIGINAL price
 	const availableDiscounts: {
 		price: number;
 		type: 'admin' | 'senior' | 'long_stay';
@@ -102,12 +121,13 @@ export const calculateRoomPricing = ({
 
 	// Backend admin discount (always available if exists)
 	if (adminDiscounted && adminDiscounted < originalPrice) {
+		const calculatedPercent =
+			backendDiscountPercent ||
+			Math.round(((originalPrice - adminDiscounted) / originalPrice) * 100);
 		availableDiscounts.push({
 			price: adminDiscounted,
 			type: 'admin',
-			percent:
-				backendDiscountPercent ||
-				((originalPrice - adminDiscounted) / originalPrice) * 100,
+			percent: calculatedPercent,
 		});
 	}
 
@@ -120,16 +140,20 @@ export const calculateRoomPricing = ({
 		});
 	}
 
-	// Long stay discount (frontend calculated)
-	if (longStayDiscountedPrice && longStayDiscountedPrice < originalPrice) {
-		availableDiscounts.push({
-			price: longStayDiscountedPrice,
-			type: 'long_stay',
-			percent: longStayDiscount,
-		});
+	// Long stay discount (frontend calculated on original price)
+	if (longStayDiscountPercent > 0) {
+		const longStayDiscountedPrice =
+			originalPrice * (1 - longStayDiscountPercent / 100);
+		if (longStayDiscountedPrice < originalPrice) {
+			availableDiscounts.push({
+				price: longStayDiscountedPrice,
+				type: 'long_stay',
+				percent: longStayDiscountPercent,
+			});
+		}
 	}
 
-	// Pick the best discount (lowest price)
+	// Pick the best discount (lowest price = highest discount)
 	let finalPricePerNight = originalPrice;
 	let discountType: 'admin' | 'senior' | 'long_stay' | 'none' = 'none';
 	let discountPercent = 0;
@@ -147,7 +171,7 @@ export const calculateRoomPricing = ({
 		originalPrice,
 		finalPrice: finalPricePerNight,
 		discountType,
-		discountPercent,
+		discountPercent: Math.round(discountPercent * 100) / 100, // Round to 2 decimal places
 		totalPrice: finalPricePerNight * nights,
 	};
 };
@@ -253,7 +277,7 @@ export const getDiscountLabel = (
 ): string => {
 	switch (discountType) {
 		case 'admin':
-			return `Discount (${discountPercent}%)`;
+			return `Special Discount (${discountPercent}%)`;
 		case 'senior':
 			return 'Senior/PWD Discount (20%)';
 		case 'long_stay':
