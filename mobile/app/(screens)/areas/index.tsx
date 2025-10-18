@@ -1,5 +1,4 @@
 import { ActivityIndicator, FlatList, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { area } from '@/services/Area';
 import AreaCard from '@/components/areas/AreaCard';
@@ -15,20 +14,20 @@ export default function AreasScreen() {
 
 	if (isLoading) {
 		return (
-			<SafeAreaView className="flex-1 bg-neutral-50">
+			<View className="flex-1 bg-neutral-50">
 				<View className="flex-1 justify-center items-center">
 					<ActivityIndicator size="large" color="#8b5cf6" />
 					<Text className="text-violet-600 font-montserrat mt-2">
 						Loading areas...
 					</Text>
 				</View>
-			</SafeAreaView>
+			</View>
 		);
 	}
 
 	if (error) {
 		return (
-			<SafeAreaView className="flex-1 bg-neutral-50">
+			<View className="flex-1 bg-neutral-50">
 				<View className="flex-1 justify-center items-center px-6">
 					<Text className="text-red-500 font-montserrat-bold text-lg text-center">
 						Error loading areas
@@ -37,12 +36,12 @@ export default function AreasScreen() {
 						Please try again later
 					</Text>
 				</View>
-			</SafeAreaView>
+			</View>
 		);
 	}
 
 	return (
-		<SafeAreaView className="flex-1 bg-neutral-50">
+		<View className="flex-1 bg-neutral-50">
 			{/* Header */}
 			<View className="p-4 bg-white border-b border-neutral-200">
 				<Text className="text-4xl font-playfair-semibold text-neutral-800">
@@ -58,16 +57,16 @@ export default function AreasScreen() {
 				data={data?.data as Area[]}
 				renderItem={({ item }) => <AreaCard item={item} />}
 				keyExtractor={(item) => item.id.toString()}
-				contentContainerStyle={{ paddingTop: 16, paddingBottom: 20 }}
-				showsVerticalScrollIndicator={false}
-				ListEmptyComponent={
-					<View className="flex-1 justify-center items-center mt-10">
-						<Text className="text-neutral-600 font-montserrat">
-							No areas available.
-						</Text>
-					</View>
-				}
-			/>
-		</SafeAreaView>
-	);
+			contentContainerStyle={{ paddingTop: 16, paddingBottom: 20 }}
+			showsVerticalScrollIndicator={false}
+			ListEmptyComponent={
+				<View className="flex-1 justify-center items-center mt-10">
+					<Text className="text-neutral-600 font-montserrat">
+						No areas available.
+					</Text>
+				</View>
+			}
+		/>
+	</View>
+);
 }

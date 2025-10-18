@@ -1,9 +1,8 @@
+import { useEffect, useRef } from 'react';
 import { View, TouchableOpacity, Animated } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTabVisibilityStore } from '@/store/ScrollStore';
-import { useEffect, useRef } from 'react';
 import StyledText from '@/components/ui/StyledText';
 
 interface TabItem {
@@ -16,7 +15,6 @@ const tabs: TabItem[] = [
 	{ name: 'My Bookings', route: '/', icon: 'calendar' },
 	{ name: 'Areas', route: '/areas', icon: 'map-marker' },
 	{ name: 'Rooms', route: '/rooms', icon: 'bed' },
-	{ name: 'Profile', route: '/profile', icon: 'user' },
 ];
 
 export default function Tabs() {
@@ -28,7 +26,7 @@ export default function Tabs() {
 
 	useEffect(() => {
 		Animated.timing(translateY, {
-			toValue: tabState === 'hidden' ? 100 : 0,
+			toValue: tabState === 'hidden' ? 84 : 0,
 			duration: 250,
 			useNativeDriver: true,
 		}).start();
@@ -40,66 +38,95 @@ export default function Tabs() {
 	};
 
 	const isActiveTab = (route: string) => {
-		if (route === '/') return pathname === '/'
+		if (route === '/') return pathname === '/';
 		return pathname === route;
 	};
 
 	return (
-		<Animated.View style={{ transform: [{ translateY }] }}>
-			{/* Main tab container with gradient border */}
-			<LinearGradient
-				colors={[
-					'rgba(139, 92, 246, 0.05)',
-					'rgba(124, 58, 237, 0.08)',
-				]}
-				start={{ x: 0, y: 0 }}
-				end={{ x: 1, y: 1 }}
+		<>
+			{/* Spacer to prevent page content from being hidden behind the absolute tab bar */}
+			<View style={{ height: 110 }} pointerEvents="none" />
+			<Animated.View
+				style={{
+					transform: [{ translateY }],
+					position: 'absolute',
+					left: 0,
+					right: 0,
+					bottom: 0
+				}}
+				pointerEvents="box-none"
 			>
-				<View className="flex-row bg-white/95 px-2 py-3 pb-6">
-					{tabs.map((tab) => {
-						const isActive = isActiveTab(tab.route);
+				{/* Floating translucent container that sits above content */}
+				<View style={{ paddingHorizontal: 24, paddingBottom: 20 }}>
+					<View
+						className="rounded-2xl overflow-hidden bg-background-elevated"
+						style={{
+							marginHorizontal: 8,
+							shadowColor: '#000',
+							shadowOffset: { width: 0, height: -2 },
+							shadowOpacity: 0.08,
+							shadowRadius: 8,
+							elevation: 8,
+							borderWidth: 0,
+						}}
+					>
+						<View className="flex-row p-2">
+							{tabs.map((tab) => {
+								const isActive = isActiveTab(tab.route);
 
-						return (
-							<TouchableOpacity
-								key={tab.name}
-								onPress={() => handleTabPress(tab.route)}
-								className="flex-1 items-center justify-center"
-								activeOpacity={0.7}
-							>
-								<View className="items-center relative px-2 py-1">
-									{/* Icon container */}
-									<View className="relative mb-1">
-										<View className="p-2.5 rounded-xl">
-											<FontAwesome
-												name={tab.icon}
-												size={30}
-												color={isActive ? '#6F00FF' : '#57534e'}
-											/>
-										</View>
-									</View>
-
-									{/* Tab label */}
-									<StyledText
-										variant={isActive ? 'montserrat-bold' : 'montserrat-regular'}
-										style={{ marginTop: 4 }}
-										numberOfLines={1}
+								return (
+									<TouchableOpacity
+										key={tab.name}
+										onPress={() =>
+											handleTabPress(tab.route)
+										}
+										className="flex-1 items-center justify-center"
+										activeOpacity={0.75}
 									>
-										{tab.name}
-									</StyledText>
-								</View>
-							</TouchableOpacity>
-						);
-					})}
-				</View>
-			</LinearGradient>
+										<View className="items-center relative px-2 py-2">
+											<View className="relative mb-1">
+												{isActive ? (
+													<View className="px-6 py-4">
+														<FontAwesome
+															name={tab.icon}
+															size={26}
+															color="#6F00FF"
+														/>
+													</View>
+												) : (
+													<View className="px-6 py-4">
+														<FontAwesome
+															name={tab.icon}
+															size={26}
+															color="#A8A29E"
+														/>
+													</View>
+												)}
+											</View>
 
-			{/* Bottom gradient fade for iPhone gesture area */}
-			<LinearGradient
-				colors={['rgba(139, 92, 246, 0.03)', 'transparent']}
-				start={{ x: 0, y: 1 }}
-				end={{ x: 0, y: 0 }}
-				className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none"
-			/>
-		</Animated.View>
+											<StyledText
+												variant={
+													isActive
+														? 'montserrat-bold'
+														: 'montserrat-regular'
+												}
+												className={
+													isActive
+														? 'text-brand-primary text-xs'
+														: 'text-neutral-500 text-xs'
+												}
+												numberOfLines={1}
+											>
+												{tab.name}
+											</StyledText>
+										</View>
+									</TouchableOpacity>
+								);
+							})}
+						</View>
+					</View>
+				</View>
+			</Animated.View>
+		</>
 	);
 }

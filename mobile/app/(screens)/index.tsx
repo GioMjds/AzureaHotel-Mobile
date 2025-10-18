@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { auth } from '@/services/UserAuth';
@@ -72,7 +71,7 @@ export default function BookingsScreen() {
 
     if (isLoading) {
         return (
-            <SafeAreaView className="flex-1 bg-background-DEFAULT">
+            <View className="flex-1 bg-background-DEFAULT">
                 <View className="flex-1 justify-center items-center px-6">
                     <View className="bg-background-elevated rounded-2xl p-8 items-center shadow-sm border border-border-subtle">
                         <ActivityIndicator size="large" color="#6F00FF" />
@@ -84,13 +83,13 @@ export default function BookingsScreen() {
                         </Text>
                     </View>
                 </View>
-            </SafeAreaView>
+            </View>
         );
     }
 
     if (error) {
         return (
-            <SafeAreaView className="flex-1 bg-background-DEFAULT">
+            <View className="flex-1 bg-background-DEFAULT">
                 <View className="flex-1 justify-center items-center px-6">
                     <View className="bg-background-elevated rounded-2xl p-8 items-center shadow-sm border border-border-subtle">
                         <Ionicons name="alert-circle" size={48} color="#dc2626" />
@@ -118,32 +117,12 @@ export default function BookingsScreen() {
                         </TouchableOpacity>
                     </View>
                 </View>
-            </SafeAreaView>
+            </View>
         );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-background">
-            {/* Header */}
-            <View className="px-6 py-6 bg-background border-b border-border-subtle">
-                <View className="flex-row items-center justify-between mb-2">
-                    <Text className="text-3xl font-playfair-bold text-text-primary">
-                        My Bookings
-                    </Text>
-                </View>
-                <View className="flex-row items-center">
-                    <Ionicons
-                        name="information-circle"
-                        size={16}
-                        color="#6b7280"
-                        style={{ marginRight: 6 }}
-                    />
-                    <Text className="text-text-muted font-montserrat text-sm flex-1">
-                        Manage your hotel reservations and track their status in real-time
-                    </Text>
-                </View>
-            </View>
-
+        <View className="flex-1 bg-neutral-50">
             {/* Status Filter */}
             <StatusFilter 
                 selectedStatus={selectedStatus} 
@@ -184,6 +163,6 @@ export default function BookingsScreen() {
                 )}
                 showsVerticalScrollIndicator={false}
             />
-        </SafeAreaView>
+        </View>
     );
 }

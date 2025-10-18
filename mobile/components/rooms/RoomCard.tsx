@@ -9,7 +9,7 @@ interface RoomCardProps {
 
 const RoomCard = ({ item }: RoomCardProps) => {
 	return (
-		<View className="bg-white rounded-xl shadow-sm mx-4 mb-4 overflow-hidden border border-neutral-200">
+		<View className="bg-background-elevated rounded-xl shadow-sm mx-4 mb-4 overflow-hidden border border-neutral-200">
 			{/* Room Image */}
 			<View className="h-48 bg-neutral-100">
 				{item.images && item.images.length > 0 ? (
