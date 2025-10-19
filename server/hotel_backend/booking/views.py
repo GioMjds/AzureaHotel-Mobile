@@ -152,7 +152,6 @@ def bookings_list(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'PUT', 'DELETE'])
-@permission_classes([IsAuthenticated])
 def booking_detail(request, booking_id):
     if not booking_id.isdigit():
         return Response({"error": "Invalid booking ID"}, status=status.HTTP_400_BAD_REQUEST)
@@ -224,7 +223,6 @@ def reservation_list(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'PUT', 'DELETE'])
-@permission_classes([IsAuthenticated])
 def reservation_detail(request, reservation_id):
     try:
         booking = Bookings.objects.get(id=reservation_id)
@@ -308,7 +306,6 @@ def room_detail(request, room_id):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def user_bookings(request):
     try:
         user = request.user
@@ -353,7 +350,6 @@ def user_bookings(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def cancel_booking(request, booking_id):
     try:
         booking = Bookings.objects.get(id=booking_id)
