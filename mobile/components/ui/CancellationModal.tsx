@@ -9,7 +9,7 @@ import {
     Keyboard,
     ActivityIndicator
 } from 'react-native';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
 interface CancellationModalProps {
@@ -35,7 +35,7 @@ const CancellationModal = ({
     reasonPlaceholder,
     confirmButtonText,
     reasons,
-    isSubmitting = false
+    isSubmitting
 }: CancellationModalProps) => {
     const [selectedReason, setSelectedReason] = useState<string>('');
     const [customReason, setCustomReason] = useState<string>('');
@@ -198,7 +198,7 @@ const CancellationModal = ({
                                     disabled={isDisabled}
                                 >
                                     {isSubmitting ? (
-                                        <ActivityIndicator size="small" color="white" />
+                                        <ActivityIndicator size="small" color="black" />
                                     ) : (
                                         <Text className={`font-montserrat-bold ${
                                             isDisabled

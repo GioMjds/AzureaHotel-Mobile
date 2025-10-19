@@ -13,9 +13,9 @@ const NotificationBell = () => {
 	};
 
 	return (
-		<TouchableOpacity onPress={handlePress} activeOpacity={0.75}>
-			<View style={{ alignItems: 'center', justifyContent: 'center' }}>
-				<FontAwesome name="bell" size={25} color="#6F00FF" />
+		<TouchableOpacity hitSlop={20} onPress={handlePress} activeOpacity={0.75}>
+			<View className='items-center justify-center'>
+				<FontAwesome name="bell" size={30} color="#6F00FF" />
 				{unreadCount > 0 && (
 					<View
 						style={{

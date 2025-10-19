@@ -9,12 +9,13 @@ export default function PublicScreensLayout() {
 
 	const headerLabel = useMemo(() => {
 		const route = pathname.replace(/^\//, '');
-		
+
 		const routeLabelMap: Record<string, string> = {
 			'': 'My Bookings',
 			'areas': 'Areas',
 			'rooms': 'Rooms',
 			'profile': 'My Profile',
+			'notifications': 'Notifications',
 		};
 
 		return routeLabelMap[route];

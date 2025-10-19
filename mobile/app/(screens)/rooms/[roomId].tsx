@@ -70,21 +70,11 @@ export default function GetRoomScreen() {
 	}
 
 	return (
-		<SafeAreaView className="flex-1 bg-neutral-50">
-			{/* Header */}
-			<View className="flex-row items-center px-4 py-3 bg-white border-b border-neutral-200">
-				<TouchableOpacity
-					onPress={() => router.back()}
-					className="mr-4 p-2 -ml-2"
-				>
-					<FontAwesome name="arrow-left" size={20} color="#6b7280" />
-				</TouchableOpacity>
-				<Text className="text-3xl font-playfair-bold text-neutral-800 flex-1">
-					Room Details
-				</Text>
-			</View>
-
-			<ScrollView className='flex-1' showsVerticalScrollIndicator={false}>
+		<View className="flex-1 bg-neutral-50">
+			<ScrollView
+				className='flex-1' showsVerticalScrollIndicator={false}
+				contentContainerStyle={{ paddingBottom: 110 }}
+			>
 				{/* Image Gallery */}
 				<View className="h-64 bg-neutral-100">
 					<View className="w-full h-64 bg-neutral-100 mr-4">
@@ -363,6 +353,6 @@ export default function GetRoomScreen() {
 					</TouchableOpacity>
 				</View>
 			</ScrollView>
-		</SafeAreaView>
+		</View>
 	);
 }

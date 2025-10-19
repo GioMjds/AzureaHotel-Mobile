@@ -18,6 +18,7 @@ from django.db import transaction, connections
 from django.db.models import Q
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from .craveon_integration import CraveOnIntegration
+from .pdf_generator import EReceiptGenerator
 import base64
 import imghdr
 
@@ -513,7 +514,6 @@ def booking_reviews(request, booking_id):
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
 def user_reviews(request):
     reviews = Reviews.objects.filter(user=request.user).order_by('-created_at')
     serializer = ReviewSerializer(reviews, many=True)
@@ -604,23 +604,29 @@ def area_reviews(request, area_id):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def generate_checkout_e_receipt(request, booking_id):
     try:
         try:
             booking = Bookings.objects.get(id=booking_id)
         except Bookings.DoesNotExist:
-            return Response({"error": "Booking not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Booking not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         # Check if user has permission to view this booking
         if request.user.role == 'guest' and booking.user != request.user:
-            return Response({"error": "You don't have permission to access this booking"}, 
-                            status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "You don't have permission to access this booking"}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
         
         # Check if booking is checked out
         if booking.status.lower() != 'checked_out':
-            return Response({"error": "E-Receipt can only be generated for checked-out bookings"}, 
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "E-Receipt can only be generated for checked-out bookings"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         # Prepare booking data for E-Receipt
         booking_serializer = BookingSerializer(booking)
@@ -680,15 +686,29 @@ def generate_checkout_e_receipt(request, booking_id):
             'payment_status': booking.payment_status
         }
         
-        print(f"Booking E-Receipt Data: {booking_data}")
-        
-        return Response({
-            "success": True,
-            "message": "E-Receipt data generated successfully",
-            "data": booking_data
-        }, status=status.HTTP_200_OK)
+        # Generate PDF as base64
+        try:
+            pdf_generator = EReceiptGenerator()
+            pdf_base64 = pdf_generator.generate_pdf_base64(booking_data)
+            
+            return Response({
+                "success": True,
+                "message": "E-Receipt PDF generated successfully",
+                "data": pdf_base64  # Returns data URL with embedded PDF
+            }, status=status.HTTP_200_OK)
+        except Exception as pdf_error:
+            # Fallback: return booking data if PDF generation fails
+            # Frontend can still display booking details
+            logger.error(f"PDF generation failed for booking {booking_id}: {str(pdf_error)}")
+            return Response({
+                "success": True,
+                "message": "E-Receipt data generated successfully (PDF generation failed)",
+                "data": booking_data,  # Return raw data as fallback
+                "warning": "PDF generation encountered an issue. Displaying booking data instead."
+            }, status=status.HTTP_200_OK)
         
     except Exception as e:
+        logger.error(f"E-Receipt generation error for booking {booking_id}: {str(e)}")
         return Response({
             "success": False,
             "error": f"Failed to generate E-Receipt: {str(e)}"

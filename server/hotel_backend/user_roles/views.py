@@ -213,7 +213,7 @@ def change_password(request):
 
 @api_view(['POST'])
 def send_register_otp(request):
-    try:     
+    try:
         email = request.data.get("email")
         password = request.data.get("password")
         confirm_password = request.data.get("confirm_password")
@@ -919,6 +919,7 @@ def upload_valid_id(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_notifications(request):
     try:
         limit = int(request.query_params.get('limit', 10))
@@ -939,6 +940,7 @@ def get_notifications(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
 def mark_notification_read(request, id):
     notification = get_object_or_404(Notification, id=id, user=request.user)
     notification.is_read = True
@@ -958,6 +960,7 @@ def mark_notification_read(request, id):
     }, status=status.HTTP_200_OK)
 
 @api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
 def mark_all_notifications_read(request):
     try:
         Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)

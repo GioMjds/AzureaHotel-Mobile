@@ -31,7 +31,7 @@ const BookingCard = ({ item }: BookingCardProps) => {
 		: item.room_details?.images?.[0]?.room_image;
 
 	return (
-		<View className="bg-background-elevated rounded-2xl mx-4 mb-4 overflow-hidden border-brand-primary border-2 shadow-sm">
+		<View className="bg-background-elevated rounded-2xl mx-4 mb-4 overflow-hidden shadow-sm">
 			{/* Property Image */}
 			<View className="h-48 bg-background-subtle relative">
 				{propertyImage && (
@@ -206,7 +206,7 @@ const BookingCard = ({ item }: BookingCardProps) => {
 							</View>
 							<TouchableOpacity
 								onPress={() => setFeedbackModalVisible(true)}
-								className="bg-green-600 px-4 py-2 rounded-lg shadow-sm flex-row items-center"
+								className="bg-green-500 px-4 py-2 rounded-lg shadow-sm flex-row items-center"
 							>
 								<Ionicons 
 									name="star" 

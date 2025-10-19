@@ -129,8 +129,6 @@ export default function BookingsScreen() {
                 onStatusChange={setSelectedStatus} 
             />
 
-            <View className="py-2" />
-
             {/* Bookings List */}
             <FlatList
                 data={allBookings}
@@ -144,6 +142,7 @@ export default function BookingsScreen() {
                         tintColor="#6F00FF"
                     />
                 }
+                contentContainerStyle={{ paddingBottom: 110, paddingTop: 10 }}
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.5}
                 ListFooterComponent={renderFooter}

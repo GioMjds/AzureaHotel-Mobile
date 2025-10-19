@@ -42,31 +42,21 @@ export default function AreasScreen() {
 
 	return (
 		<View className="flex-1 bg-neutral-50">
-			{/* Header */}
-			<View className="p-4 bg-white border-b border-neutral-200">
-				<Text className="text-4xl font-playfair-semibold text-neutral-800">
-					Browse Areas
-				</Text>
-				<Text className="text-neutral-600 font-montserrat text-sm mt-1">
-					{data?.data?.length || 0} areas available
-				</Text>
-			</View>
-
 			{/* Areas List */}
 			<FlatList
 				data={data?.data as Area[]}
 				renderItem={({ item }) => <AreaCard item={item} />}
 				keyExtractor={(item) => item.id.toString()}
-			contentContainerStyle={{ paddingTop: 16, paddingBottom: 20 }}
-			showsVerticalScrollIndicator={false}
-			ListEmptyComponent={
-				<View className="flex-1 justify-center items-center mt-10">
-					<Text className="text-neutral-600 font-montserrat">
-						No areas available.
-					</Text>
-				</View>
-			}
-		/>
-	</View>
-);
+				contentContainerStyle={{ paddingTop: 16, paddingBottom: 110 }}
+				showsVerticalScrollIndicator={false}
+				ListEmptyComponent={
+					<View className="flex-1 justify-center items-center mt-10">
+						<Text className="text-neutral-600 font-montserrat">
+							No areas available.
+						</Text>
+					</View>
+				}
+			/>
+		</View>
+	);
 }

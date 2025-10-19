@@ -12,7 +12,6 @@ import { useQuery } from '@tanstack/react-query';
 import { area } from '@/services/Area';
 import { Area } from '@/types/Area.types';
 import { pesoFormatter } from '@/utils/formatters';
-import { FontAwesome } from '@expo/vector-icons';
 import PhotoGallery from '@/components/PhotoGallery';
 
 export default function GetAreaScreen() {
@@ -58,21 +57,12 @@ export default function GetAreaScreen() {
 	const areaData: Area = data.data;
 
 	return (
-		<SafeAreaView className="flex-1 bg-neutral-50">
-			{/* Header */}
-			<View className="flex-row items-center px-4 py-3 bg-white border-b border-neutral-200">
-				<TouchableOpacity
-					onPress={() => router.back()}
-					className="mr-4 p-2 -ml-2"
-				>
-					<FontAwesome name="arrow-left" size={20} color="#6b7280" />
-				</TouchableOpacity>
-				<Text className="text-3xl font-playfair-bold text-neutral-800 flex-1">
-					Area Details
-				</Text>
-			</View>
-
-			<ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+		<View className="flex-1 bg-neutral-50">
+			<ScrollView
+				className="flex-1" 
+				showsVerticalScrollIndicator={false}
+				contentContainerStyle={{ paddingBottom: 110 }}
+			>
 				{/* Image Gallery */}
 				<View className="h-64 bg-neutral-100">
 					{areaData.images.length > 0 && (
@@ -315,6 +305,6 @@ export default function GetAreaScreen() {
 					</TouchableOpacity>
 				</View>
 			</ScrollView>
-		</SafeAreaView>
+		</View>
 	);
 }

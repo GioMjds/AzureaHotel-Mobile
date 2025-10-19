@@ -144,6 +144,10 @@ class BookingService {
             params: { page, page_size: pageSize }
         });
     }
+
+	async generateEReceipt(bookingId: string) {
+		return await httpClient.get(BookingRoutes.CHECKOUT_RECEIPT(bookingId));
+	}
 }
 
 export const booking = new BookingService();

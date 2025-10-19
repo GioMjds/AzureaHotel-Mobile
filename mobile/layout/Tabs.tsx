@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { View, TouchableOpacity, Animated } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
@@ -17,7 +17,7 @@ const tabs: TabItem[] = [
 	{ name: 'Rooms', route: '/rooms', icon: 'bed' },
 ];
 
-export default function Tabs() {
+const Tabs = () => {
 	const router = useRouter();
 	const pathname = usePathname();
 
@@ -32,27 +32,32 @@ export default function Tabs() {
 		}).start();
 	}, [tabState, translateY]);
 
-	const handleTabPress = (route: string) => {
-		if (isActiveTab(route)) return;
-		router.push(route as any);
-	};
+	const isActiveTab = useCallback(
+		(route: string) => {
+			if (route === '/') return pathname === '/';
+			return pathname === route;
+		},
+		[pathname]
+	);
 
-	const isActiveTab = (route: string) => {
-		if (route === '/') return pathname === '/';
-		return pathname === route;
-	};
+	const handleTabPress = useCallback(
+		(route: string) => {
+			if (isActiveTab(route)) return;
+			router.push(route as any);
+		},
+		[isActiveTab, router]
+	);
 
 	return (
 		<>
 			{/* Spacer to prevent page content from being hidden behind the absolute tab bar */}
-			<View style={{ height: 110 }} pointerEvents="none" />
 			<Animated.View
 				style={{
 					transform: [{ translateY }],
 					position: 'absolute',
 					left: 0,
 					right: 0,
-					bottom: 0
+					bottom: 0,
 				}}
 				pointerEvents="box-none"
 			>
@@ -77,43 +82,29 @@ export default function Tabs() {
 								return (
 									<TouchableOpacity
 										key={tab.name}
-										onPress={() =>
-											handleTabPress(tab.route)
-										}
+										onPress={() => handleTabPress(tab.route)}
 										className="flex-1 items-center justify-center"
 										activeOpacity={0.75}
+										disabled={isActive}
+										accessibilityState={{ selected: isActive, disabled: isActive }}
 									>
 										<View className="items-center relative px-2 py-2">
-											<View className="relative mb-1">
+											<View className="relative mt-1">
 												{isActive ? (
 													<View className="px-6 py-4">
-														<FontAwesome
-															name={tab.icon}
-															size={26}
-															color="#6F00FF"
-														/>
+														<FontAwesome name={tab.icon} size={26} color="#6F00FF" />
 													</View>
 												) : (
 													<View className="px-6 py-4">
-														<FontAwesome
-															name={tab.icon}
-															size={26}
-															color="#A8A29E"
-														/>
+														<FontAwesome name={tab.icon} size={26} color="#A8A29E" />
 													</View>
 												)}
 											</View>
 
 											<StyledText
-												variant={
-													isActive
-														? 'montserrat-bold'
-														: 'montserrat-regular'
-												}
+												variant={isActive ? 'montserrat-bold' : 'montserrat-regular'}
 												className={
-													isActive
-														? 'text-brand-primary text-xs'
-														: 'text-neutral-500 text-xs'
+													isActive ? 'text-brand-primary text-xs' : 'text-neutral-500 text-xs'
 												}
 												numberOfLines={1}
 											>
@@ -130,3 +121,6 @@ export default function Tabs() {
 		</>
 	);
 }
+
+export default React.memo(Tabs);
+
