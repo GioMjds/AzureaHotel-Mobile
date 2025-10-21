@@ -10,7 +10,7 @@ module.exports = {
 				'brand-accent': '#E9B3FB',
 				'brand-surface': '#FFF1F1',
 
-				'background-default': '#FFF8F1',
+				'background': '#FFFDF6',
 				'background-elevated': '#FFFFFF',
 				'background-subtle': '#E9B3FB',
 				'background-overlay': 'rgba(59, 2, 112, 0.8)',

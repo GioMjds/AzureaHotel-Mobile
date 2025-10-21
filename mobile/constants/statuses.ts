@@ -5,7 +5,7 @@ interface StatusFilter {
 }
 
 export const statusFilters: StatusFilter[] = [
-	{ label: 'All Bookings', value: '', icon: 'list' },
+	{ label: 'All', value: '', icon: 'list' },
 	{ label: 'Pending', value: 'pending', icon: 'time' },
 	{ label: 'Reserved', value: 'reserved', icon: 'bookmark' },
 	{ label: 'Checked In', value: 'checked_in', icon: 'enter' },

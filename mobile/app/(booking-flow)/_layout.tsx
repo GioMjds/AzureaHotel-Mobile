@@ -4,7 +4,7 @@ import { Stack } from "expo-router";
 export default function BookingFlowLayout() {
     return (
         <ProtectedRoute requireAuth={true}>
-            <Stack screenOptions={{ headerShown: false }} />
+            <Stack screenOptions={{ headerShown: false, animation: 'none' }} />
         </ProtectedRoute>
     )
 }

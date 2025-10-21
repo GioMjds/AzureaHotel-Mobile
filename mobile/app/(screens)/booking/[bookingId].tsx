@@ -16,12 +16,10 @@ import { pesoFormatter, formatDate } from '@/utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
 import CancellationModal from '@/components/ui/CancellationModal';
 import { guestCancellationReasons } from '@/constants/dropdown-options';
-import { useGenerateEReceipt } from '@/hooks/useGenerateEReceipt';
 import StyledText from '@/components/ui/StyledText';
 
 export default function BookingDetailsScreen() {
-	const [isCancellationModalOpen, setIsCancellationModalOpen] =
-		useState<boolean>(false);
+	const [cancellationModal, setCancellationModal] = useState<boolean>(false);
 
 	const { bookingId } = useLocalSearchParams();
 	const router = useRouter();
@@ -68,25 +66,9 @@ export default function BookingDetailsScreen() {
 
 	const bookingData: UserBooking = data?.data;
 
-	const { generate: generateEReceipt, isPending: isGenerating } =
-		useGenerateEReceipt();
-
-	const handleGenerateEReceipt = async () => {
-		if (!bookingData?.id) {
-			Alert.alert('E-Receipt', 'Booking ID not available');
-			return;
-		}
-
-		try {
-			await generateEReceipt(bookingData.id.toString());
-		} catch (err) {
-			console.error('E-Receipt generation error:', err);
-		}
-	};
-
 	const handleCancelBooking = () => {
 		if (bookingData?.status === 'pending') {
-			setIsCancellationModalOpen(true);
+			setCancellationModal(true);
 		} else {
 			Alert.alert(
 				'Cancel Booking',
@@ -269,7 +251,7 @@ export default function BookingDetailsScreen() {
 			<ScrollView
 				className="flex-1"
 				showsVerticalScrollIndicator={false}
-				contentContainerStyle={{ paddingBottom: 24 }}
+				contentContainerStyle={{ paddingTop: 10, paddingBottom: 130 }}
 				refreshControl={
 					<RefreshControl
 						refreshing={false}
@@ -299,7 +281,9 @@ export default function BookingDetailsScreen() {
 								</View>
 							</View>
 							<View className="absolute top-4 right-4 flex-row space-x-2">
-								<View className={`px-4 py-2 rounded-full ${statusConfig.color}`}>
+								<View
+									className={`px-4 py-2 rounded-full ${statusConfig.color}`}
+								>
 									<StyledText
 										variant="montserrat-bold"
 										className={`text-xs uppercase tracking-wide ${statusConfig.text}`}
@@ -336,20 +320,22 @@ export default function BookingDetailsScreen() {
 								</StyledText>
 							</View>
 							<View className="h-8 w-px bg-border-subtle" />
-							<View className="items-center flex-1">
-								<StyledText
-									variant="montserrat-bold"
-									className="text-text-primary text-lg"
-								>
-									{calculateNights()}
-								</StyledText>
-								<StyledText
-									variant="montserrat-regular"
-									className="text-text-secondary text-xs"
-								>
-									{isVenueBooking ? 'Days' : 'Nights'}
-								</StyledText>
-							</View>
+							{!isVenueBooking && (
+								<View className="items-center flex-1">
+									<StyledText
+										variant="montserrat-bold"
+										className="text-text-primary text-lg"
+									>
+										{calculateNights()}
+									</StyledText>
+									<StyledText
+										variant="montserrat-regular"
+										className="text-text-secondary text-xs"
+									>
+										{isVenueBooking ? 'Days' : 'Nights'}
+									</StyledText>
+								</View>
+							)}
 							<View className="h-8 w-px bg-border-subtle" />
 							<View className="items-center flex-1">
 								<StyledText
@@ -759,24 +745,24 @@ export default function BookingDetailsScreen() {
 							</View>
 
 							<View className="space-y-4">
-								<View className="flex-row justify-between items-center py-3 border-b border-border-subtle">
-									<StyledText
-										variant="montserrat-regular"
-										className="text-text-secondary text-base"
-									>
-										{isVenueBooking
-											? 'Area Rate'
-											: `Room Rate × ${calculateNights()} night${calculateNights() !== 1 ? 's' : ''}`}
-									</StyledText>
-									<StyledText
-										variant="montserrat-bold"
-										className="text-text-primary text-base"
-									>
-										{pesoFormatter.format(
-											bookingData.original_price
-										)}
-									</StyledText>
-								</View>
+								{!isVenueBooking && (
+									<View className="flex-row justify-between items-center py-3 border-b border-border-subtle">
+										<StyledText
+											variant="montserrat-regular"
+											className="text-text-secondary text-base"
+										>
+											{!isVenueBooking && `Room Rate × ${calculateNights()} night${calculateNights() !== 1 ? 's' : ''}`}
+										</StyledText>
+										<StyledText
+											variant="montserrat-bold"
+											className="text-text-primary text-base"
+										>
+											{pesoFormatter.format(
+												bookingData.original_price
+											)}
+										</StyledText>
+									</View>
+								)}
 
 								{bookingData.discount_percent > 0 && (
 									<View className="flex-row justify-between items-center py-3 border-b border-border-subtle">
@@ -889,34 +875,6 @@ export default function BookingDetailsScreen() {
 
 						{/* Action Buttons */}
 						<View className="space-y-4 mt-2">
-							{bookingData.status === 'checked_out' && (
-								<TouchableOpacity
-									className={`bg-feedback-success-DEFAULT active:bg-feedback-success-dark rounded-2xl py-5 flex-row items-center justify-center shadow-lg ${isGenerating ? 'opacity-50' : ''}`}
-									onPress={handleGenerateEReceipt}
-									disabled={isGenerating}
-								>
-									{isGenerating ? (
-										<ActivityIndicator
-											size="small"
-											color="white"
-										/>
-									) : (
-										<>
-											<Ionicons
-												name="download-outline"
-												size={24}
-												color="white"
-											/>
-											<StyledText
-												variant="montserrat-bold"
-												className="text-white text-lg ml-3"
-											>
-												Download E-Receipt
-											</StyledText>
-										</>
-									)}
-								</TouchableOpacity>
-							)}
 							{(bookingData.status === 'confirmed' ||
 								bookingData.status === 'pending') && (
 								<TouchableOpacity
@@ -945,8 +903,8 @@ export default function BookingDetailsScreen() {
 
 			{/* Cancellation Modal */}
 			<CancellationModal
-				isOpen={isCancellationModalOpen}
-				onClose={() => setIsCancellationModalOpen(false)}
+				isOpen={cancellationModal}
+				onClose={() => setCancellationModal(false)}
 				onConfirm={handleConfirmCancellation}
 				title="Request Cancellation"
 				description="Your booking is currently pending confirmation. Please provide a reason for your cancellation request."

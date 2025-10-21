@@ -122,7 +122,7 @@ export default function BookingsScreen() {
     }
 
     return (
-        <View className="flex-1 bg-neutral-50">
+        <View className="flex-1 bg-background">
             {/* Status Filter */}
             <StatusFilter 
                 selectedStatus={selectedStatus} 

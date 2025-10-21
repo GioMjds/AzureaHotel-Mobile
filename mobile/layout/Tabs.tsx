@@ -62,11 +62,11 @@ const Tabs = () => {
 				pointerEvents="box-none"
 			>
 				{/* Floating translucent container that sits above content */}
-				<View style={{ paddingHorizontal: 24, paddingBottom: 20 }}>
+				<View style={{ paddingHorizontal: 24, paddingBottom: 40 }}>
 					<View
 						className="rounded-2xl overflow-hidden bg-background-elevated"
 						style={{
-							marginHorizontal: 8,
+							marginHorizontal: 16,
 							shadowColor: '#000',
 							shadowOffset: { width: 0, height: -2 },
 							shadowOpacity: 0.08,
@@ -88,23 +88,23 @@ const Tabs = () => {
 										disabled={isActive}
 										accessibilityState={{ selected: isActive, disabled: isActive }}
 									>
-										<View className="items-center relative px-2 py-2">
-											<View className="relative mt-1">
+										<View className="items-center relative p-2">
+											<View className="relative">
 												{isActive ? (
-													<View className="px-6 py-4">
+													<View className="px-6 py-2">
 														<FontAwesome name={tab.icon} size={26} color="#6F00FF" />
 													</View>
 												) : (
-													<View className="px-6 py-4">
+													<View className="px-6 py-2">
 														<FontAwesome name={tab.icon} size={26} color="#A8A29E" />
 													</View>
 												)}
 											</View>
 
 											<StyledText
-												variant={isActive ? 'montserrat-bold' : 'montserrat-regular'}
+												variant={isActive ? 'playfair-bold' : 'playfair-regular'}
 												className={
-													isActive ? 'text-brand-primary text-xs' : 'text-neutral-500 text-xs'
+													isActive ? 'text-brand-primary text-md' : 'text-neutral-500 text-md'
 												}
 												numberOfLines={1}
 											>
