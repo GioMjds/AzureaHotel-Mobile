@@ -113,8 +113,19 @@ const useAuthStore = create<State & Actions>((set, get) => ({
 
             const response = await auth.userAuth();
             if (response.isAuthenticated) {
-                await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(response.user));
-                set({ user: response.user, isAuthenticated: true, isLoading: false });
+                const lightweightUser = response.user;
+
+                try {
+                    const profileResponse = await auth.getGuestProfile(lightweightUser.id);
+                    const detailedUser = profileResponse?.data ?? profileResponse;
+
+                    await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(detailedUser));
+                    set({ user: detailedUser, isAuthenticated: true, isLoading: false });
+                } catch (profileErr) {
+                    console.warn('Failed to fetch detailed guest profile:', profileErr);
+                    await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(lightweightUser));
+                    set({ user: lightweightUser, isAuthenticated: true, isLoading: false });
+                }
             } else {
                 await clearStoredData();
                 set({ user: null, isAuthenticated: false, isLoading: false });

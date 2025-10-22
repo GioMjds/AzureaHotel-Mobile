@@ -1,5 +1,6 @@
 import { database } from '@/configs/firebase';
-import { ref, onValue, off, update, remove } from 'firebase/database';
+import { ref, onValue, off, update, remove, onDisconnect } from 'firebase/database';
+import { FirebaseAuthService } from '@/services/firebase/FirebaseAuth';
 
 export interface FirebaseNotification {
 	id: string;
@@ -36,6 +37,7 @@ export interface AvailabilityUpdate {
 class FirebaseRealtimeService {
 	private listeners: Map<string, () => void> = new Map();
 	private queryClient?: any;
+	private hasConnectedListener = false;
 
 	setQueryClient(client: any) {
 		this.queryClient = client;
@@ -48,7 +50,7 @@ class FirebaseRealtimeService {
 	): () => void {
 		const notificationsRef = ref(database, `user-notifications/${userId}`);
 
-		const unsubscribe = onValue(notificationsRef, (snapshot) => {
+		onValue(notificationsRef, (snapshot) => {
 			const data = snapshot.val();
 			if (data) {
 				const notifications: FirebaseNotification[] = Object.entries(
@@ -92,7 +94,7 @@ class FirebaseRealtimeService {
 		bookingIds.forEach((bookingId) => {
 			const bookingRef = ref(database, `booking-updates/${bookingId}`);
 
-			const unsubscribe = onValue(bookingRef, (snapshot) => {
+			onValue(bookingRef, (snapshot) => {
 				const data = snapshot.val();
 				if (data) {
 					const updates = Array.isArray(data) ? data : [data];
@@ -128,7 +130,7 @@ class FirebaseRealtimeService {
 		roomIds.forEach((roomId) => {
 			const roomRef = ref(database, `room-availability/${roomId}`);
 
-			const unsubscribe = onValue(roomRef, (snapshot) => {
+			onValue(roomRef, (snapshot) => {
 				const data = snapshot.val();
 				if (data) {
 					callback([data]);
@@ -163,7 +165,7 @@ class FirebaseRealtimeService {
 		areaIds.forEach((areaId) => {
 			const areaRef = ref(database, `area-availability/${areaId}`);
 
-			const unsubscribe = onValue(areaRef, (snapshot) => {
+			onValue(areaRef, (snapshot) => {
 				const data = snapshot.val();
 				if (data) {
 					callback([data]);
@@ -258,20 +260,91 @@ class FirebaseRealtimeService {
 		}
 	}
 
-	// Update user presence
-	async updateUserPresence(userId: number, isOnline: boolean): Promise<void> {
+	async updateUserPresence(userId: number, isOnline: boolean, attempts = 0): Promise<void> {
 		try {
-			const presenceRef = ref(database, `user-presence/${userId}`);
-			await update(presenceRef, {
-				user_id: userId,
-				is_online: isOnline,
-				last_seen: Date.now(),
-			});
+			this.ensureConnectedListener();
+
+			// If Firebase auth isn't ready yet, retry a few times before giving up. This avoids PERMISSION_DENIED
+			// errors that occur when onDisconnect/update is called before the client's auth has propagated.
+			if (!FirebaseAuthService.isFirebaseAuthenticated()) {
+				if (attempts < 5) {
+					const backoff = 300 * (attempts + 1);
+					// small delay then retry
+					setTimeout(() => {
+						void this.updateUserPresence(userId, isOnline, attempts + 1);
+					}, backoff);
+					return;
+				} else {
+					console.warn(
+						`Skipping presence update for user ${userId} after ${attempts} attempts because Firebase auth is not ready`
+					);
+					return;
+				}
+			}
+
+			const uid = String(userId);
+			const presenceRef = ref(database, `user-presence/${uid}`);
+
+			if (isOnline) {
+				try {
+					await onDisconnect(presenceRef).update({
+						is_online: false,
+						last_seen: { '.sv': 'timestamp' },
+					});
+				} catch (e: any) {
+					// onDisconnect may fail if not connected/authenticated yet; log for debugging
+					console.warn('onDisconnect setup failed:', e?.message ?? e);
+				}
+
+				// Immediately set online using server timestamp for last_seen
+				await update(presenceRef, {
+					user_id: uid,
+					is_online: true,
+					last_seen: { '.sv': 'timestamp' },
+				});
+			} else {
+				// Explicitly set offline now using server timestamp
+				await update(presenceRef, {
+					is_online: false,
+					last_seen: { '.sv': 'timestamp' },
+				});
+			}
 		} catch (error: any) {
 			// Only log non-permission errors to reduce noise
-			if (error.code !== 'PERMISSION_DENIED') {
+			if (error?.code !== 'PERMISSION_DENIED') {
 				console.warn('Failed to update user presence:', error);
+			} else {
+				// Permission denied here likely means auth wasn't ready; attempt a small retry
+				if (attempts < 3) {
+					const backoff = 500 * (attempts + 1);
+					setTimeout(() => {
+						void this.updateUserPresence(userId, isOnline, attempts + 1);
+					}, backoff);
+				} else {
+					console.warn('Permission denied updating presence after retries for user', userId);
+				}
 			}
+		}
+	}
+
+	// Ensure a single .info/connected listener exists to stabilize onDisconnect behavior
+	private ensureConnectedListener() {
+		if (this.hasConnectedListener) return;
+
+		try {
+			const connRef = ref(database, '.info/connected');
+
+			onValue(connRef, (snap: any) => {
+				// Keep the listener active to stabilize onDisconnect behavior. Value not used directly here.
+				// If needed, other parts of the app can add logic to react to connection state.
+				void snap;
+			});
+
+			// store simple cleanup function
+			this.listeners.set('.info.connected', () => off(connRef));
+			this.hasConnectedListener = true;
+		} catch (e) {
+			console.warn('Failed to establish .info/connected listener', e);
 		}
 	}
 

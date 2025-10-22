@@ -16,7 +16,6 @@ import { UserBooking } from '@/types/Bookings.types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { booking } from '@/services/Booking';
 import StyledText from '@/components/ui/StyledText';
-import * as Haptics from 'expo-haptics';
 
 interface FeedbackModalProps {
 	visible: boolean;
@@ -63,14 +62,7 @@ const FeedbackModal = ({
 			queryClient.invalidateQueries({
 				queryKey: ['booking-review', bookingItem.id],
 			});
-			// Also refresh guest bookings list so the Review button updates in the list
 			queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
-			// Haptic feedback on success
-			try {
-				Haptics.selectionAsync();
-			} catch {
-				// ignore haptics errors if not available
-			}
 			Alert.alert('Success', 'Thank you for your feedback!');
 			handleClose();
 		},

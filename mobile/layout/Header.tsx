@@ -159,25 +159,26 @@ const Header = ({ headerLabel }: HeaderProps) => {
 									</StyledText>
 								</TouchableOpacity>
 
-								{guest.is_verified ===
-									IsVerified.UNVERIFIED && (
-									<TouchableOpacity
-										activeOpacity={0.7}
-										onPress={() =>
-											handleNavigateTo(
-												'/(profile)/settings/verify-account'
-											)
-										}
-										className="py-2 px-4 rounded-lg bg-interactive-ghost-hover"
-									>
-										<StyledText
-											variant="montserrat-regular"
-											className="text-text-primary"
+								{guest.is_verified === 'pending' ||
+									((guest.is_verified === 'unverified' ||
+										guest.is_verified === 'rejected') && (
+										<TouchableOpacity
+											activeOpacity={0.7}
+											onPress={() =>
+												handleNavigateTo(
+													'/(profile)/settings/verify-account'
+												)
+											}
+											className="py-2 px-4 rounded-lg bg-interactive-ghost-hover"
 										>
-											Verify Account
-										</StyledText>
-									</TouchableOpacity>
-								)}
+											<StyledText
+												variant="montserrat-regular"
+												className="text-text-primary"
+											>
+												Verify Account
+											</StyledText>
+										</TouchableOpacity>
+									))}
 
 								<TouchableOpacity
 									activeOpacity={0.7}

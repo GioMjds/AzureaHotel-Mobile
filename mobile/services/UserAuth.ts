@@ -95,6 +95,45 @@ class UserAuthService {
 	async getGuestProfile(userId: number) {
 		return await httpClient.get(ApiRoutes.USER_DETAILS(userId));
 	}
+
+	async changeProfileImage(uri: string, fileName?: string, mimeType = 'image/jpeg') {
+		if (!uri) throw new Error('Image uri is required');
+
+		const name =
+			fileName || `profile_${Date.now()}.${(uri.split('.').pop() || 'jpg').split('?')[0]}`;
+
+		const formData = new FormData();
+		formData.append('profile_image', {
+			uri,
+			name,
+			type: mimeType,
+		} as any);
+
+		return await httpClient.put(ApiRoutes.CHANGE_IMAGE, formData, {
+			headers: {
+				'Content-Type': 'multipart/form-data',
+			},
+		});
+	}
+
+	async uploadValidId(frontUri: string, backUri: string, idType: string) {
+		if (!frontUri || !backUri) throw new Error('Both front and back image URIs are required');
+		if (!idType) throw new Error('valid id type is required');
+
+		const frontName = `valid_front_${Date.now()}.${(frontUri.split('.').pop() || 'jpg').split('?')[0]}`;
+		const backName = `valid_back_${Date.now()}.${(backUri.split('.').pop() || 'jpg').split('?')[0]}`;
+
+		const formData = new FormData();
+		formData.append('valid_id_front', { uri: frontUri, name: frontName, type: 'image/jpeg' } as any);
+		formData.append('valid_id_back', { uri: backUri, name: backName, type: 'image/jpeg' } as any);
+		formData.append('valid_id_type', idType as any);
+
+		return await httpClient.put(ApiRoutes.UPLOAD_VALID_ID, formData, {
+			headers: {
+				'Content-Type': 'multipart/form-data',
+			},
+		});
+	}
 }
 
 export const auth = new UserAuthService();

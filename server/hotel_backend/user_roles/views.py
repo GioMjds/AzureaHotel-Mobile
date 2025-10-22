@@ -767,7 +767,6 @@ def user_details(request, id):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def change_profile_picture(request):
     try:
         user = request.user
@@ -874,7 +873,6 @@ def get_guest_bookings(request):
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def upload_valid_id(request):
     try:
         user = request.user
@@ -884,7 +882,7 @@ def upload_valid_id(request):
         
         if not id_type:
             return Response({
-                'error': 'Both front and back sides of the valid ID are required'
+                'error': 'ID type is required.'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         if not front_id or not back_id:

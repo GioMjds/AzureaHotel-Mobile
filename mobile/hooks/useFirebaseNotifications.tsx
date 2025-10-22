@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import {
 	firebaseRealtimeService,
 	FirebaseNotification,
@@ -42,9 +43,22 @@ export function useFirebaseNotifications() {
 		// Update user presence when component mounts
 		firebaseRealtimeService.updateUserPresence(user.id, true);
 
+		// Listen to app state changes to proactively set presence
+		const handleAppStateChange = (nextAppState: AppStateStatus) => {
+			if (!user?.id) return;
+			if (nextAppState === 'active') {
+				firebaseRealtimeService.updateUserPresence(user.id, true);
+			} else if (nextAppState === 'background' || nextAppState === 'inactive') {
+				firebaseRealtimeService.updateUserPresence(user.id, false);
+			}
+		};
+
+		const sub = AppState.addEventListener('change', handleAppStateChange);
+
 		return () => {
 			// Update user presence when component unmounts
 			firebaseRealtimeService.updateUserPresence(user.id, false);
+			sub.remove?.();
 			unsubscribe();
 		};
 	}, [user?.id, queryClient]);

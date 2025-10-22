@@ -258,7 +258,7 @@ export default function BookingDetailsScreen() {
 			<ScrollView
 				className="flex-1"
 				showsVerticalScrollIndicator={false}
-				contentContainerStyle={{ paddingTop: 10, paddingBottom: 130 }}
+				contentContainerStyle={{ paddingBottom: 130 }}
 				refreshControl={
 					<RefreshControl
 						refreshing={false}
@@ -277,7 +277,7 @@ export default function BookingDetailsScreen() {
 								className="w-full h-64"
 								resizeMode="cover"
 							/>
-							<View className="absolute top-4 left-4 flex-row space-x-2">
+							<View className="absolute top-4 left-4 flex-row">
 								<View className="bg-brand-primary px-4 py-2 rounded-full">
 									<StyledText
 										variant="montserrat-bold"
