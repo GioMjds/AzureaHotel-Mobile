@@ -179,6 +179,8 @@ def validate_password_django(password, confirm):
     password_validator(password)
 
 class RegistrationForm(forms.Form):
+    first_name = forms.CharField()
+    last_name = forms.CharField()
     email = forms.CharField(validators=[validate_strict_email])
     password = forms.CharField()
     confirm_password = forms.CharField()

@@ -4,7 +4,6 @@ import { TouchableOpacity, View } from "react-native";
 import { formatDistanceToNow } from "date-fns";
 
 interface NotificationItemProps {
-    title: string;
     message: string;
     type: 'booking' | 'payment' | 'general' | 'system';
     is_read: boolean;
@@ -14,7 +13,6 @@ interface NotificationItemProps {
 }
 
 const NotificationItem = ({
-    title,
     message,
     type,
     is_read,

@@ -9,7 +9,7 @@ export default function AuthLayout() {
 	return (
 		<ProtectedRoute>
 			<StatusBar style="light" />
-			<Stack screenOptions={{ headerShown: false }}>
+			<Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
 				<Stack.Screen name="login" options={{ title: 'Login' }} />
 				<Stack.Screen name="register" options={{ title: 'Register' }} />
 				<Stack.Screen name="verify" options={{ title: 'Verify' }} />

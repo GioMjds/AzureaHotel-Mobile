@@ -49,11 +49,10 @@ export const useUserNotifications = () => {
             return totalFetched;
         },
         initialPageParam: 0,
-        staleTime: 30 * 1000, // 30 seconds
-        gcTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: 30 * 1000,
+        gcTime: 5 * 60 * 1000,
     });
 
-    // Flatten all pages into a single notifications array
     const notifications = data?.pages.flatMap(page => page.data) || [];
     const unreadCount = data?.pages[0]?.unread_count || 0;
     const totalCount = notifications.length;
@@ -67,7 +66,6 @@ export const useUserNotifications = () => {
 
             const previousData = queryClient.getQueryData(['userNotifications']);
 
-            // Optimistically update the cache
             queryClient.setQueryData(['userNotifications'], (old: any) => {
                 if (!old) return old;
                 return {
@@ -105,7 +103,6 @@ export const useUserNotifications = () => {
 
             const previousData = queryClient.getQueryData(['userNotifications']);
 
-            // Optimistically update all notifications
             queryClient.setQueryData(['userNotifications'], (old: any) => {
                 if (!old) return old;
                 return {

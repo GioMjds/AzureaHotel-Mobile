@@ -138,7 +138,7 @@ export const statusStyles: Record<string, object> = {
 };
 
 export const getStatusStyle = (status: string) => {
-	return statusStyles[status] || { backgroundColor: '#6F00FF' };
+	return statusStyles[status];
 };
 
 /**

@@ -13,9 +13,12 @@ import BookingCard from '@/components/bookings/BookingCard';
 import StatusFilter from '@/components/bookings/StatusFilter';
 import { Ionicons } from '@expo/vector-icons';
 import { useBookingUpdates } from '@/hooks/useBookingUpdates';
+import FeedbackModal from '@/components/bookings/FeedbackModal';
 
 export default function BookingsScreen() {
     const [selectedStatus, setSelectedStatus] = useState<string>('');
+    const [feedbackModalVisible, setFeedbackModalVisible] = useState<boolean>(false);
+    const [selectedBookingForFeedback, setSelectedBookingForFeedback] = useState<any>(null);
 
     const { 
         data, 
@@ -121,6 +124,16 @@ export default function BookingsScreen() {
         );
     }
 
+    const handleLeaveFeedback = (booking: any) => {
+        setSelectedBookingForFeedback(booking);
+        setFeedbackModalVisible(true);
+    };
+
+    const handleCloseFeedbackModal = () => {
+        setFeedbackModalVisible(false);
+        setSelectedBookingForFeedback(null);
+    };
+
     return (
         <View className="flex-1 bg-background">
             {/* Status Filter */}
@@ -133,7 +146,9 @@ export default function BookingsScreen() {
             <FlatList
                 data={allBookings}
                 keyExtractor={(item, index) => `${item.id}-${index}`}
-                renderItem={({ item }) => <BookingCard item={item} />}
+                renderItem={({ item }) => (
+                    <BookingCard item={item} onLeaveFeedback={handleLeaveFeedback} />
+                )}
                 refreshControl={
                     <RefreshControl 
                         refreshing={isFetching && !isFetchingNextPage} 
@@ -142,7 +157,7 @@ export default function BookingsScreen() {
                         tintColor="#6F00FF"
                     />
                 }
-                contentContainerStyle={{ paddingBottom: 110, paddingTop: 10 }}
+                contentContainerStyle={{ paddingBottom: 110, paddingTop: 60 }}
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.5}
                 ListFooterComponent={renderFooter}
@@ -162,6 +177,15 @@ export default function BookingsScreen() {
                 )}
                 showsVerticalScrollIndicator={false}
             />
+
+            {/* Feedback Modal (global) */}
+            {selectedBookingForFeedback && (
+                <FeedbackModal
+                    visible={feedbackModalVisible}
+                    onClose={handleCloseFeedbackModal}
+                    bookingItem={selectedBookingForFeedback}
+                />
+            )}
         </View>
     );
 }

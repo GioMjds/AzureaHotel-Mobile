@@ -214,18 +214,21 @@ def change_password(request):
 @api_view(['POST'])
 def send_register_otp(request):
     try:
+        first_name = request.data.get("first_name")
+        last_name = request.data.get("last_name")
         email = request.data.get("email")
         password = request.data.get("password")
         confirm_password = request.data.get("confirm_password")
         
-        if not email or not password or not confirm_password:
+        # Ensure all required fields are present
+        if not first_name or not last_name or not email or not password or not confirm_password:
             return Response({
-                "error": {
-                    "general": "Please fill out the fields"
-                }
+                "error": "Please fill out the fields",
             }, status=status.HTTP_400_BAD_REQUEST)
         
         form = RegistrationForm({
+            'first_name': first_name,
+            'last_name': last_name,
             'email': email,
             'password': password,
             'confirm_password': confirm_password
@@ -238,9 +241,7 @@ def send_register_otp(request):
         
         if CustomUsers.objects.filter(email=email).exists():
             return Response({
-                "error": {
-                    "email": "Email already exists"
-                }
+                "error": "Email already exists",
             }, status=status.HTTP_400_BAD_REQUEST)
         
         purpose = "account_verification"
@@ -248,9 +249,7 @@ def send_register_otp(request):
         
         if cache.get(cache_key):
             return Response({
-                "error": {
-                    "general": "An OTP has already been sent to your email. Please check your inbox."
-                }
+                "message": "An OTP has already been sent to your email. Please check your inbox.",
             }, status=status.HTTP_400_BAD_REQUEST)
         
         message = "Your OTP for account verification"
@@ -272,9 +271,7 @@ def send_register_otp(request):
         }, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({
-            "error": {
-                "general": f"An error occurred while sending the OTP. Please try again later. {str(e)}"
-            }
+            "error": f"An error occurred while sending the OTP. Please try again later. {str(e)}",
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
@@ -283,8 +280,8 @@ def verify_otp(request):
         email = request.data.get("email")
         password = request.data.get("password")
         received_otp = request.data.get("otp")
-        first_name = request.data.get("first_name", "Guest")
-        last_name = request.data.get("last_name", "")
+        first_name = request.data.get("first_name")
+        last_name = request.data.get("last_name")
         
         if not email or not password or not received_otp:
             return Response({"error": "Email, password, and OTP are required"}, status=status.HTTP_400_BAD_REQUEST)

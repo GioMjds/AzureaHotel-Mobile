@@ -37,20 +37,14 @@ class UserNotificationService {
         try {
             const queryParams = new URLSearchParams();
             
-            if (params?.limit) {
-                queryParams.append('limit', params.limit.toString());
-            }
-            if (params?.offset !== undefined) {
-                queryParams.append('offset', params.offset.toString());
-            }
+            if (params?.limit) queryParams.append('limit', params.limit.toString());
+            if (params?.offset !== undefined) queryParams.append('offset', params.offset.toString());
 
             const url = queryParams.toString() 
                 ? `${ApiRoutes.NOTIFICATIONS}?${queryParams.toString()}`
                 : ApiRoutes.NOTIFICATIONS;
 
             const response = await httpClient.get(url);
-
-            logger.info('Notifications fetched successfully');
 
             return {
                 data: response.notifications || [],
@@ -59,7 +53,7 @@ class UserNotificationService {
                 has_more: response.has_more || false
             };
         } catch (error) {
-            logger.error(`Failed to fetch notifications: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            logger.error(`Failed to fetch notifications: ${error}`);
             throw error;
         }
     }
@@ -73,11 +67,9 @@ class UserNotificationService {
             const response = await httpClient.patch<{ message: string }>(
                 ApiRoutes.MARK_NOTIFICATION_READ(notificationId)
             );
-
-            logger.info(`Notification ${notificationId} marked as read`);
             return response;
         } catch (error) {
-            logger.error(`Failed to mark notification ${notificationId} as read: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            logger.error(`Failed to mark notification ${notificationId} as read: ${error}`);
             throw error;
         }
     }
@@ -90,11 +82,9 @@ class UserNotificationService {
             const response = await httpClient.patch<{ message: string }>(
                 ApiRoutes.MARK_ALL_NOTIFICATIONS_READ
             );
-
-            logger.info('All notifications marked as read');
             return response;
         } catch (error) {
-            logger.error(`Failed to mark all notifications as read: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            logger.error(`Failed to mark all notifications as read: ${error}`);
             throw error;
         }
     }

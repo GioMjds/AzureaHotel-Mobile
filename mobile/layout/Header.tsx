@@ -2,19 +2,14 @@ import React, { useCallback, useState } from 'react';
 import StyledText from '@/components/ui/StyledText';
 import { useAuth } from '@/hooks/useAuth';
 import { auth } from '@/services/UserAuth';
-import { GuestResponse } from '@/types/GuestUser.types';
+import { GuestResponse, IsVerified } from '@/types/GuestUser.types';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, usePathname } from 'expo-router';
-import {
-	Image,
-	TouchableOpacity,
-	View,
-	Pressable,
-	Modal,
-} from 'react-native';
+import { Image, TouchableOpacity, View, Pressable, Modal } from 'react-native';
 import NotificationBell from '@/components/ui/NotificationBell';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
+import Alert from '@/components/ui/Alert';
 
 interface HeaderProps {
 	headerLabel: string;
@@ -23,7 +18,7 @@ interface HeaderProps {
 const Header = ({ headerLabel }: HeaderProps) => {
 	const [isDropdownOpen, setDropdownOpen] = useState<boolean>(false);
 
-	const { user } = useAuth();
+	const { user, logout } = useAuth();
 
 	const router = useRouter();
 	const pathname = usePathname();
@@ -45,10 +40,34 @@ const Header = ({ headerLabel }: HeaderProps) => {
 
 	const closeDropdown = useCallback(() => setDropdownOpen(false), []);
 
-	const handleNavigateTo = useCallback((path: string) => {
+	const handleNavigateTo = useCallback(
+		(path: string) => {
+			setDropdownOpen(false);
+			(router as any).push(path);
+		},
+		[router]
+	);
+
+	// Logout alert state and handlers
+	const [isLogoutAlertOpen, setLogoutAlertOpen] = useState(false);
+
+	const openLogoutAlert = useCallback(() => {
 		setDropdownOpen(false);
-		(router as any).push(path);
-	}, [router]);
+		setLogoutAlertOpen(true);
+	}, []);
+
+	const closeLogoutAlert = useCallback(() => setLogoutAlertOpen(false), []);
+
+	const confirmLogout = useCallback(async () => {
+		try {
+			await logout();
+		} catch (error) {
+			console.warn('Logout failed', error);
+		} finally {
+			setLogoutAlertOpen(false);
+			setDropdownOpen(false);
+		}
+	}, [logout]);
 
 	if (!data) return null;
 
@@ -102,19 +121,13 @@ const Header = ({ headerLabel }: HeaderProps) => {
 										variant="montserrat-bold"
 										className="text-text-primary text-xl"
 									>
-										{`${guest.first_name} ${guest.last_name}`} {" "}
-										{guest.is_verified ? (
+										{`${guest.first_name} ${guest.last_name}`}{' '}
+										{guest.is_verified ===
+											IsVerified.VERIFIED && (
 											<FontAwesome
 												name="check-circle"
 												size={20}
 												color="#34D399"
-												className="ml-1"
-											/>
-										) : (
-											<FontAwesome
-												name="times-circle"
-												size={20}
-												color="#EF4444"
 												className="ml-1"
 											/>
 										)}
@@ -138,36 +151,68 @@ const Header = ({ headerLabel }: HeaderProps) => {
 									}
 									className="py-2 px-4 rounded-lg bg-interactive-ghost-hover"
 								>
-									<StyledText variant='montserrat-regular' className="text-text-primary">
+									<StyledText
+										variant="montserrat-regular"
+										className="text-text-primary"
+									>
 										Change Password
 									</StyledText>
 								</TouchableOpacity>
+
+								{guest.is_verified ===
+									IsVerified.UNVERIFIED && (
+									<TouchableOpacity
+										activeOpacity={0.7}
+										onPress={() =>
+											handleNavigateTo(
+												'/(profile)/settings/verify-account'
+											)
+										}
+										className="py-2 px-4 rounded-lg bg-interactive-ghost-hover"
+									>
+										<StyledText
+											variant="montserrat-regular"
+											className="text-text-primary"
+										>
+											Verify Account
+										</StyledText>
+									</TouchableOpacity>
+								)}
+
 								<TouchableOpacity
 									activeOpacity={0.7}
-									onPress={() =>
-										handleNavigateTo(
-											'/(profile)/settings/verify-account'
-										)
-									}
+									onPress={openLogoutAlert}
 									className="py-2 px-4 rounded-lg bg-interactive-ghost-hover"
 								>
-									<StyledText variant='montserrat-regular' className="text-text-primary">
-										Verify Account
-									</StyledText>
-								</TouchableOpacity>
-								<TouchableOpacity
-									activeOpacity={0.7}
-									onPress={() => handleNavigateTo('/profile')}
-									className="py-2 px-4 rounded-lg bg-interactive-ghost-hover"
-								>
-									<StyledText variant='montserrat-regular' className="text-text-primary">
-										View Profile
+									<StyledText
+										variant="montserrat-regular"
+										className="text-text-primary"
+									>
+										Log Out
 									</StyledText>
 								</TouchableOpacity>
 							</View>
 						</View>
 					</Pressable>
 				</Modal>
+
+				{/* Logout confirmation alert */}
+				<Alert
+					visible={isLogoutAlertOpen}
+					title="Log Out"
+					message="Are you sure you want to log out? You will need to sign in again to access your bookings."
+					icon="log-out"
+					iconColor="#EF4444"
+					buttons={[
+						{ text: 'Cancel', style: 'cancel' },
+						{
+							text: 'Log Out',
+							style: 'destructive',
+							onPress: confirmLogout,
+						},
+					]}
+					onClose={closeLogoutAlert}
+				/>
 			</View>
 		</SafeAreaView>
 	);

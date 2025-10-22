@@ -31,6 +31,8 @@ interface VerifyFormData {
 export default function VerifyRegisterOTPScreen() {
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
+    const [firstName, setFirstName] = useState<string>('');
+    const [lastName, setLastName] = useState<string>('');
     const [countdown, setCountdown] = useState<number>(120);
     const [canResend, setCanResend] = useState<boolean>(false);
     
@@ -52,6 +54,8 @@ export default function VerifyRegisterOTPScreen() {
             try {
                 const storedEmail = await SecureStore.getItemAsync(REGISTRATION_EMAIL_KEY);
                 const storedPassword = await SecureStore.getItemAsync(REGISTRATION_PASSWORD_KEY);
+                const storedFirstName = await SecureStore.getItemAsync('registration_first_name');
+                const storedLastName = await SecureStore.getItemAsync('registration_last_name');
                 
                 if (!storedEmail || !storedPassword) {
                     Alert.alert('Error', 'Registration data not found. Please start registration again.', [
@@ -65,6 +69,8 @@ export default function VerifyRegisterOTPScreen() {
                 
                 setEmail(storedEmail);
                 setPassword(storedPassword);
+                if (storedFirstName) setFirstName(storedFirstName);
+                if (storedLastName) setLastName(storedLastName);
             } catch (error) {
                 console.error('Error loading stored data:', error);
                 Alert.alert('Error', 'Failed to load registration data.', [
@@ -91,11 +97,13 @@ export default function VerifyRegisterOTPScreen() {
 
     const verifyOTPMutation = useMutation({
         mutationFn: async ({ otp }: { otp: string }) => {
-            return await auth.verifyOtp(email, password, otp, 'Guest', '');
+            return await auth.verifyOtp(email, password, otp, firstName, lastName);
         },
         onSuccess: async () => {
             await SecureStore.deleteItemAsync(REGISTRATION_EMAIL_KEY);
             await SecureStore.deleteItemAsync(REGISTRATION_PASSWORD_KEY);
+            await SecureStore.deleteItemAsync('registration_first_name');
+            await SecureStore.deleteItemAsync('registration_last_name');
             await login(email, password);
         },
         onError: (error: any) => {
@@ -105,8 +113,7 @@ export default function VerifyRegisterOTPScreen() {
     });
 
     const resendOTPMutation = useMutation({
-        mutationFn: () =>
-            httpClient.post(ApiRoutes.RESEND_OTP, { email }),
+        mutationFn: () => httpClient.post(ApiRoutes.RESEND_OTP, { email }),
         onSuccess: () => {
             setCountdown(120);
             setCanResend(false);

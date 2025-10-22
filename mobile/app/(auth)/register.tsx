@@ -21,8 +21,12 @@ import * as SecureStore from 'expo-secure-store';
 
 const REGISTRATION_EMAIL_KEY = 'registration_email';
 const REGISTRATION_PASSWORD_KEY = 'registration_password';
+const REGISTRATION_FIRST_NAME_KEY = 'registration_first_name';
+const REGISTRATION_LAST_NAME_KEY = 'registration_last_name';
 
 interface RegisterFormData {
+	firstName: string;
+	lastName: string;
 	email: string;
 	password: string;
 	confirmPassword: string;
@@ -39,6 +43,8 @@ export default function RegisterScreen() {
 		watch,
 	} = useForm<RegisterFormData>({
 		defaultValues: {
+			firstName: '',
+			lastName: '',
 			email: '',
 			password: '',
 			confirmPassword: '',
@@ -50,29 +56,42 @@ export default function RegisterScreen() {
 
 	const sendRegisterOTPMutation = useMutation({
 		mutationFn: ({
+			firstName,
+			lastName,
 			email,
 			password,
 			confirmPassword,
 		}: {
+			firstName: string;
+			lastName: string;
 			email: string;
 			password: string;
 			confirmPassword: string;
-		}) => auth.sendRegisterOtp(email, password, confirmPassword),
+		}) => auth.sendRegisterOtp(firstName, lastName, email, password, confirmPassword),
 		onSuccess: async (data, variables) => {
-            await SecureStore.setItemAsync(REGISTRATION_EMAIL_KEY, variables.email);
-            await SecureStore.setItemAsync(REGISTRATION_PASSWORD_KEY, variables.password);
+			await SecureStore.setItemAsync(REGISTRATION_EMAIL_KEY, variables.email);
+			await SecureStore.setItemAsync(REGISTRATION_PASSWORD_KEY, variables.password);
+
+			if (variables.firstName) {
+				await SecureStore.setItemAsync(REGISTRATION_FIRST_NAME_KEY, variables.firstName);
+			}
+			if (variables.lastName) {
+				await SecureStore.setItemAsync(REGISTRATION_LAST_NAME_KEY, variables.lastName);
+			}
 
             ToastAndroid.show('OTP sent to your email.', ToastAndroid.SHORT);
             router.push('/(auth)/verify');
 		},
 		onError: (error: any) => {
-			const errorMessage = error?.message || 'An unexpected error occurred during registration';
+			const errorMessage = error?.message;
 			Alert.alert('Registration Failed', errorMessage);
 		},
 	});
 
 	const onSubmit: SubmitHandler<RegisterFormData> = async (data) => {
 		await sendRegisterOTPMutation.mutateAsync({
+			firstName: data.firstName,
+			lastName: data.lastName,
 			email: data.email,
 			password: data.password,
 			confirmPassword: data.confirmPassword,
@@ -126,6 +145,69 @@ export default function RegisterScreen() {
 							<Text className="text-text-secondary font-montserrat text-lg text-center leading-6">
 								Create your account to start booking luxury accommodations
 							</Text>
+						</View>
+
+						{/* First & Last Name (same line) */}
+						<View className="mb-4">
+							<View className="flex-row">
+								<View className="flex-1 mx-1">
+									<Text className="text-text-primary font-montserrat-bold text-sm mb-2 ml-1">
+										First Name
+									</Text>
+									<Controller
+										control={control}
+										name="firstName"
+										rules={{ required: 'First name is required' }}
+										render={({ field: { onChange, onBlur, value } }) => (
+											<TextInput
+												className={`bg-input-background border-2 ${errors.firstName ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 text-input-text font-montserrat text-lg`}
+												placeholder="First name"
+												placeholderTextColor="#E9B3FB"
+												value={value}
+												onChangeText={onChange}
+												onBlur={onBlur}
+											/>
+										)}
+									/>
+									{errors.firstName && (
+										<View className="flex-row items-center mt-2 ml-1">
+											<FontAwesome name="exclamation-circle" size={16} color="#EF4444" />
+											<Text className="text-feedback-error-dark font-raleway text-sm ml-2">
+												{errors.firstName?.message as string}
+											</Text>
+										</View>
+									)}
+								</View>
+
+								<View className="flex-1 mx-1">
+									<Text className="text-text-primary font-montserrat-bold text-sm mb-2 ml-1">
+										Last Name
+									</Text>
+									<Controller
+										control={control}
+										name="lastName"
+										rules={{ required: 'Last name is required' }}
+										render={({ field: { onChange, onBlur, value } }) => (
+											<TextInput
+												className={`bg-input-background border-2 ${errors.lastName ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 text-input-text font-montserrat text-lg`}
+												placeholder="Last name"
+												placeholderTextColor="#E9B3FB"
+												value={value}
+												onChangeText={onChange}
+												onBlur={onBlur}
+											/>
+										)}
+									/>
+									{errors.lastName && (
+										<View className="flex-row items-center mt-2 ml-1">
+											<FontAwesome name="exclamation-circle" size={16} color="#EF4444" />
+											<Text className="text-feedback-error-dark font-raleway text-sm ml-2">
+												{errors.lastName?.message as string}
+											</Text>
+										</View>
+									)}
+								</View>
+							</View>
 						</View>
 
 						{/* Email Input */}

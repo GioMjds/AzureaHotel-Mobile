@@ -1,26 +1,26 @@
-import { Link } from 'expo-router';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
+import { useRouter } from 'expo-router';
+import { View, Image, TouchableOpacity } from 'react-native';
 import { UserBooking } from '@/types/Bookings.types';
-import { formatDate, formatTime, getStatusStyle, pesoFormatter } from '@/utils/formatters';
-import { useBookingReview } from '@/hooks/useBookingReview';
-import FeedbackModal from './FeedbackModal';
+import {
+	formatDate,
+	pesoFormatter,
+	getStatusStyle,
+} from '@/utils/formatters';
+import StyledText from '@/components/ui/StyledText';
 import { Ionicons } from '@expo/vector-icons';
 
 interface BookingCardProps {
 	item: UserBooking;
+	onLeaveFeedback?: (booking: UserBooking) => void;
+	showFeedbackButton?: boolean;
 }
 
-const BookingCard = ({ item }: BookingCardProps) => {
-	const [feedbackModalVisible, setFeedbackModalVisible] = useState<boolean>(false);
+const BookingCard = ({ 
+	item, 
+	onLeaveFeedback,
+	showFeedbackButton = true 
+}: BookingCardProps) => {
 	const isAreaBooking = item.is_venue_booking;
-
-	const isCheckedOut = item.status.toLowerCase() === 'checked_out';
-	const { data: reviewData } = useBookingReview(
-		item.id, 
-		isCheckedOut
-	);
-	const hasReview = reviewData?.hasReview || false;
 
 	const propertyName = isAreaBooking
 		? item.area_details?.area_name
@@ -30,262 +30,159 @@ const BookingCard = ({ item }: BookingCardProps) => {
 		? item.area_details?.images?.[0]?.area_image
 		: item.room_details?.images?.[0]?.room_image;
 
+	const router = useRouter();
+	
+	// Check if feedback already exists by searching nested reviews for this booking id
+	const areaReviews = item.area_details?.reviews ?? [];
+	const roomReviews = item.room_details?.reviews ?? [];
+	const hasFeedback = [...areaReviews, ...roomReviews].some((r: any) => r?.booking === item.id);
+
+	// Determine if feedback button should be shown
+	const canShowFeedbackButton = showFeedbackButton &&
+		(item.status === 'completed' || item.status === 'checked_out') &&
+		!hasFeedback;
+
+	const statusStyle = getStatusStyle(item.status);
+
+	const handleFeedbackPress = () => {
+		if (onLeaveFeedback) onLeaveFeedback(item);
+	};
+
 	return (
-		<View className="bg-background-elevated rounded-2xl mx-4 mb-4 overflow-hidden shadow-sm">
-			{/* Property Image */}
-			<View className="h-48 bg-background-subtle relative">
-				{propertyImage && (
-					<Image
-						source={{ uri: propertyImage }}
-						className="w-full h-full"
-						resizeMode="cover"
-					/>
-				)}
-
+		<TouchableOpacity
+			activeOpacity={0.9}
+			onPress={() => router.push(`/booking/${item.id}`)}
+			className="mx-4 mb-4"
+		>
+			<View className="bg-background-elevated rounded-2xl p-4 shadow-lg border border-border-subtle overflow-hidden">
 				{/* Status Badge */}
-				<View className="absolute top-4 left-4">
+				<View className="absolute top-4 right-4 z-10">
 					<View 
-						className="px-4 py-2 rounded-full shadow-sm"
-						style={getStatusStyle(item.status)}
+						style={statusStyle}
+						className="px-3 py-1 rounded-full shadow-sm"
 					>
-						<Text className="text-white font-montserrat-bold text-sm uppercase tracking-wide">
-							{item.status.replace('_', ' ')}
-						</Text>
-					</View>
-				</View>
-			</View>
-
-			{/* Booking Details */}
-			<View className="p-6">
-				{/* Property Name & Creation Date */}
-				<View className="mb-4">
-					<Text className="text-4xl font-playfair-bold text-text-primary mb-1">
-						{propertyName}
-					</Text>
-					<Text className="text-text-muted font-montserrat text-sm">
-						Booked on {formatDate(item.created_at)}
-					</Text>
-				</View>
-
-				{/* Primary Booking Information */}
-				<View className="bg-background-subtle rounded-xl p-4 mb-4">
-					<View className="flex-row items-center justify-between mb-3">
-						<View className="flex-1 mr-4">
-							<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-1">
-								Check-in
-							</Text>
-							<Text className="text-text-primary font-playfair-medium text-base">
-								{item.check_in_date
-									? formatDate(item.check_in_date)
-									: 'Not specified'}
-							</Text>
-							{item.time_of_arrival && (
-								<Text className="text-text-muted font-montserrat text-sm">
-									Arrival: {formatTime(item.time_of_arrival)}
-								</Text>
-							)}
-						</View>
-						<View className="flex-1">
-							<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-1">
-								Check-out
-							</Text>
-							<Text className="text-text-primary font-playfair-medium text-base">
-								{item.check_out_date
-									? formatDate(item.check_out_date)
-									: 'Not specified'}
-							</Text>
-						</View>
-					</View>
-
-					<View className="flex-row items-center justify-between">
-						<View className="flex-1 mr-4">
-							<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-1">
-								Guests
-							</Text>
-							<Text className="text-text-primary font-playfair-medium text-base">
-								{item.number_of_guests} {item.number_of_guests === 1 ? 'Guest' : 'Guests'}
-							</Text>
-						</View>
-						<View className="flex-1">
-							<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-1">
-								Contact
-							</Text>
-							<Text className="text-text-primary font-montserrat text-sm">
-								{item.phone_number || 'Not provided'}
-							</Text>
-						</View>
-					</View>
-				</View>
-
-				{/* Payment Information */}
-				<View className="border border-border-default rounded-xl p-4 mb-4">
-					<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-3">
-						Payment Details
-					</Text>
-					
-					<View className="flex-row items-center justify-between mb-2">
-						<Text className="text-text-primary font-montserrat text-sm">Payment Method:</Text>
-						<Text className="text-text-primary font-montserrat-bold text-sm capitalize">
-							{item.payment_method}
-						</Text>
-					</View>
-					
-					{item.payment_date && (
-						<View className="flex-row items-center justify-between mb-2">
-							<Text className="text-text-primary font-montserrat text-sm">Paid on:</Text>
-							<Text className="text-text-primary font-montserrat-bold text-sm">
-								{formatDate(item.payment_date)}
-							</Text>
-						</View>
-					)}
-					
-					{item.down_payment && (
-						<View className="flex-row items-center justify-between mb-2">
-							<Text className="text-text-primary font-montserrat text-sm">Down Payment:</Text>
-							<Text className="text-interactive-primary-DEFAULT font-montserrat-bold text-sm">
-								{pesoFormatter.format(parseFloat(item.down_payment))}
-							</Text>
-						</View>
-					)}
-				</View>
-
-				{/* Pricing */}
-				<View className="border-t border-border-DEFAULT pt-4 mb-4">
-					<View className="flex-row items-center justify-between">
-						<View className="flex-1">
-							<Text className="text-text-secondary font-montserrat-bold text-lg uppercase tracking-wide mb-1">
-								Total Amount
-							</Text>
-							{item.discount_percent > 0 && item.discounted_price ? (
-								<View>
-									<Text className="text-text-muted font-montserrat text-sm line-through">
-										{pesoFormatter.format(item.original_price)}
-									</Text>
-									<View className="flex-row items-center">
-										<Text className="text-interactive-primary-DEFAULT font-montserrat-bold text-2xl">
-											{pesoFormatter.format(item.discounted_price)}
-										</Text>
-										<View className="bg-green-600 px-3 py-1 rounded-full ml-2">
-											<Text className="text-white font-montserrat-bold text-xs">
-												{item.discount_percent}% OFF
-											</Text>
-										</View>
-									</View>
-								</View>
-							) : (
-								<Text className="text-interactive-primary font-montserrat-bold text-3xl">
-									{pesoFormatter.format(item.total_amount || item.total_price)}
-								</Text>
-							)}
-						</View>
-
-						<Link 
-							href={`/booking/${item.id}` as any} 
-							asChild
+						<StyledText
+							variant="montserrat-bold"
+							className="text-text-inverse text-xs capitalize"
 						>
-							<TouchableOpacity className='bg-interactive-primary px-6 py-3 rounded-xl shadow-sm active:bg-interactive-primary-pressed'>
-								<Text className="text-interactive-primary-foreground font-montserrat-bold text-sm">
-									View Details
-								</Text>
-							</TouchableOpacity>
-						</Link>
+							{item.status.replace('_', ' ')}
+						</StyledText>
 					</View>
 				</View>
 
-				{/* Review Section for Checked Out Bookings */}
-				{isCheckedOut && !hasReview && (
-					<View className="bg-feedback-success-light rounded-xl p-4 mb-4 border border-feedback-success-DEFAULT">
-						<View className="flex-row items-center justify-between">
-							<View className="flex-1 mr-4">
-								<Text className="text-feedback-success-dark font-montserrat-bold text-sm mb-1">
-									How was your stay?
-								</Text>
-								<Text className="text-feedback-success-dark font-montserrat text-xs">
-									Share your experience with other guests
-								</Text>
-							</View>
-							<TouchableOpacity
-								onPress={() => setFeedbackModalVisible(true)}
-								className="bg-green-500 px-4 py-2 rounded-lg shadow-sm flex-row items-center"
-							>
+				<View className="flex-row items-start">
+					{/* Left image */}
+					<View className="relative">
+						<Image
+							source={{ uri: propertyImage }}
+							className="w-24 h-24 rounded-xl mr-4"
+							resizeMode="cover"
+						/>
+					</View>
+
+					<View className="flex-1">
+						<StyledText
+							variant="playfair-bold"
+							className="text-2xl text-text-primary mb-1 leading-7"
+							numberOfLines={1}
+						>
+							{propertyName}
+						</StyledText>
+
+						<View className="mb-3">
+							<View className="flex-row items-center mb-1">
 								<Ionicons 
-									name="star" 
+									name="calendar-outline" 
 									size={16} 
-									color="white" 
-									style={{ marginRight: 4 }}
+									color="#6F00FF80" 
+									style={{ marginRight: 6 }}
 								/>
-								<Text className="text-black font-montserrat-bold text-sm">
-									Leave Review
-								</Text>
-							</TouchableOpacity>
-						</View>
-					</View>
-				)}
+								<StyledText
+									variant="montserrat-regular"
+									className="text-text-muted text-sm"
+								>
+									{formatDate(item.check_in_date || item.created_at)}{' '}
+									—{' '}
+									{formatDate(item.check_out_date || item.created_at)}
+								</StyledText>
+							</View>
 
-				{/* Review Status for Checked Out Bookings that have been reviewed */}
-				{isCheckedOut && hasReview && (
-					<View className="bg-background-subtle rounded-xl p-4 mb-4 border border-border-subtle">
-						<View className="flex-row items-center">
-							<Ionicons 
-								name="checkmark-circle" 
-								size={20} 
-								color="#10B981" 
-								style={{ marginRight: 8 }}
-							/>
-							<View>
-								<Text className="text-text-primary font-montserrat-bold text-sm">
-									Review Submitted
-								</Text>
-								<Text className="text-text-muted font-montserrat text-xs">
-									Thank you for sharing your experience!
-								</Text>
+							<View className="flex-row items-center mb-1">
+								<Ionicons 
+									name="people-outline" 
+									size={16} 
+									color="#6F00FF80" 
+									style={{ marginRight: 6 }}
+								/>
+								<StyledText
+									variant="montserrat-regular"
+									className="text-text-muted text-sm"
+								>
+									{item.number_of_guests}{' '}
+									{item.number_of_guests === 1 ? 'Guest' : 'Guests'}
+								</StyledText>
 							</View>
 						</View>
-					</View>
-				)}
 
-				{/* Special Request */}
-				{item.special_request && (
-					<View className="bg-background-subtle rounded-xl p-4 mb-4">
-						<Text className="text-text-secondary font-montserrat-bold text-xs uppercase tracking-wide mb-2">
-							Special Request
-						</Text>
-						<Text className="text-text-primary font-montserrat text-sm leading-relaxed">
-							{item.special_request}
-						</Text>
-					</View>
-				)}
+						<View className="flex-row items-center justify-between">
+							<StyledText
+								variant="montserrat-bold"
+								className="text-interactive-primary text-xl"
+							>
+								{pesoFormatter.format(item.total_price)}
+							</StyledText>
 
-				{/* Cancellation Information */}
-				{(item.status === 'rejected') && (
-					<View className="bg-feedback-error-light border border-feedback-error-DEFAULT rounded-xl p-4">
-						<Text className="text-feedback-error-dark font-montserrat-bold text-xs uppercase tracking-wide mb-2">
-							Rejection Details
-						</Text>
-						{item.cancellation_date && (
-							<View className="flex-row justify-between mb-1">
-								<Text className="text-feedback-error-dark font-montserrat text-sm">Rejected on:</Text>
-								<Text className="text-feedback-error-dark font-montserrat-bold text-sm">
-									{formatDate(item.cancellation_date)}
-								</Text>
-							</View>
-						)}
-						{item.cancellation_reason && (
-							<Text className="text-feedback-error-dark font-montserrat text-sm mt-2">
-								Reason: {item.cancellation_reason}
-							</Text>
-						)}
+							{/* Feedback Button */}
+							{canShowFeedbackButton && (
+								<TouchableOpacity
+									onPress={handleFeedbackPress}
+									className="bg-interactive-secondary px-4 py-2 rounded-lg border border-interactive-secondary-pressed active:bg-interactive-secondary-hover"
+								>
+									<View className="flex-row items-center">
+										<Ionicons 
+											name="star-outline" 
+											size={16} 
+											color="#3B0270" 
+											style={{ marginRight: 4 }}
+										/>
+										<StyledText
+											variant="montserrat-bold"
+											className="text-interactive-secondary-foreground text-sm"
+										>
+											Review
+										</StyledText>
+									</View>
+								</TouchableOpacity>
+							)}
+
+							{/* Feedback Submitted Indicator */}
+							{hasFeedback && (
+								<View className="flex-row items-center bg-feedback-success-light px-3 py-2 rounded-lg border border-feedback-success-DEFAULT">
+									<Ionicons 
+										name="star" 
+										size={16} 
+										color="#047857" 
+										style={{ marginRight: 4 }}
+									/>
+									<StyledText
+										variant="montserrat-bold"
+										className="text-feedback-success-dark text-sm"
+									>
+										Reviewed
+									</StyledText>
+								</View>
+							)}
+						</View>
 					</View>
-				)}
+				</View>
+
+				{/* Enhanced Status Bar */}
+				<View 
+					style={statusStyle}
+					className="h-1 rounded-full mt-3 opacity-80"
+				/>
 			</View>
-
-			{/* Feedback Modal */}
-			<FeedbackModal
-				visible={feedbackModalVisible}
-				onClose={() => setFeedbackModalVisible(false)}
-				bookingItem={item}
-			/>
-		</View>
+		</TouchableOpacity>
 	);
 };
 

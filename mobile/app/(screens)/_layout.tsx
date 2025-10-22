@@ -24,7 +24,7 @@ export default function PublicScreensLayout() {
 	return (
 		<ProtectedRoute requireAuth={true}>
 			<Header headerLabel={headerLabel} />
-			<Stack screenOptions={{ headerShown: false }}>
+			<Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
 				<Stack.Screen name="index" options={{ title: 'My Bookings' }} />
 				<Stack.Screen name="areas/index" options={{ title: 'Areas' }} />
 				<Stack.Screen name="rooms/index" options={{ title: 'Rooms' }} />

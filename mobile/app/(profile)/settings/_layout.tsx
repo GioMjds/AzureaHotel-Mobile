@@ -4,7 +4,7 @@ import { Stack } from 'expo-router';
 export default function UserProfileSettingsLayout() {
 	return (
 		<ProtectedRoute requireAuth={true}>
-			<Stack screenOptions={{ headerShown: false }} />
+			<Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
 		</ProtectedRoute>
 	);
 }

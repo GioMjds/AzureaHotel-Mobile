@@ -130,6 +130,11 @@ export default function BookingDetailsScreen() {
 				text: 'text-feedback-warning-dark',
 				label: 'Pending',
 			},
+			reserved: {
+				color: 'bg-feedback-info-light',
+				text: 'text-feedback-info-dark',
+				label: 'Reserved',
+			},
 			confirmed: {
 				color: 'bg-feedback-success-light',
 				text: 'text-feedback-success-dark',
@@ -237,9 +242,11 @@ export default function BookingDetailsScreen() {
 	}
 
 	const isVenueBooking = bookingData.is_venue_booking;
+
 	const propertyName = isVenueBooking
 		? bookingData.area_details?.area_name
 		: bookingData.room_details?.room_name;
+
 	const propertyImage = isVenueBooking
 		? bookingData.area_details?.images?.[0]?.area_image
 		: bookingData.room_details?.images?.[0]?.room_image;
