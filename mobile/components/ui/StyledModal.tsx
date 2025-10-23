@@ -21,7 +21,7 @@ interface AlertProps {
 	onClose: () => void;
 }
 
-const Alert = ({
+const StyledModal = ({
 	visible,
 	title,
 	message,
@@ -136,7 +136,7 @@ const Alert = ({
 							<TouchableOpacity
 								key={index}
 								onPress={() => handleButtonPress(button)}
-								activeOpacity={0.9}
+								activeOpacity={0.3}
 								className="py-3 rounded-xl"
 								style={[
 									{
@@ -164,4 +164,4 @@ const Alert = ({
 	);
 };
 
-export default Alert;
+export default StyledModal;

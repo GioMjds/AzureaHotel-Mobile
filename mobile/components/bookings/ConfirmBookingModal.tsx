@@ -1,11 +1,12 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal } from 'react-native';
+import { FC, useEffect } from 'react';
+import { View, TouchableOpacity, Modal } from 'react-native';
 import Animated, {
 	useSharedValue,
 	useAnimatedStyle,
 	withSpring,
 	withTiming,
 } from 'react-native-reanimated';
+import StyledText from '../ui/StyledText';
 
 interface ConfirmBookingModalProps {
 	isVisible: boolean;
@@ -17,7 +18,7 @@ interface ConfirmBookingModalProps {
 	cancelText?: string;
 }
 
-const ConfirmBookingModal: React.FC<ConfirmBookingModalProps> = ({
+const ConfirmBookingModal: FC<ConfirmBookingModalProps> = ({
 	isVisible,
 	onClose,
 	onConfirm,
@@ -61,35 +62,52 @@ const ConfirmBookingModal: React.FC<ConfirmBookingModalProps> = ({
 			onRequestClose={onClose}
 		>
 			<Animated.View
-				style={[overlayAnimatedStyle, { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)' }]}
+				style={[
+					overlayAnimatedStyle,
+					{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)' },
+				]}
 				className="justify-center items-center p-6"
 			>
 				<Animated.View
 					style={modalAnimatedStyle}
-					className="bg-surface-default rounded-2xl p-6 w-full max-w-sm"
+					className="bg-surface-default rounded-2xl p-6 w-full max-w-md"
 				>
-					<Text className="text-text-primary font-playfair-bold text-2xl mb-2">
+					<StyledText
+						variant="playfair-bold"
+						className="text-text-primary text-center text-4xl mb-2"
+					>
 						{title}
-					</Text>
-					<Text className="text-text-primary font-montserrat mb-6">
+					</StyledText>
+					<StyledText
+						variant="montserrat-regular"
+						className="text-text-primary text-center text-lg mb-4"
+					>
 						{message}
-					</Text>
-					<View className="flex-row space-x-4">
+					</StyledText>
+					<View className="flex-row py-1">
 						<TouchableOpacity
 							onPress={onClose}
-							className="flex-1 border border-border-default rounded-xl py-3 items-center"
+							className="flex-1 border border-black my-4 rounded-xl py-4 items-center justify-center"
 						>
-							<Text className="text-text-primary font-montserrat-bold">
+							<StyledText
+								variant="montserrat-bold"
+								className="text-text-primary text-2xl"
+							>
 								{cancelText}
-							</Text>
+							</StyledText>
 						</TouchableOpacity>
+					</View>
+					<View className="flex-row py-1">
 						<TouchableOpacity
 							onPress={onConfirm}
-							className="flex-1 bg-violet-primary rounded-xl py-3 items-center"
+							className="flex-1 bg-violet-primary rounded-xl my-4 py-4 items-center justify-center"
 						>
-							<Text className="text-text-inverse font-montserrat-bold">
+							<StyledText
+								variant="montserrat-bold"
+								className="text-text-inverse text-2xl"
+							>
 								{confirmText}
-							</Text>
+							</StyledText>
 						</TouchableOpacity>
 					</View>
 				</Animated.View>

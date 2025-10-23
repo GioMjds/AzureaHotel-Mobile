@@ -29,7 +29,6 @@ import { calculateAreaPricing } from '@/utils/pricing';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { booking } from '@/services/Booking';
 
-// Define local types based on the API responses
 interface BookingsByDate {
 	[date: string]: {
 		status: string;
@@ -43,15 +42,15 @@ interface BookingsByDate {
 }
 
 export default function AreaBookingCalendar() {
-	const { user } = useAuthStore();
-	const { areaId } = useLocalSearchParams<{ areaId: string }>();
-	const router = useRouter();
-
 	const [currentMonth, setCurrentMonth] = useState(new Date());
 	const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 	const [bookingsByDate, setBookingsByDate] = useState<BookingsByDate>({});
 	const [price, setPrice] = useState<number>(0);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+	const { user } = useAuthStore();
+	const { areaId } = useLocalSearchParams<{ areaId: string }>();
+	const router = useRouter();
 
 	const isVerifiedUser = user?.is_verified === 'verified';
 	const lastBookingDay = user?.last_booking_date;
@@ -206,7 +205,7 @@ export default function AreaBookingCalendar() {
 			}
 		}
 
-		return 'bg-surface-default border border-border-default rounded-full';
+		return 'bg-surface-default border border-border-focus rounded-full';
 	};
 
 	const getDateTextClass = (date: Date) => {
@@ -345,7 +344,7 @@ export default function AreaBookingCalendar() {
 	};
 
 	const renderCalendarLegend = () => (
-		<View className="border-t border-border-default pt-4">
+		<View className="border-t border-border-focus pt-4">
 			<Text className="text-text-primary font-montserrat-bold mb-3">
 				CALENDAR LEGEND
 			</Text>
@@ -442,9 +441,9 @@ export default function AreaBookingCalendar() {
 	}
 
 	return (
-		<SafeAreaView className="flex-1 bg-background-default">
+		<SafeAreaView className="flex-1 bg-surface-default">
 			{/* Header */}
-			<View className="bg-surface-default px-6 py-4 border-b border-border-default">
+			<View className="bg-surface-default px-4 py-2 border-b border-border-focus">
 				<View className="flex-row items-center justify-between">
 					<TouchableOpacity
 						onPress={() => router.back()}
@@ -462,15 +461,9 @@ export default function AreaBookingCalendar() {
 				<View className="p-6">
 					{/* Area Info Card */}
 					{areaData && (
-						<View className="bg-surface-default rounded-2xl shadow-lg mb-6 overflow-hidden border border-border-default">
+						<View className="bg-surface-default rounded-2xl shadow-lg mb-6 overflow-hidden border border-border-focus">
 							<Image
-								source={{
-									uri:
-										Array.isArray(areaData.images) &&
-										areaData.images.length > 0
-											? areaData.images[0].area_image
-											: 'https://via.placeholder.com/300x200?text=Venue+Image',
-								}}
+								source={{ uri: areaData.images[0].area_image }}
 								className="w-full h-48"
 								resizeMode="cover"
 							/>
@@ -540,7 +533,7 @@ export default function AreaBookingCalendar() {
 					)}
 
 					{/* Calendar Section */}
-					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-default">
+					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-focus">
 						<Text className="text-text-primary text-center font-playfair-bold text-3xl mb-4">
 							Select Booking Date
 						</Text>

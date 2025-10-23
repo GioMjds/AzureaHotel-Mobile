@@ -24,6 +24,7 @@ import { booking } from '@/services/Booking';
 import ConfirmBookingModal from '@/components/bookings/ConfirmBookingModal';
 import ConfirmingBooking from '@/components/ui/ConfirmingBooking';
 import { Amenities } from '@/types/Amenity.types';
+import { Room } from '@/types/Room.types';
 
 interface FormData {
 	firstName: string;
@@ -85,7 +86,7 @@ export default function ConfirmRoomBookingScreen() {
 		refetchOnMount: false,
 	});
 
-	const roomData = roomResponse?.data;
+	const roomData: Room = roomResponse?.data;
 
 	const formatDateTime = (dateTimeString: string | null) => {
 		if (!dateTimeString) return '';
@@ -337,7 +338,7 @@ export default function ConfirmRoomBookingScreen() {
 	return (
 		<SafeAreaView className="flex-1 bg-background-default">
 			{/* Header */}
-			<View className="bg-surface-default px-6 py-4 border-b border-border-default">
+			<View className="bg-surface-default px-6 py-4 border-b border-border-focus">
 				<View className="flex-row items-center justify-between">
 					<TouchableOpacity
 						onPress={() => router.back()}
@@ -356,15 +357,9 @@ export default function ConfirmRoomBookingScreen() {
 				<View className="p-6">
 					{/* Room Info Card */}
 					{roomData && (
-						<View className="bg-surface-default rounded-2xl shadow-lg mb-6 overflow-hidden border border-border-default">
+						<View className="bg-surface-default rounded-2xl shadow-lg mb-6 overflow-hidden border border-border-focus">
 							<Image
-								source={{
-									uri:
-										Array.isArray(roomData.images) &&
-										roomData.images.length > 0
-											? roomData.images[0].room_image
-											: 'https://via.placeholder.com/300x200?text=Room+Image',
-								}}
+								source={{ uri: roomData.images?.[0].room_image }}
 								className="w-full h-48"
 								resizeMode="cover"
 							/>
@@ -403,9 +398,9 @@ export default function ConfirmRoomBookingScreen() {
 											{roomData.amenities.map((amenity: Amenities) => (
 												<View
 													key={amenity.id}
-													className="bg-background-subtle rounded-full px-3 py-1.5 flex-row items-center"
+													className="bg-brand-primary rounded-full px-3 py-1.5 flex-row items-center"
 												>
-													<Text className="text-text-primary font-montserrat text-sm ml-1">
+													<Text className="text-text-inverse font-montserrat text-md ml-1">
 														{amenity.description}
 													</Text>
 												</View>
@@ -418,16 +413,16 @@ export default function ConfirmRoomBookingScreen() {
 					)}
 
 					{/* Booking Form */}
-					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-default">
+					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-focus">
 						<Text className="text-text-primary font-playfair-bold text-3xl mb-4">
 							Guest Information
 						</Text>
 
 						{/* Name Fields */}
 						<View className="flex-row space-x-4 mb-4">
-							<View className="flex-1">
+							<View className="flex-1 mr-1">
 								<Text className="text-text-primary font-montserrat mb-2">
-									First Name *
+									First Name
 								</Text>
 								<Controller
 									control={control}
@@ -444,10 +439,12 @@ export default function ConfirmRoomBookingScreen() {
 											value={value}
 											onChangeText={onChange}
 											onBlur={onBlur}
-											className={`border rounded-xl p-3 font-montserrat ${
+											editable={false}
+											selectTextOnFocus={false}
+											className={`border rounded-xl p-3 font-montserrat opacity-60 ${
 												errors.firstName
 													? 'border-feedback-error-DEFAULT'
-													: 'border-border-default'
+													: 'border-border-focus'
 											}`}
 											placeholder="Enter first name"
 										/>
@@ -459,9 +456,9 @@ export default function ConfirmRoomBookingScreen() {
 									</Text>
 								)}
 							</View>
-							<View className="flex-1">
+							<View className="flex-1 ml-1">
 								<Text className="text-text-primary font-montserrat mb-2">
-									Last Name *
+									Last Name
 								</Text>
 								<Controller
 									control={control}
@@ -478,10 +475,12 @@ export default function ConfirmRoomBookingScreen() {
 											value={value}
 											onChangeText={onChange}
 											onBlur={onBlur}
-											className={`border rounded-xl p-3 font-montserrat ${
+											editable={false}
+											selectTextOnFocus={false}
+											className={`border rounded-xl p-3 font-montserrat opacity-60 ${
 												errors.lastName
 													? 'border-feedback-error-DEFAULT'
-													: 'border-border-default'
+													: 'border-border-focus'
 											}`}
 											placeholder="Enter last name"
 										/>
@@ -515,7 +514,7 @@ export default function ConfirmRoomBookingScreen() {
 										className={`border rounded-xl p-3 font-montserrat ${
 											errors.phoneNumber
 												? 'border-feedback-error-DEFAULT'
-												: 'border-border-default'
+												: 'border-border-focus'
 										}`}
 										placeholder="+639XXXXXXXXX or 09XXXXXXXXX"
 									/>
@@ -559,7 +558,7 @@ export default function ConfirmRoomBookingScreen() {
 										className={`border rounded-xl p-3 font-montserrat ${
 											errors.numberOfGuests
 												? 'border-feedback-error-DEFAULT'
-												: 'border-border-default'
+												: 'border-border-focus'
 										}`}
 									/>
 								)}
@@ -594,7 +593,7 @@ export default function ConfirmRoomBookingScreen() {
 											className={`border rounded-xl p-3 flex-row items-center justify-between ${
 												errors.arrivalTime
 													? 'border-feedback-error-DEFAULT'
-													: 'border-border-default'
+													: 'border-border-focus'
 											}`}
 										>
 											<Text className={`font-montserrat ${value ? 'text-text-primary' : 'text-text-muted'}`}>
@@ -647,7 +646,7 @@ export default function ConfirmRoomBookingScreen() {
 							</Text>
 							<TouchableOpacity
 								onPress={handlePickImage}
-								className="border border-border-default rounded-xl p-4 items-center"
+								className="border border-border-focus rounded-xl p-4 items-center"
 							>
 								<Ionicons
 									name="cloud-upload-outline"
@@ -699,7 +698,7 @@ export default function ConfirmRoomBookingScreen() {
 										onBlur={onBlur}
 										multiline
 										numberOfLines={4}
-										className="border border-border-default rounded-xl p-3 font-montserrat"
+										className="border border-border-focus rounded-xl p-3 font-montserrat"
 										placeholder="Any special requirements or notes for your stay..."
 									/>
 								)}
@@ -708,7 +707,7 @@ export default function ConfirmRoomBookingScreen() {
 					</View>
 
 					{/* Booking Details */}
-					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-default">
+					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-focus">
 						<Text className="text-text-primary font-playfair-bold text-3xl mb-4">
 							Booking Details
 						</Text>
@@ -758,11 +757,11 @@ export default function ConfirmRoomBookingScreen() {
 
 							{/* Discount breakdown */}
 							{pricingResult && pricingResult.discountType !== 'none' && (
-								<View className="mt-3 p-3 bg-background-subtle rounded-lg">
-									<Text className="text-text-primary font-montserrat mb-1">
+								<View className="mt-3 p-3 bg-brand-primary rounded-lg">
+									<Text className="text-text-inverse font-montserrat mb-1">
 										{getDiscountLabel(pricingResult.discountType, pricingResult.discountPercent)}
 									</Text>
-									<Text className="text-text-muted font-montserrat text-sm">
+									<Text className="text-text-inverse font-montserrat text-sm">
 										Price/night: {formatPrice(pricingResult.finalPrice)} • Original/night: {formatPrice(pricingResult.originalPrice)}
 									</Text>
 								</View>

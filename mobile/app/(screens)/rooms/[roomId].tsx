@@ -1,8 +1,7 @@
 import {
-    ActivityIndicator,
+	ActivityIndicator,
 	Image,
 	ScrollView,
-	Text,
 	TouchableOpacity,
 	View,
 } from 'react-native';
@@ -13,6 +12,7 @@ import { room } from '@/services/Room';
 import { pesoFormatter } from '@/utils/formatters';
 import { Room } from '@/types/Room.types';
 import { FontAwesome } from '@expo/vector-icons';
+import StyledText from '@/components/ui/StyledText';
 import PhotoGallery from '@/components/PhotoGallery';
 
 export default function GetRoomScreen() {
@@ -32,9 +32,9 @@ export default function GetRoomScreen() {
 			<SafeAreaView className="flex-1 bg-neutral-50">
 				<View className="flex-1 justify-center items-center">
 					<ActivityIndicator size="large" color="#8b5cf6" />
-					<Text className="text-violet-600 font-montserrat mt-2">
+					<StyledText className="text-violet-600 font-montserrat mt-2">
 						Loading room details...
-					</Text>
+					</StyledText>
 				</View>
 			</SafeAreaView>
 		);
@@ -44,12 +44,12 @@ export default function GetRoomScreen() {
 		return (
 			<SafeAreaView className="flex-1 bg-neutral-50">
 				<View className="flex-1 justify-center items-center px-6">
-					<Text className="text-red-500 font-montserrat-bold text-lg text-center">
+					<StyledText className="text-red-500 font-montserrat-bold text-lg text-center">
 						Error loading room details
-					</Text>
-					<Text className="text-neutral-600 font-montserrat mt-2 text-center">
+					</StyledText>
+					<StyledText className="text-neutral-600 font-montserrat mt-2 text-center">
 						Please try again later
-					</Text>
+					</StyledText>
 				</View>
 			</SafeAreaView>
 		);
@@ -61,9 +61,9 @@ export default function GetRoomScreen() {
 		return (
 			<SafeAreaView className="flex-1 bg-neutral-50">
 				<View className="flex-1 justify-center items-center px-6">
-					<Text className="text-neutral-600 font-montserrat text-center">
+					<StyledText variant='montserrat-regular' className="text-neutral-600 text-center">
 						Room not found
-					</Text>
+					</StyledText>
 				</View>
 			</SafeAreaView>
 		);
@@ -80,7 +80,7 @@ export default function GetRoomScreen() {
 					<View className="w-full h-64 bg-neutral-100 mr-4">
 						<Image
 							source={{ uri: roomData.images[0]?.room_image }}
-							className="w-full h-full rounded-lg"
+							className="w-full h-full"
 							resizeMode="cover"
 						/>
 					</View>
@@ -93,18 +93,18 @@ export default function GetRoomScreen() {
 									: 'bg-red-500'
 							}`}
 						>
-							<Text className="text-white font-montserrat-bold text-sm capitalize">
+							<StyledText variant='montserrat-bold' className="text-white text-sm capitalize">
 								{roomData.status}
-							</Text>
+							</StyledText>
 						</View>
 					</View>
 
 					{/* Discount Badge */}
 					{roomData.discount_percent > 0 && (
 						<View className="absolute top-4 right-4 bg-feedback-error-DEFAULT rounded-full px-3 py-2">
-							<Text className="text-white font-montserrat-bold text-sm">
+							<StyledText variant='montserrat-bold' className="text-white text-sm">
 								{roomData.discount_percent}% OFF
-							</Text>
+							</StyledText>
 						</View>
 					)}
 				</View>
@@ -114,79 +114,80 @@ export default function GetRoomScreen() {
 					{/* Header */}
 					<View className="flex-row justify-between items-start mb-4">
 						<View className="flex-1">
-							<Text className="text-5xl font-playfair-bold text-neutral-800 mb-1">
+							<StyledText variant='playfair-bold' className="text-5xl text-neutral-800 mb-1">
 								{roomData.room_name}
-							</Text>
+							</StyledText>
 						</View>
 						{/* Rating */}
 						{roomData.average_rating > 0 && (
 							<View className="flex-row items-center bg-violet-100 px-3 py-2 rounded-full">
-								<Text className="text-violet-700 font-montserrat-bold text-lg">
+								<StyledText variant='montserrat-bold' className="text-violet-700 text-lg">
 									★
-								</Text>
-								<Text className="text-violet-700 font-montserrat-bold text-lg ml-1">
+								</StyledText>
+								<StyledText variant='montserrat-bold' className="text-brand-primary text-lg ml-1">
 									{roomData.average_rating.toFixed(1)}
-								</Text>
+								</StyledText>
 							</View>
 						)}
 					</View>
 
 					{/* Description */}
-					<Text className="text-neutral-700 font-montserrat text-base leading-6 mb-6">
+					<StyledText variant='montserrat-regular' className="text-neutral-700 text-base leading-6 mb-6">
 						{roomData.description}
-					</Text>
+					</StyledText>
 
 					{/* Room Information */}
 					<View className="border-t border-neutral-200 pt-6 mb-6">
-						<Text className="text-lg font-montserrat-bold text-neutral-800 mb-4">
+						<StyledText variant='montserrat-bold' className="text-lg text-neutral-800 mb-4">
 							Room Information
-						</Text>
+						</StyledText>
 
 						<View className="space-y-3">
 							<View className="flex-row justify-between items-center">
-								<Text className="text-neutral-600 font-montserrat">
+								<StyledText variant='montserrat-regular' className="text-neutral-600">
 									<FontAwesome name="bed" size={16} />
 									{''} Bed Type
-								</Text>
-								<Text className="text-violet-600 capitalize font-montserrat-bold">
+								</StyledText>
+								<StyledText variant='montserrat-bold' className="text-violet-600 capitalize">
 									{''} {roomData.bed_type}
-								</Text>
+								</StyledText>
 							</View>
 
 							<View className='flex-row justify-between items-center'>
-								<Text className="text-neutral-600 font-montserrat">
+								<StyledText variant='montserrat-regular' className="text-neutral-600">
 									<FontAwesome name="building" size={16} />
 									{''} Room Type
-								</Text>
-								<Text className="text-violet-600 capitalize font-montserrat-bold">
+								</StyledText>
+								<StyledText variant='montserrat-bold' className="text-violet-600 capitalize">
 									{''} {roomData.room_type}
-								</Text>
+								</StyledText>
 							</View>
 
 							<View className="flex-row justify-between items-center">
-								<Text className="text-neutral-600 font-montserrat">
+								<StyledText variant='montserrat-regular' className="text-neutral-600">
 									<FontAwesome name="users" size={16} />
 									{''} Max Guests
-								</Text>
-								<Text className="text-violet-600 font-montserrat-bold">
+								</StyledText>
+								<StyledText variant='montserrat-bold' className="text-violet-600">
 									{roomData.max_guests} people
-								</Text>
+								</StyledText>
 							</View>
 
 							<View className="flex-row justify-between items-center">
-								<Text className="text-neutral-600 font-montserrat">
+								<StyledText variant='montserrat-regular' className="text-neutral-600">
 									<FontAwesome name="info-circle" size={16} />
 									{''} Status
-								</Text>
-								<Text
-									className={`font-montserrat-bold capitalize ${
+								</StyledText>
+								<StyledText 
+									variant='montserrat-bold'
+									className={`capitalize ${
 										roomData.status === 'available'
 											? 'text-green-600'
 											: 'text-red-600'
 									}`}
 								>
 									{roomData.status}
-								</Text>
+								</StyledText>
 							</View>
 						</View>
 					</View>
@@ -194,18 +195,18 @@ export default function GetRoomScreen() {
 					{/* Amenities */}
 					{roomData.amenities && roomData.amenities.length > 0 && (
 						<View className="border-t border-neutral-200 pt-6 mb-6">
-							<Text className="text-lg font-montserrat-bold text-neutral-800 mb-4">
+							<StyledText variant='montserrat-bold' className="text-lg text-neutral-800 mb-4">
 								Amenities
-							</Text>
+							</StyledText>
 							<View className="flex-row flex-wrap">
 								{roomData.amenities.map((amenity) => (
 									<View
 										key={amenity.id}
-										className="bg-violet-100 px-3 py-2 rounded-full mr-2 mb-2"
+										className="bg-brand-primary px-3 py-2 rounded-full mr-2 mb-2"
 									>
-										<Text className="text-violet-700 font-montserrat text-sm">
+										<StyledText variant='montserrat-regular' className="text-brand-surface text-md">
 											{amenity.description}
-										</Text>
+										</StyledText>
 									</View>
 								))}
 							</View>
@@ -218,23 +219,23 @@ export default function GetRoomScreen() {
 							<View>
 								{roomData.discounted_price_numeric ? (
 									<View>
-										<Text className="text-neutral-400 font-montserrat text-lg line-through">
+										<StyledText variant='montserrat-bold' className="text-neutral-400 text-lg line-through">
 											{pesoFormatter.format(
 												roomData.price_per_night
 											)}
-										</Text>
-										<Text className="text-violet-600 font-black text-3xl">
+										</StyledText>
+										<StyledText variant='montserrat-bold' className="text-violet-600 text-3xl">
 											{pesoFormatter.format(
 												roomData.discounted_price_numeric
 											)}
-										</Text>
+										</StyledText>
 									</View>
 								) : (
-									<Text className="text-violet-600 font-black text-3xl">
+									<StyledText variant='montserrat-bold' className="text-violet-600 text-3xl">
 										{pesoFormatter.format(
 											roomData.price_per_night
 										)}
-									</Text>
+									</StyledText>
 								)}
 							</View>
 						</View>
@@ -243,9 +244,9 @@ export default function GetRoomScreen() {
 
 				{/* Photo Gallery */}
 				<View className="mx-4 mt-4">
-					<Text className="text-lg font-montserrat text-neutral-800 mb-2">
+					<StyledText variant='montserrat-regular' className="text-xl text-neutral-800 mb-2">
 						Preview photos of {roomData.room_name}
-					</Text>
+					</StyledText>
 					<PhotoGallery
 						images={roomData.images || []}
 						imageKey="room_image"
@@ -256,17 +257,17 @@ export default function GetRoomScreen() {
 				{roomData.reviews && roomData.reviews.length > 0 && (
 					<View className="bg-white mx-4 mt-4 rounded-xl p-6 shadow-sm border border-neutral-200">
 						<View className="flex-row items-center justify-between mb-4">
-							<Text className="text-lg font-montserrat-bold text-neutral-800">
+							<StyledText className="text-lg font-montserrat-bold text-neutral-800">
 								Reviews ({roomData.reviews.length})
-							</Text>
+							</StyledText>
 							{roomData.average_rating > 0 && (
 								<View className="flex-row items-center bg-violet-100 px-3 py-2 rounded-full">
-									<Text className="text-violet-700 font-montserrat-bold text-lg">
+									<StyledText variant='montserrat-bold' className="text-violet-700 text-lg">
 										★
-									</Text>
-									<Text className="text-violet-700 font-montserrat-bold text-lg ml-1">
+									</StyledText>
+									<StyledText variant='montserrat-bold' className="text-violet-700 text-lg ml-1">
 										{roomData.average_rating.toFixed(1)}
-									</Text>
+									</StyledText>
 								</View>
 							)}
 						</View>
@@ -293,40 +294,40 @@ export default function GetRoomScreen() {
 													resizeMode="cover"
 												/>
 											) : (
-												<Text className="text-violet-700 font-montserrat-bold text-lg">
+												<StyledText variant='montserrat-bold' className="text-violet-700 text-lg">
 													{review.user_name}
-												</Text>
+												</StyledText>
 											)}
 										</View>
 										<View className="flex-1">
-											<Text className="text-neutral-800 font-montserrat-bold text-md ml-2">
+											<StyledText variant='montserrat-bold' className="text-neutral-800 text-md ml-2">
 												{review.user_name}
-											</Text>
+											</StyledText>
 											<View className="flex-row items-center justify-between">
 												<View className="flex-row ml-2">
 													{[...Array(5)].map(
 														(_, i) => (
-															<Text
+															<StyledText
 																key={i}
 																className={`text-md ${i < review.rating ? 'text-yellow-500' : 'text-neutral-300'}`}
 															>
 																★
-															</Text>
+															</StyledText>
 														)
 													)}
 												</View>
-												<Text className="text-neutral-500 font-montserrat text-xs">
+												<StyledText variant='montserrat-regular' className="text-neutral-500 text-xs">
 													{review.formatted_date}
-												</Text>
+												</StyledText>
 											</View>
 										</View>
 									</View>
 
 									{/* Review Text & Booking Details */}
 									<View className="bg-white rounded-lg p-3 mt-3 border border-neutral-200">
-										<Text className="text-neutral-600 font-montserrat text-sm">
+										<StyledText variant='montserrat-regular' className="text-neutral-600 text-sm">
 											{review.review_text}
-										</Text>
+										</StyledText>
 									</View>
 								</View>
 							))}
@@ -345,11 +346,11 @@ export default function GetRoomScreen() {
 						onPress={() => router.push(`/(booking-flow)/room-booking/${roomData.id}` as any)}
 						disabled={roomData.status !== 'available'}
 					>
-						<Text className="text-white font-montserrat-bold text-center text-lg">
+						<StyledText variant='montserrat-bold' className="text-white text-center text-2xl">
 							{roomData.status === 'available'
 								? 'Book Now'
 								: 'Not Available'}
-						</Text>
+						</StyledText>
 					</TouchableOpacity>
 				</View>
 			</ScrollView>

@@ -7,7 +7,6 @@ import {
 	TouchableOpacity,
 	ScrollView,
 	ActivityIndicator,
-	Alert,
 	Image,
 	TextInput,
 } from 'react-native';
@@ -21,6 +20,8 @@ import { booking } from '@/services/Booking';
 import { calculateAreaPricing } from '@/utils/pricing';
 import ConfirmBookingModal from '@/components/bookings/ConfirmBookingModal';
 import ConfirmingBooking from '@/components/ui/ConfirmingBooking';
+import { Area } from '@/types/Area.types';
+import StyledAlert from '@/components/ui/StyledAlert';
 
 interface FormData {
 	firstName: string;
@@ -31,17 +32,39 @@ interface FormData {
 	paymentMethod: 'gcash' | 'physical';
 }
 
+// Alert state interface
+interface AlertState {
+	visible: boolean;
+	type: 'success' | 'error' | 'warning' | 'info';
+	title: string;
+	message: string;
+	buttons: {
+		text: string;
+		onPress?: () => void;
+		style?: 'default' | 'cancel' | 'destructive';
+	}[];
+}
+
 export default function ConfirmAreaBookingScreen() {
-    const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
-    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-    const [gcashProof, setGcashProof] = useState<string | null>(null);
-    const [gcashFile, setGcashFile] = useState<any>(null);
-    const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
+	const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+	const [gcashProof, setGcashProof] = useState<string | null>(null);
+	const [gcashFile, setGcashFile] = useState<any>(null);
+	const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
 	
-    const { user } = useAuthStore();
+	// Alert state
+	const [alertState, setAlertState] = useState<AlertState>({
+		visible: false,
+		type: 'info',
+		title: '',
+		message: '',
+		buttons: [],
+	});
+
+	const { user } = useAuthStore();
 	const router = useRouter();
 	
-    const { areaId, startTime, endTime, totalPrice } = useLocalSearchParams<{
+	const { areaId, startTime, endTime, totalPrice } = useLocalSearchParams<{
 		areaId: string;
 		startTime: string;
 		endTime: string;
@@ -53,7 +76,7 @@ export default function ConfirmAreaBookingScreen() {
 		handleSubmit,
 		formState: { errors },
 	} = useForm<FormData>({
-        mode: 'onSubmit',
+		mode: 'onSubmit',
 		defaultValues: {
 			firstName: user?.first_name || '',
 			lastName: user?.last_name || '',
@@ -68,10 +91,34 @@ export default function ConfirmAreaBookingScreen() {
 		queryKey: ['area', areaId],
 		queryFn: () => booking.getAreaById(areaId!),
 		enabled: !!areaId,
-        refetchOnMount: false
+		refetchOnMount: false
 	});
 
-	const areaData = areaResponse?.data;
+	const areaData: Area = areaResponse?.data;
+
+	// Helper function to show styled alerts
+	const showAlert = (
+		type: 'success' | 'error' | 'warning' | 'info',
+		title: string,
+		message: string,
+		buttons: {
+			text: string;
+			onPress?: () => void;
+			style?: 'default' | 'cancel' | 'destructive';
+		}[] = [{ text: 'OK', style: 'default' }]
+	) => {
+		setAlertState({
+			visible: true,
+			type,
+			title,
+			message,
+			buttons,
+		});
+	};
+
+	const hideAlert = () => {
+		setAlertState((prev) => ({ ...prev, visible: false }));
+	};
 
 	const formatDateTime = (dateTimeString: string | null) => {
 		if (!dateTimeString) return '';
@@ -84,15 +131,16 @@ export default function ConfirmAreaBookingScreen() {
 	};
 
 	const formattedStartTime = formatDateTime(startTime);
-	const formattedEndTime = formatDateTime(endTime);
 
 	const handlePickImage = async () => {
 		const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 		
 		if (status !== 'granted') {
-			Alert.alert(
+			showAlert(
+				'warning',
 				'Permission Required',
-				'Sorry, we need camera roll permissions to upload payment proof.'
+				'Sorry, we need camera roll permissions to upload payment proof.',
+				[{ text: 'OK', style: 'default' }]
 			);
 			return;
 		}
@@ -120,9 +168,11 @@ export default function ConfirmAreaBookingScreen() {
 
 	const onSubmit = (data: FormData) => {
 		if (data.paymentMethod === 'gcash' && !gcashFile) {
-			Alert.alert(
+			showAlert(
+				'error',
 				'Payment Proof Required',
-				'Please upload GCash payment proof'
+				'Please upload GCash payment proof',
+				[{ text: 'OK', style: 'default' }]
 			);
 			return;
 		}
@@ -131,26 +181,32 @@ export default function ConfirmAreaBookingScreen() {
 		const cleanedValue = data.phoneNumber.replace(/[^\d+]/g, '');
 		const phPattern = /^(\+639\d{9}|09\d{9})$/;
 		if (!phPattern.test(cleanedValue)) {
-			Alert.alert(
+			showAlert(
+				'error',
 				'Invalid Phone Number',
-				'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)'
+				'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
+				[{ text: 'OK', style: 'default' }]
 			);
 			return;
 		}
 
 		// Validate number of guests
 		if (areaData?.capacity && data.numberOfGuests > areaData.capacity) {
-			Alert.alert(
+			showAlert(
+				'warning',
 				'Exceeds Capacity',
-				`Maximum capacity is ${areaData.capacity} guests`
+				`Maximum capacity is ${areaData.capacity} guests`,
+				[{ text: 'OK', style: 'default' }]
 			);
 			return;
 		}
 
 		if (!areaId || !startTime || !endTime || !totalPrice) {
-			Alert.alert(
+			showAlert(
+				'error',
 				'Error',
-				'Missing booking information. Please try again.'
+				'Missing booking information. Please try again.',
+				[{ text: 'OK', style: 'default' }]
 			);
 			return;
 		}
@@ -205,17 +261,21 @@ export default function ConfirmAreaBookingScreen() {
 			};
 
 			await booking.createAreaBooking(reservationData);
-			
-			// Keep the loading screen visible for a moment before navigating
+
 			setTimeout(() => {
 				setIsSubmitting(false);
-				Alert.alert(
+				showAlert(
+					'success',
 					'Booking Successful!',
-					'Your venue booking has been submitted. You will receive a confirmation shortly.',
+					'Your area booking has been submitted. You will receive a confirmation shortly.',
 					[
 						{
 							text: 'OK',
-							onPress: () => router.replace('/(screens)'),
+							style: 'default',
+							onPress: () => {
+								hideAlert();
+								router.replace('/(screens)');
+							},
 						},
 					]
 				);
@@ -223,6 +283,12 @@ export default function ConfirmAreaBookingScreen() {
 		} catch (error: any) {
 			console.error('Booking error:', error);
 			setIsSubmitting(false);
+			showAlert(
+				'error',
+				'Booking Failed',
+				'An error occurred while processing your booking. Please try again.',
+				[{ text: 'OK', style: 'default' }]
+			);
 		}
 	};
 
@@ -240,7 +306,7 @@ export default function ConfirmAreaBookingScreen() {
 	return (
 		<SafeAreaView className="flex-1 bg-background-default">
 			{/* Header */}
-			<View className="bg-surface-default px-6 py-4 border-b border-border-default">
+			<View className="bg-surface-default px-6 py-4 border-b border-border-focus">
 				<View className="flex-row items-center justify-between">
 					<TouchableOpacity
 						onPress={() => router.back()}
@@ -259,15 +325,9 @@ export default function ConfirmAreaBookingScreen() {
 				<View className="p-6">
 					{/* Area Info Card */}
 					{areaData && (
-						<View className="bg-surface-default rounded-2xl shadow-lg mb-6 overflow-hidden border border-border-default">
+						<View className="bg-surface-default rounded-2xl shadow-lg mb-6 overflow-hidden border border-border-focus">
 							<Image
-								source={{
-									uri:
-										Array.isArray(areaData.images) &&
-										areaData.images.length > 0
-											? areaData.images[0].area_image
-											: 'https://via.placeholder.com/300x200?text=Venue+Image',
-								}}
+								source={{ uri: areaData.images?.[0].area_image }}
 								className="w-full h-48"
 								resizeMode="cover"
 							/>
@@ -300,16 +360,16 @@ export default function ConfirmAreaBookingScreen() {
 					)}
 
 					{/* Booking Form */}
-					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-default">
+					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-focus">
 						<Text className="text-text-primary font-playfair-bold text-3xl mb-4">
 							Guest Information
 						</Text>
 
 						{/* Name Fields */}
 						<View className="flex-row space-x-4 mb-4">
-							<View className="flex-1">
+							<View className="flex-1 mr-1">
 								<Text className="text-text-primary font-montserrat mb-2">
-									First Name *
+									First Name
 								</Text>
 								<Controller
 									control={control}
@@ -326,10 +386,12 @@ export default function ConfirmAreaBookingScreen() {
 											value={value}
 											onChangeText={onChange}
 											onBlur={onBlur}
-											className={`border rounded-xl p-3 font-montserrat ${
+											editable={false}
+											selectTextOnFocus={false}
+											className={`border rounded-xl p-3 font-montserrat opacity-60 ${
 												errors.firstName
 													? 'border-feedback-error-DEFAULT'
-													: 'border-border-default'
+													: 'border-border-focus'
 											}`}
 											placeholder="Enter first name"
 										/>
@@ -341,9 +403,9 @@ export default function ConfirmAreaBookingScreen() {
 									</Text>
 								)}
 							</View>
-							<View className="flex-1">
+							<View className="flex-1 ml-1">
 								<Text className="text-text-primary font-montserrat mb-2">
-									Last Name *
+									Last Name
 								</Text>
 								<Controller
 									control={control}
@@ -360,10 +422,12 @@ export default function ConfirmAreaBookingScreen() {
 											value={value}
 											onChangeText={onChange}
 											onBlur={onBlur}
-											className={`border rounded-xl p-3 font-montserrat ${
+											editable={false}
+											selectTextOnFocus={false}
+											className={`border rounded-xl p-3 font-montserrat opacity-60 ${
 												errors.lastName
 													? 'border-feedback-error-DEFAULT'
-													: 'border-border-default'
+													: 'border-border-focus'
 											}`}
 											placeholder="Enter last name"
 										/>
@@ -397,7 +461,7 @@ export default function ConfirmAreaBookingScreen() {
 										className={`border rounded-xl p-3 font-montserrat ${
 											errors.phoneNumber
 												? 'border-feedback-error-DEFAULT'
-												: 'border-border-default'
+												: 'border-border-focus'
 										}`}
 										placeholder="+639XXXXXXXXX or 09XXXXXXXXX"
 									/>
@@ -412,40 +476,40 @@ export default function ConfirmAreaBookingScreen() {
 
 						{/* Number of Guests */}
 						<View className="mb-4">
-                            <Text className="text-text-primary font-montserrat mb-2">
-                                Number of Guests *
-                            </Text>
-                            <Controller
-                                control={control}
-                                name="numberOfGuests"
-                                rules={{
-                                    required: 'Number of guests is required',
-                                    validate: (value) => {
-                                        const numValue = parseInt(value.toString()) || 0;
-                                        if (numValue < 1) {
-                                            return 'At least 1 guest is required';
-                                        }
-                                        return true;
-                                    },
-                                }}
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <TextInput
-                                        value={value > 0 ? value.toString() : ''}
-                                        onChangeText={(text) => {
-                                            const numValue = text === '' ? 0 : parseInt(text.replace(/[^0-9]/g, '')) || 0;
-                                            onChange(numValue);
-                                        }}
-                                        onBlur={onBlur}
-                                        keyboardType="numeric"
-                                        placeholder="Enter number of guests"
-                                        className={`border rounded-xl p-3 font-montserrat ${
-                                            errors.numberOfGuests
-                                                ? 'border-feedback-error-DEFAULT'
-                                                : 'border-border-default'
-                                        }`}
-                                    />
-                                )}
-                            />
+							<Text className="text-text-primary font-montserrat mb-2">
+								Number of Guests *
+							</Text>
+							<Controller
+								control={control}
+								name="numberOfGuests"
+								rules={{
+									required: 'Number of guests is required',
+									validate: (value) => {
+										const numValue = parseInt(value.toString()) || 0;
+										if (numValue < 1) {
+											return 'At least 1 guest is required';
+										}
+										return true;
+									},
+								}}
+								render={({ field: { onChange, onBlur, value } }) => (
+									<TextInput
+										value={value > 0 ? value.toString() : ''}
+										onChangeText={(text) => {
+											const numValue = text === '' ? 0 : parseInt(text.replace(/[^0-9]/g, '')) || 0;
+											onChange(numValue);
+										}}
+										onBlur={onBlur}
+										keyboardType="numeric"
+										placeholder="Enter number of guests"
+										className={`border rounded-xl p-3 font-montserrat ${
+											errors.numberOfGuests
+												? 'border-feedback-error-DEFAULT'
+												: 'border-border-focus'
+										}`}
+									/>
+								)}
+							/>
 							{errors.numberOfGuests && (
 								<Text className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
 									{errors.numberOfGuests.message}
@@ -465,7 +529,7 @@ export default function ConfirmAreaBookingScreen() {
 							</Text>
 							<TouchableOpacity
 								onPress={handlePickImage}
-								className="border border-border-default rounded-xl p-4 items-center"
+								className="border border-border-focus rounded-xl p-4 items-center"
 							>
 								<Ionicons
 									name="cloud-upload-outline"
@@ -517,7 +581,7 @@ export default function ConfirmAreaBookingScreen() {
 										onBlur={onBlur}
 										multiline
 										numberOfLines={4}
-										className="border border-border-default rounded-xl p-3 font-montserrat"
+										className="border border-border-focus rounded-xl p-3 font-montserrat"
 										placeholder="Any special requirements or notes for your stay..."
 									/>
 								)}
@@ -525,8 +589,8 @@ export default function ConfirmAreaBookingScreen() {
 						</View>
 					</View>
 
-                    {/* Booking Details */}
-					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-default">
+					{/* Booking Details */}
+					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-focus">
 						<Text className="text-text-primary font-playfair-bold text-3xl mb-4">
 							Booking Details
 						</Text>
@@ -575,14 +639,24 @@ export default function ConfirmAreaBookingScreen() {
 				</View>
 			</ScrollView>
 
+			{/* Styled Alert */}
+			<StyledAlert
+				visible={alertState.visible}
+				type={alertState.type}
+				title={alertState.title}
+				message={alertState.message}
+				buttons={alertState.buttons}
+				onDismiss={hideAlert}
+			/>
+
 			{/* Confirmation Modal */}
 			<ConfirmBookingModal
 				isVisible={showConfirmModal}
 				onClose={() => setShowConfirmModal(false)}
 				onConfirm={handleConfirmBooking}
 				title="Confirm Your Booking"
-				message={`You're about to book ${areaData?.area_name} for ${formattedStartTime} to ${formattedEndTime}. The total price is ₱${parseFloat(totalPrice || '0').toLocaleString()}. Would you like to proceed?`}
-				confirmText="Confirm"
+				message={`You're about to book ${areaData?.area_name} in ${formattedStartTime}. Would you like to proceed?`}
+				confirmText="Confirm Booking"
 				cancelText="Cancel"
 			/>
 

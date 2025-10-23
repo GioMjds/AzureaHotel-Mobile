@@ -9,7 +9,7 @@ import { Image, TouchableOpacity, View, Pressable, Modal } from 'react-native';
 import NotificationBell from '@/components/ui/NotificationBell';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import Alert from '@/components/ui/Alert';
+import StyledModal from '@/components/ui/StyledModal';
 
 interface HeaderProps {
 	headerLabel: string;
@@ -198,7 +198,7 @@ const Header = ({ headerLabel }: HeaderProps) => {
 				</Modal>
 
 				{/* Logout confirmation alert */}
-				<Alert
+				<StyledModal
 					visible={isLogoutAlertOpen}
 					title="Log Out"
 					message="Are you sure you want to log out? You will need to sign in again to access your bookings."

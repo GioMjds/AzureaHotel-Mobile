@@ -275,7 +275,7 @@ export default function RoomBookingCalendar() {
 		if (isInRange) return 'bg-violet-primary';
 		if (isUnavailable) return 'bg-neutral-300';
 		if (isToday && !isUnavailable) return 'border-2 border-violet-primary bg-surface-default';
-		return 'bg-surface-default border border-border-default';
+		return 'bg-surface-default border border-border-focus';
 	};
 
 	const getDateTextClass = (date: Date) => {
@@ -368,13 +368,13 @@ export default function RoomBookingCalendar() {
 	};
 
 	const renderCalendarLegend = () => (
-		<View className="border-t border-border-default pt-4">
+		<View className="border-t border-border-focus pt-4">
 			<Text className="text-text-primary font-montserrat-bold mb-3">
 				CALENDAR LEGEND
 			</Text>
 			<View className="flex-row flex-wrap">
 				<View className="flex-row items-center w-1/2 mb-2">
-					<View className="w-4 h-4 bg-surface-default border border-border-default rounded-full mr-2" />
+					<View className="w-4 h-4 bg-surface-default border border-border-focus rounded-full mr-2" />
 					<Text className="text-text-primary font-montserrat text-sm">
 						Available
 					</Text>
@@ -523,7 +523,7 @@ export default function RoomBookingCalendar() {
 	return (
 		<SafeAreaView className="flex-1 bg-background-default">
 			{/* Header */}
-			<View className="bg-surface-default px-6 py-4 border-b border-border-default">
+			<View className="bg-surface-default px-6 py-4 border-b border-border-focus">
 				<View className="flex-row items-center justify-between">
 					<TouchableOpacity
 						onPress={() => router.back()}
@@ -542,7 +542,7 @@ export default function RoomBookingCalendar() {
 				<View className="p-6">
 					{/* Room Info Card */}
 					{roomData && (
-						<View className="bg-surface-default rounded-2xl shadow-lg mb-6 overflow-hidden border border-border-default">
+						<View className="bg-surface-default rounded-2xl shadow-lg mb-6 overflow-hidden border border-border-focus">
 							<Image
 								source={{
 									uri:
@@ -609,9 +609,9 @@ export default function RoomBookingCalendar() {
 											{roomData.amenities.map((amenity: any, index: number) => (
 												<View
 													key={index}
-													className="bg-background-subtle px-3 py-1.5 rounded-full mr-2 mb-2"
+													className="bg-brand-primary px-3 py-1.5 rounded-full mr-2 mb-2"
 												>
-													<Text className="text-text-primary font-montserrat text-sm">
+													<Text className="text-text-inverse font-montserrat text-sm">
 														{typeof amenity === 'object' && 'description' in amenity 
 															? amenity.description 
 															: String(amenity)}
@@ -679,7 +679,7 @@ export default function RoomBookingCalendar() {
 					)}
 
 					{/* Calendar Section */}
-					<View className="bg-surface-default rounded-2xl p-5 mb-6 border border-border-default shadow-sm">
+					<View className="bg-surface-default rounded-2xl p-5 mb-6 border border-border-focus shadow-sm">
 						<Text className="text-text-primary font-playfair-bold text-2xl mb-4">
 							Select Your Stay Dates
 						</Text>

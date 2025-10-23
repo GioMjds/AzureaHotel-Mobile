@@ -4,7 +4,6 @@ import {
 	ScrollView,
 	TouchableOpacity,
 	View,
-	Alert,
 	Image,
 	RefreshControl,
 } from 'react-native';
@@ -15,11 +14,42 @@ import { UserBooking } from '@/types/Bookings.types';
 import { pesoFormatter, formatDate } from '@/utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
 import CancellationModal from '@/components/ui/CancellationModal';
+import StyledAlert from '@/components/ui/StyledAlert';
 import { guestCancellationReasons } from '@/constants/dropdown-options';
 import StyledText from '@/components/ui/StyledText';
 
 export default function BookingDetailsScreen() {
 	const [cancellationModal, setCancellationModal] = useState<boolean>(false);
+	const [alertState, setAlertState] = useState<{
+		visible: boolean;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		title: string;
+		message?: string;
+		buttons?: {
+			text: string;
+			onPress?: () => void;
+			style?: 'default' | 'cancel' | 'destructive';
+		}[];
+	}>({ visible: false, title: '' });
+
+	const showStyledAlert = (opts: {
+		title: string;
+		message?: string;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		buttons?: {
+			text: string;
+			onPress?: () => void;
+			style?: 'default' | 'cancel' | 'destructive';
+		}[];
+	}) => {
+		setAlertState({
+			visible: true,
+			type: opts.type || 'info',
+			title: opts.title,
+			message: opts.message,
+			buttons: opts.buttons || [{ text: 'OK' }],
+		});
+	};
 
 	const { bookingId } = useLocalSearchParams();
 	const router = useRouter();
@@ -47,20 +77,31 @@ export default function BookingDetailsScreen() {
 			queryClient.invalidateQueries({
 				queryKey: ['bookingDetails', bookingId],
 			});
-			queryClient.invalidateQueries({ queryKey: ['userBookings'] });
+			queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
 
-			Alert.alert(
-				'Cancellation Submitted',
-				'Your cancellation request has been submitted successfully.',
-				[{ text: 'OK', onPress: () => router.back() }]
-			);
+			// Show styled success alert
+			showStyledAlert({
+				type: 'success',
+				title: 'Cancellation Submitted',
+				message:
+					'Your cancellation request has been submitted successfully.',
+				buttons: [
+					{
+						text: 'OK',
+						onPress: () => router.back(),
+					},
+				],
+			});
 		},
 		onError: (error) => {
-			Alert.alert(
-				'Cancellation Failed',
-				error.message || 'Failed to cancel booking. Please try again.',
-				[{ text: 'OK' }]
-			);
+			showStyledAlert({
+				type: 'error',
+				title: 'Cancellation Failed',
+				message:
+					error.message ||
+					'Failed to cancel booking. Please try again.',
+				buttons: [{ text: 'OK' }],
+			});
 		},
 	});
 
@@ -70,10 +111,12 @@ export default function BookingDetailsScreen() {
 		if (bookingData?.status === 'pending') {
 			setCancellationModal(true);
 		} else {
-			Alert.alert(
-				'Cancel Booking',
-				'Are you sure you want to cancel this booking?',
-				[
+			// Use styled alert for confirmation
+			showStyledAlert({
+				title: 'Cancel Booking',
+				message: 'Are you sure you want to cancel this booking?',
+				type: 'warning',
+				buttons: [
 					{ text: 'No', style: 'cancel' },
 					{
 						text: 'Yes',
@@ -89,17 +132,19 @@ export default function BookingDetailsScreen() {
 							}
 						},
 					},
-				]
-			);
+				],
+			});
 		}
 	};
 
 	const handleConfirmCancellation = async (reason: string) => {
 		if (!reason.trim()) {
-			Alert.alert(
-				'Cancellation Reason Required',
-				'Please provide a reason for cancellation.'
-			);
+			showStyledAlert({
+				type: 'warning',
+				title: 'Cancellation Reason Required',
+				message: 'Please provide a reason for cancellation.',
+				buttons: [{ text: 'OK' }],
+			});
 			return;
 		}
 
@@ -108,6 +153,7 @@ export default function BookingDetailsScreen() {
 				bookingId: bookingData.id.toString(),
 				reason: reason.trim(),
 			});
+			queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
 		} catch (error) {
 			console.error(`Cancellation error: ${error}`);
 		}
@@ -758,7 +804,8 @@ export default function BookingDetailsScreen() {
 											variant="montserrat-regular"
 											className="text-text-secondary text-base"
 										>
-											{!isVenueBooking && `Room Rate × ${calculateNights()} night${calculateNights() !== 1 ? 's' : ''}`}
+											{!isVenueBooking &&
+												`Room Rate × ${calculateNights()} night${calculateNights() !== 1 ? 's' : ''}`}
 										</StyledText>
 										<StyledText
 											variant="montserrat-bold"
@@ -908,6 +955,18 @@ export default function BookingDetailsScreen() {
 				</View>
 			</ScrollView>
 
+			{/* Global styled alert */}
+			<StyledAlert
+				visible={alertState.visible}
+				type={alertState.type}
+				title={alertState.title}
+				message={alertState.message}
+				buttons={alertState.buttons}
+				onDismiss={() =>
+					setAlertState((s) => ({ ...s, visible: false }))
+				}
+			/>
+
 			{/* Cancellation Modal */}
 			<CancellationModal
 				isOpen={cancellationModal}
@@ -915,9 +974,9 @@ export default function BookingDetailsScreen() {
 				onConfirm={handleConfirmCancellation}
 				title="Request Cancellation"
 				description="Your booking is currently pending confirmation. Please provide a reason for your cancellation request."
-				reasonLabel="Select cancellation reason"
+				reasonLabel="Select Cancellation Reason"
 				reasonPlaceholder="Please specify your reason for cancellation..."
-				confirmButtonText="Submit Cancellation"
+				confirmButtonText="Submit"
 				reasons={guestCancellationReasons}
 				isSubmitting={cancelMutation.isPending}
 			/>
