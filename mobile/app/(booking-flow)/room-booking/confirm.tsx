@@ -11,6 +11,7 @@ import {
 	Image,
 	TextInput,
 	Platform,
+	Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +22,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import useAuthStore from '@/store/AuthStore';
 import { calculateRoomPricing, formatPrice, getDiscountLabel } from '@/utils/pricing';
 import { booking } from '@/services/Booking';
-import ConfirmBookingModal from '@/components/bookings/ConfirmBookingModal';
 import ConfirmingBooking from '@/components/ui/ConfirmingBooking';
 import { Amenities } from '@/types/Amenity.types';
 import { Room } from '@/types/Room.types';
@@ -39,10 +39,11 @@ interface FormData {
 export default function ConfirmRoomBookingScreen() {
 	const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-	const [gcashProof, setGcashProof] = useState<string | null>(null);
 	const [gcashFile, setGcashFile] = useState<any>(null);
 	const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
 	const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
+	const [showDownPaymentModal, setShowDownPaymentModal] = useState<boolean>(false);
+	const [selectedDownPayment, setSelectedDownPayment] = useState<number | null>(null);
 
 	const getDefaultCheckInTime = () => {
 		const date = new Date();
@@ -66,6 +67,7 @@ export default function ConfirmRoomBookingScreen() {
 		control,
 		handleSubmit,
 		formState: { errors },
+		watch,
 	} = useForm<FormData>({
 		mode: 'onSubmit',
 		defaultValues: {
@@ -78,6 +80,8 @@ export default function ConfirmRoomBookingScreen() {
 			paymentMethod: 'gcash',
 		},
 	});
+
+	const paymentMethod = watch('paymentMethod');
 
 	const { data: roomResponse, isLoading } = useQuery({
 		queryKey: ['room', roomId],
@@ -127,37 +131,6 @@ export default function ConfirmRoomBookingScreen() {
 		: null)
 		: null;
 
-	const handlePickImage = async () => {
-		const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-		if (status !== 'granted') {
-			Alert.alert(
-				'Permission Required',
-				'Sorry, we need camera roll permissions to upload payment proof.'
-			);
-			return;
-		}
-
-		const result = await ImagePicker.launchImageLibraryAsync({
-			mediaTypes: ['images'],
-			allowsEditing: true,
-			aspect: [4, 3],
-			quality: 0.8,
-		});
-
-		if (!result.canceled && result.assets[0]) {
-			const asset = result.assets[0];
-			setGcashProof(asset.uri);
-
-			const fileName = asset.uri.split('/').pop();
-			setGcashFile({
-				uri: asset.uri,
-				name: fileName,
-				type: 'image/jpeg',
-			} as any);
-		}
-	};
-
 	const formatTimeDisplay = (timeString: string) => {
 		if (!timeString) return 'Select arrival time';
 		return timeString;
@@ -204,6 +177,15 @@ export default function ConfirmRoomBookingScreen() {
 	};
 
 	const onSubmit = (data: FormData) => {
+		// Check if down payment is required for GCash
+		if (data.paymentMethod === 'gcash' && !selectedDownPayment) {
+			Alert.alert(
+				'Down Payment Required',
+				'Please enter your desired down payment amount for GCash payment'
+			);
+			return;
+		}
+
 		if (!data.arrivalTime) {
 			Alert.alert(
 				'Arrival Time Required',
@@ -283,6 +265,11 @@ export default function ConfirmRoomBookingScreen() {
 			formData.append('status', 'pending');
 			formData.append('isVenueBooking', 'false');
 			formData.append('paymentMethod', pendingFormData.paymentMethod);
+
+			// Add down payment if GCash is selected
+			if (pendingFormData.paymentMethod === 'gcash' && selectedDownPayment) {
+				formData.append('downPayment', selectedDownPayment.toString());
+			}
 
 			if (pendingFormData.arrivalTime) {
 				const arrivalTime24h = convertTo24Hour(pendingFormData.arrivalTime);
@@ -575,6 +562,35 @@ export default function ConfirmRoomBookingScreen() {
 							)}
 						</View>
 
+						{/* Down Payment for GCash */}
+						{paymentMethod === 'gcash' && (
+							<View className="mb-4">
+								<Text className="text-text-primary font-montserrat mb-2">
+									Down Payment (GCash) *
+								</Text>
+								<TouchableOpacity
+									onPress={() => setShowDownPaymentModal(true)}
+									className="border border-interactive-primary rounded-xl p-4 bg-interactive-primary-hover/10 flex-row items-center justify-between"
+								>
+									<View>
+										<Text className="text-text-secondary font-montserrat text-sm mb-1">
+											Enter your desired down payment amount
+										</Text>
+										<Text className="text-text-primary font-montserrat-bold text-lg">
+											{selectedDownPayment 
+												? `₱ ${selectedDownPayment.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
+												: 'Tap to set amount'
+											}
+										</Text>
+									</View>
+									<Ionicons name="chevron-forward" size={24} color="#6F00FF" />
+								</TouchableOpacity>
+								<Text className="text-text-muted font-montserrat text-xs mt-2">
+									Total booking amount: ₱ {parseFloat(totalPrice || '0').toLocaleString()}
+								</Text>
+							</View>
+						)}
+
 						{/* Arrival Time */}
 						<View className="mb-4">
 							<Text className="text-text-primary font-montserrat mb-2">
@@ -636,50 +652,6 @@ export default function ConfirmRoomBookingScreen() {
 								<Text className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
 									{errors.arrivalTime.message}
 								</Text>
-							)}
-						</View>
-
-						{/* GCash Payment Proof */}
-						<View className="mb-4">
-							<Text className="text-text-primary font-montserrat mb-2">
-								GCash Payment Proof *
-							</Text>
-							<TouchableOpacity
-								onPress={handlePickImage}
-								className="border border-border-focus rounded-xl p-4 items-center"
-							>
-								<Ionicons
-									name="cloud-upload-outline"
-									size={24}
-									color="#6F00FF"
-								/>
-								<Text className="text-text-secondary font-montserrat mt-2">
-									{gcashProof
-										? 'Payment Proof Uploaded'
-										: 'Upload Payment Proof'}
-								</Text>
-							</TouchableOpacity>
-							{gcashProof && (
-								<View className="mt-3">
-									<Image
-										source={{ uri: gcashProof }}
-										className="w-full h-40 rounded-xl"
-										resizeMode="contain"
-									/>
-									<TouchableOpacity
-										onPress={() => {
-											setGcashProof(null);
-											setGcashFile(null);
-										}}
-										className="absolute top-2 right-2 bg-surface-default rounded-full p-2"
-									>
-										<Ionicons
-											name="close"
-											size={16}
-											color="#EF4444"
-										/>
-									</TouchableOpacity>
-								</View>
 							)}
 						</View>
 
@@ -772,9 +744,11 @@ export default function ConfirmRoomBookingScreen() {
 					{/* Submit Button */}
 					<TouchableOpacity
 						onPress={handleSubmit(onSubmit)}
-						disabled={!gcashFile}
+						disabled={isSubmitting || (paymentMethod === 'gcash' && (!gcashFile || !selectedDownPayment))}
 						className={`rounded-2xl py-4 px-6 mb-8 ${
-							gcashFile ? 'bg-violet-primary' : 'bg-neutral-300'
+							(isSubmitting || (paymentMethod === 'gcash' && (!gcashFile || !selectedDownPayment))) 
+								? 'bg-neutral-300' 
+								: 'bg-violet-primary'
 						}`}
 					>
 						<Text className="text-center font-montserrat-bold text-lg text-text-inverse">
@@ -784,22 +758,73 @@ export default function ConfirmRoomBookingScreen() {
 				</View>
 			</ScrollView>
 
-			{/* Confirmation Modal */}
-			<ConfirmBookingModal
-				isVisible={showConfirmModal}
-				onClose={() => setShowConfirmModal(false)}
-				onConfirm={handleConfirmBooking}
-				title="Confirm Your Booking"
-				message={`You're about to book ${roomData?.room_name} from ${formattedCheckIn} to ${formattedCheckOut}. The total price is ₱${parseFloat(totalPrice || '0').toLocaleString()}. Would you like to proceed?`}
-				confirmText="Confirm"
-				cancelText="Cancel"
-			/>
+			{/* Down Payment Modal */}
+			<Modal
+				visible={showDownPaymentModal}
+				transparent
+				animationType="fade"
+				onRequestClose={() => setShowDownPaymentModal(false)}
+			>
+				<View className="flex-1 bg-black/50 justify-center items-center p-4">
+					<View className="bg-surface-default rounded-3xl p-6 w-full max-w-sm">
+						<Text className="text-text-primary font-playfair-bold text-2xl mb-4">
+							Down Payment Amount
+						</Text>
+						<Text className="text-text-secondary font-montserrat text-sm mb-4">
+							Enter your desired down payment for this booking. You&apos;ll pay the remainder at checkout.
+						</Text>
+
+						<View className="mb-4">
+							<Text className="text-text-muted font-montserrat text-xs mb-2">
+								Total Booking Amount: ₱ {parseFloat(totalPrice || '0').toLocaleString()}
+							</Text>
+							<View className="flex-row items-center border border-border-focus rounded-xl p-3">
+								<Text className="text-text-primary font-montserrat text-xl mr-2">₱</Text>
+								<TextInput
+									keyboardType="decimal-pad"
+									placeholder="0.00"
+									defaultValue={selectedDownPayment ? selectedDownPayment.toString() : ''}
+									onChangeText={(text) => {
+										const num = parseFloat(text) || 0;
+										setSelectedDownPayment(num > 0 ? num : null);
+									}}
+									className="flex-1 font-montserrat text-lg text-text-primary"
+								/>
+							</View>
+						</View>
+
+						<View className="flex-row gap-3 mt-6">
+							<TouchableOpacity
+								onPress={() => setShowDownPaymentModal(false)}
+								className="flex-1 border border-border-focus rounded-xl py-3"
+							>
+								<Text className="text-text-primary font-montserrat-bold text-center">
+									Cancel
+								</Text>
+							</TouchableOpacity>
+							<TouchableOpacity
+								onPress={() => {
+									if (selectedDownPayment && selectedDownPayment > 0) {
+										setShowDownPaymentModal(false);
+									} else {
+										Alert.alert('Invalid Amount', 'Please enter a valid down payment amount.');
+									}
+								}}
+								className="flex-1 bg-interactive-primary rounded-xl py-3"
+							>
+								<Text className="text-interactive-primary-foreground font-montserrat-bold text-center">
+									Confirm
+								</Text>
+							</TouchableOpacity>
+						</View>
+					</View>
+				</View>
+			</Modal>
 
 			{/* Loading Overlay */}
-			<ConfirmingBooking
-				isVisible={isSubmitting}
-				message="Securing your reservation and processing payment..."
-			/>
+			{isSubmitting && (
+				<ConfirmingBooking isVisible={true} />
+			)}
 		</SafeAreaView>
 	);
 }

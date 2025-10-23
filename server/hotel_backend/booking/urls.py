@@ -21,6 +21,10 @@ urlpatterns = [
     path('rooms/<int:room_id>/bookings', views.fetch_room_bookings, name='room_bookings'),
     path('rooms/<int:room_id>/reviews', views.room_reviews, name='room_reviews'),
     path('generate_checkout_e_receipt/<str:booking_id>', views .generate_checkout_e_receipt, name='generate_checkout_e_receipt'),
+    # PayMongo integration
+    path('bookings/<str:booking_id>/paymongo/create', views.create_paymongo_source, name='create_paymongo_source'),
+    path('paymongo/sources/<str:source_id>/verify', views.verify_paymongo_source, name='verify_paymongo_source'),
+    path('paymongo/webhook', views.paymongo_webhook, name='paymongo_webhook'),
     
     # For Food Ordering (fetch the API from the other system) -> CraveOn
     path('fetch_foods', views.fetch_foods, name='fetch_foods'),

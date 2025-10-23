@@ -22,7 +22,6 @@ import {
 	TouchableOpacity,
 	ScrollView,
 	ActivityIndicator,
-	Alert,
 	Image,
 } from 'react-native';
 import useAuthStore from '@/store/AuthStore';
@@ -30,6 +29,7 @@ import { GetRoomById, GetRoomBookings } from '@/types/Room.types';
 import { calculateRoomPricing, formatPrice } from '@/utils/pricing';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { booking } from '@/services/Booking';
+import StyledAlert from '@/components/ui/StyledAlert';
 
 interface BookingsByDate {
 	[date: string]: {
@@ -208,7 +208,7 @@ export default function RoomBookingCalendar() {
 	const handleDateClick = (date: Date) => {
 		if (!checkInDate || (checkInDate && checkOutDate)) {
 			if (isDateUnavailable(date)) {
-				Alert.alert('Date Unavailable', 'This date is not available for booking.');
+				showStyledAlert({ title: 'Date Unavailable', message: 'This date is not available for booking.', type: 'warning' });
 				return;
 			}
 
@@ -216,7 +216,7 @@ export default function RoomBookingCalendar() {
 			setCheckOutDate(null);
 		} else {
 			if (isDateUnavailable(date, true)) {
-				Alert.alert('Date Unavailable', 'This date is not available for checkout.');
+				showStyledAlert({ title: 'Date Unavailable', message: 'This date is not available for checkout.', type: 'warning' });
 				return;
 			}
 
@@ -247,6 +247,30 @@ export default function RoomBookingCalendar() {
 			}
 		}
 		return false;
+	};
+
+	// Styled alert state/helper
+	const [alertState, setAlertState] = useState<{
+		visible: boolean;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		title: string;
+		message?: string;
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}>({ visible: false, title: '' });
+
+	const showStyledAlert = (opts: {
+		title: string;
+		message?: string;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}) => {
+		setAlertState({
+			visible: true,
+			type: opts.type || 'info',
+			title: opts.title,
+			message: opts.message,
+			buttons: opts.buttons || [{ text: 'OK' }],
+		});
 	};
 
 	const getDateCellClass = (date: Date) => {
@@ -315,7 +339,7 @@ export default function RoomBookingCalendar() {
 				},
 			});
 		} else {
-			Alert.alert('Invalid Selection', 'Please select valid check-in and check-out dates.');
+			showStyledAlert({ title: 'Invalid Selection', message: 'Please select valid check-in and check-out dates.', type: 'warning' });
 		}
 	};
 
@@ -753,6 +777,16 @@ export default function RoomBookingCalendar() {
 					</TouchableOpacity>
 				</View>
 			</ScrollView>
+
+			{/* Global Styled Alert */}
+			<StyledAlert
+				visible={alertState.visible}
+				type={alertState.type}
+				title={alertState.title}
+				message={alertState.message}
+				buttons={alertState.buttons}
+				onDismiss={() => setAlertState((s) => ({ ...s, visible: false }))}
+			/>
 		</SafeAreaView>
 	);
 }

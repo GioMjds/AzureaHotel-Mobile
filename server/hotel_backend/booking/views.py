@@ -21,6 +21,9 @@ from .craveon_integration import CraveOnIntegration
 from .pdf_generator import EReceiptGenerator
 import base64
 import imghdr
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
+from .service import paymongo as paymongo_service
 
 logger = logging.getLogger(__name__)
 
@@ -121,9 +124,20 @@ def bookings_list(request):
             }, status=status.HTTP_200_OK)
             
         elif request.method == 'POST':
+            # Log incoming payload for debugging
+            try:
+                logger.info('Incoming booking POST: %s', json.dumps(request.data.dict() if hasattr(request.data, 'dict') else dict(request.data)))
+            except Exception:
+                logger.info('Incoming booking POST (raw): %s', str(request.data))
+            logger.info('Incoming files: %s', list(request.FILES.keys()))
+
             request_data = request.data.copy()
+            # Backwards compatibility: map uploaded file to expected key names
             if 'payment_proof' in request.FILES:
-                request_data['payment_proof'] = request.FILES['payment_proof']
+                request_data['paymentProof'] = request.FILES['payment_proof']
+            if 'downPayment' in request.data:
+                # ensure downPayment is forwarded
+                request_data['downPayment'] = request.data.get('downPayment')
             unauthenticated = not (request.user and request.user.is_authenticated)
             
             try:
@@ -144,9 +158,11 @@ def bookings_list(request):
                         "message": "Booking created successfully",
                         "data": booking_data
                     }, status=status.HTTP_201_CREATED)
-                return Response({
-                    "error": serializer.errors
-                }, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    logger.warning('Booking creation validation errors: %s', serializer.errors)
+                    return Response({
+                        "error": serializer.errors
+                    }, status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
@@ -1109,3 +1125,241 @@ def get_reviewable_food_orders(request):
         return Response({
             'error': f"Failed to fetch reviewable food orders: {str(e)}"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def create_paymongo_source(request, booking_id):
+    """Create a PayMongo source for a booking and return the redirect URL / source data.
+    Expects JSON body with amount (in PHP) or will use booking.total_price.
+    """
+    try:
+        try:
+            booking = Bookings.objects.get(id=booking_id)
+        except Bookings.DoesNotExist:
+            return Response({"error": "Booking not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Only allow for bookings that are unpaid
+        if booking.payment_status and booking.payment_status.lower() == 'paid':
+            return Response({"error": "Booking already paid"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # amount in PHP to centavos (only if provided by client)
+        amount_from_request = request.data.get('amount', None)
+        if amount_from_request is not None and str(amount_from_request).strip() != '':
+            try:
+                amount_php = float(amount_from_request)
+                amount_centavos = int(round(amount_php * 100))
+            except Exception:
+                logger.warning('Invalid amount provided to create_paymongo_source: %s', amount_from_request)
+                return Response({'error': 'Invalid amount value'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            amount_centavos = None
+
+        # Build redirect urls (frontend should supply; if not, construct absolute fallbacks)
+        success_url = request.data.get('success_url')
+        failed_url = request.data.get('failed_url')
+
+        # If frontend didn't supply, construct minimal absolute URLs using request.build_absolute_uri
+        # Ensure both are non-empty strings if we plan to pass them to PayMongo
+        if not success_url:
+            try:
+                success_url = request.build_absolute_uri(f'/booking/paymongo/redirect/success?booking_id={booking.id}')
+            except Exception:
+                success_url = ''
+
+        if not failed_url:
+            try:
+                failed_url = request.build_absolute_uri(f'/booking/paymongo/redirect/failed?booking_id={booking.id}')
+            except Exception:
+                failed_url = ''
+
+        metadata = {
+            'booking_id': str(booking.id),
+            'user_id': str(booking.user.id)
+        }
+
+        # Create source using paymongo service
+        logger.info('create_paymongo_source called for booking_id=%s amount_centavos=%s metadata=%s', booking_id, amount_centavos, metadata)
+        try:
+            # Only pass redirect URLs when both success and failed are non-empty
+            redirect_kwargs = {}
+            if success_url and failed_url:
+                redirect_kwargs = {
+                    'redirect_success': success_url,
+                    'redirect_failed': failed_url
+                }
+
+            source_resp = paymongo_service.create_source(
+                amount=amount_centavos,
+                currency='PHP',
+                source_type='gcash',
+                metadata=metadata,
+                **redirect_kwargs
+            )
+            logger.info('PayMongo create_source response: %s', json.dumps(source_resp))
+        except Exception as e:
+            # If the exception contains response text, include it in the response for debugging
+            logger.exception('PayMongo create_source exception: %s', str(e))
+            return Response({'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+        
+        # Save source_id to booking
+        source_data = source_resp.get('data', {}) if isinstance(source_resp, dict) else {}
+        source_id = source_data.get('id')
+        if source_id:
+            booking.paymongo_source_id = source_id
+            booking.save()
+
+        return Response({
+            'success': True,
+            'data': source_resp
+        }, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        logger.exception('create_paymongo_source failed')
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def verify_paymongo_source(request, source_id):
+    """Retrieve PayMongo source by id and return status so mobile can poll until paid."""
+    try:
+        logger.info('verify_paymongo_source called for source_id=%s', source_id)
+        resp = paymongo_service.retrieve_source(source_id)
+        logger.info('PayMongo retrieve_source response: %s', json.dumps(resp))
+        return Response({'success': True, 'data': resp}, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.exception('verify_paymongo_source failed')
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@csrf_exempt
+def paymongo_webhook(request):
+    """
+    Handle PayMongo webhook events for source and payment updates.
+    Supports: source.chargeable, payment.paid, payment.failed events
+    """
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+    
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        logger.error('PayMongo webhook: Invalid JSON payload')
+        return HttpResponse(status=400)
+
+    try:
+        # PayMongo webhook structure: { "data": { "id": "evt_...", "type": "event", "attributes": { "type": "source.chargeable", "data": {...} } } }
+        event_data = payload.get('data', {})
+        event_attrs = event_data.get('attributes', {})
+        event_type = event_attrs.get('type')  # e.g., 'source.chargeable', 'payment.paid', 'payment.failed'
+        
+        # The actual resource (source or payment) is in attributes.data
+        resource = event_attrs.get('data', {})
+        resource_id = resource.get('id')
+        resource_attrs = resource.get('attributes', {})
+        
+        logger.info(f'PayMongo webhook received: event_type={event_type}, resource_id={resource_id}')
+        
+        # Extract booking_id from metadata
+        metadata = resource_attrs.get('metadata', {})
+        booking_id = metadata.get('booking_id')
+        
+        if not booking_id:
+            logger.warning('PayMongo webhook: No booking_id in metadata')
+            return HttpResponse(status=200)  # Acknowledge but don't process
+        
+        try:
+            booking = Bookings.objects.get(id=int(booking_id))
+        except Bookings.DoesNotExist:
+            logger.error(f'PayMongo webhook: Booking {booking_id} not found')
+            return HttpResponse(status=404)
+        
+        # Handle different event types
+        if event_type == 'source.chargeable':
+            # Source is ready to be charged (for GCash, this means user completed payment)
+            source_id = resource_id
+            source_status = resource_attrs.get('status')
+
+            if source_status == 'chargeable':
+                booking.paymongo_source_id = source_id
+                booking.payment_status = 'paid'
+                booking.payment_date = timezone.now()
+
+                # Try to capture the actual amount from resource attributes (amount in centavos)
+                try:
+                    paid_amount_centavos = resource_attrs.get('amount')
+                    if paid_amount_centavos is not None:
+                        # Convert to PHP decimal
+                        paid_php = float(paid_amount_centavos) / 100.0
+                        booking.down_payment = paid_php
+                except Exception:
+                    logger.exception('Failed to extract paid amount from source resource')
+
+                booking.save()
+
+                # Create transaction record with the actual paid amount when available
+                from .models import Transactions
+                trans_amount = booking.down_payment or booking.total_price or 0
+                Transactions.objects.create(
+                    booking=booking,
+                    user=booking.user,
+                    transaction_type='booking',
+                    amount=trans_amount,
+                    transaction_date=timezone.now(),
+                    status='completed'
+                )
+
+                logger.info(f'Booking {booking_id} marked as paid via source {source_id} amount={trans_amount}')
+
+        elif event_type == 'payment.paid':
+            # Payment was successfully processed
+            payment_id = resource_id
+            payment_status = resource_attrs.get('status')
+
+            if payment_status == 'paid':
+                booking.paymongo_payment_id = payment_id
+                booking.payment_status = 'paid'
+                booking.payment_date = timezone.now()
+
+                # Try to get actual paid amount from payment resource attributes
+                try:
+                    paid_amount_centavos = resource_attrs.get('amount')
+                    if paid_amount_centavos is not None:
+                        paid_php = float(paid_amount_centavos) / 100.0
+                        booking.down_payment = paid_php
+                except Exception:
+                    logger.exception('Failed to extract paid amount from payment resource')
+
+                booking.save()
+
+                # Create transaction record if not exists, using actual paid amount if available
+                from .models import Transactions
+                if not Transactions.objects.filter(booking=booking, transaction_type='booking', status='completed').exists():
+                    trans_amount = booking.down_payment or booking.total_price or 0
+                    Transactions.objects.create(
+                        booking=booking,
+                        user=booking.user,
+                        transaction_type='booking',
+                        amount=trans_amount,
+                        transaction_date=timezone.now(),
+                        status='completed'
+                    )
+
+                logger.info(f'Booking {booking_id} payment confirmed with payment_id {payment_id} amount={booking.down_payment}')
+
+        elif event_type == 'payment.failed':
+            # Payment failed
+            payment_id = resource_id
+            booking.paymongo_payment_id = payment_id
+            booking.payment_status = 'failed'
+            booking.save()
+
+            logger.warning(f'Booking {booking_id} payment failed with payment_id {payment_id}')
+
+        else:
+            # Log unknown event type but acknowledge
+            logger.info(f'PayMongo webhook: Unhandled event type {event_type}')
+
+        return HttpResponse(status=200)
+    
+    except Exception as e:
+        logger.exception(f'Error handling PayMongo webhook: {str(e)}')
+        return HttpResponse(status=500)

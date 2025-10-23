@@ -197,23 +197,17 @@ class BookingRequestSerializer(serializers.Serializer):
     numberOfGuests = serializers.IntegerField(required=False, default=1)
     paymentMethod = serializers.ChoiceField(choices=Bookings.PAYMENT_METHOD_CHOICES, default='physical')
     paymentProof = serializers.FileField(required=False, allow_null=True, write_only=True)
+    downPayment = serializers.DecimalField(required=False, max_digits=10, decimal_places=2, write_only=True)
 
     def validate(self, data):
         errors = {}
         room = None
         
-        payment_method = data.get('payment_method')
-        payment_proof = data.get('payment_proof')
-        
-        if payment_method == 'gcash':
-            if not payment_proof:
-                raise serializers.ValidationError({{
-                    'payment_proof': "Payment proof is required for GCash payments."
-                }})
-            if not isinstance(payment_proof, (InMemoryUploadedFile, UploadedFile)) and not isinstance(payment_proof, str):
-                raise serializers.ValidationError({
-                    'payment_proof': "Please upload a valid file."
-                })
+        # Note: For PayMongo integration we accept a numeric downPayment instead of forcing an uploaded file.
+        # This keeps backwards compatibility: if a file is present it will still be uploaded, otherwise
+        # the frontend should send 'downPayment' to initialize PayMongo.
+        payment_method = data.get('paymentMethod') or data.get('payment_method')
+        payment_proof = data.get('paymentProof') or data.get('payment_proof')
         
         try:
             if not data.get('isVenueBooking', False):
@@ -235,11 +229,20 @@ class BookingRequestSerializer(serializers.Serializer):
         payment_proof_url = None
 
         if payment_method == 'gcash':
-            try:
-                upload_result = cloudinary.uploader.upload(payment_proof_file)
-                payment_proof_url = upload_result['secure_url']
-            except Exception as e:
-                raise serializers.ValidationError(f"Error uploading payment proof: {str(e)}")
+            # Prefer downPayment for PayMongo flows
+            down_payment_val = validated_data.get('downPayment') or validated_data.get('down_payment')
+            if down_payment_val is None:
+                # Fallback: if a file was uploaded (old flow), upload to Cloudinary
+                if payment_proof_file:
+                    try:
+                        upload_result = cloudinary.uploader.upload(payment_proof_file)
+                        payment_proof_url = upload_result['secure_url']
+                    except Exception as e:
+                        raise serializers.ValidationError(f"Error uploading payment proof: {str(e)}")
+                else:
+                    # Neither down payment nor file provided: allow backend to proceed but keep payment incomplete
+                    # (Frontend may initiate PayMongo after creating booking)
+                    pass
 
         if request and hasattr(request, 'user') and request.user.is_authenticated:
             user = request.user
@@ -331,7 +334,8 @@ class BookingRequestSerializer(serializers.Serializer):
                     number_of_guests=validated_data.get('numberOfGuests', 1),
                     payment_method=payment_method,
                     payment_proof=payment_proof_url,
-                    payment_date=timezone.now() if payment_method == 'gcash' else None,
+                    payment_date=None,
+                    down_payment=validated_data.get('downPayment') or validated_data.get('down_payment'),
                     is_discounted=discount_percent > 0,  # Track if discount was applied
                 )
                 

@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Text,
     TextInput,
     TouchableOpacity,
     View,
-    Alert,
     Image,
     ScrollView,
     ActivityIndicator,
@@ -20,6 +19,7 @@ import { httpClient } from '@/configs/axios';
 import { auth } from '@/services/UserAuth';
 import { ApiRoutes } from '@/configs/axios.routes';
 import { useAuth } from '@/hooks/useAuth';
+import StyledAlert from '@/components/ui/StyledAlert';
 
 const REGISTRATION_EMAIL_KEY = 'registration_email';
 const REGISTRATION_PASSWORD_KEY = 'registration_password';
@@ -35,6 +35,28 @@ export default function VerifyRegisterOTPScreen() {
     const [lastName, setLastName] = useState<string>('');
     const [countdown, setCountdown] = useState<number>(120);
     const [canResend, setCanResend] = useState<boolean>(false);
+    const [alertState, setAlertState] = useState<{
+        visible: boolean;
+        type?: 'success' | 'error' | 'warning' | 'info';
+        title: string;
+        message?: string;
+        buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+    }>({ visible: false, title: '' });
+
+    const showStyledAlert = (opts: {
+        title: string;
+        message?: string;
+        type?: 'success' | 'error' | 'warning' | 'info';
+        buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+    }) => {
+        setAlertState({
+            visible: true,
+            type: opts.type || 'info',
+            title: opts.title,
+            message: opts.message,
+            buttons: opts.buttons || [{ text: 'OK' }],
+        });
+    };
     
     const { login } = useAuth();
 
@@ -58,12 +80,7 @@ export default function VerifyRegisterOTPScreen() {
                 const storedLastName = await SecureStore.getItemAsync('registration_last_name');
                 
                 if (!storedEmail || !storedPassword) {
-                    Alert.alert('Error', 'Registration data not found. Please start registration again.', [
-                        {
-                            text: 'OK',
-                            onPress: () => router.replace('/(auth)/register'),
-                        },
-                    ]);
+                    showStyledAlert({ title: 'Error', message: 'Registration data not found. Please start registration again.', buttons: [{ text: 'OK', onPress: () => router.replace('/(auth)/register') }], type: 'error' });
                     return;
                 }
                 
@@ -73,12 +90,7 @@ export default function VerifyRegisterOTPScreen() {
                 if (storedLastName) setLastName(storedLastName);
             } catch (error) {
                 console.error('Error loading stored data:', error);
-                Alert.alert('Error', 'Failed to load registration data.', [
-                    {
-                        text: 'OK',
-                        onPress: () => router.replace('/(auth)/register'),
-                    },
-                ]);
+                showStyledAlert({ title: 'Error', message: 'Failed to load registration data.', buttons: [{ text: 'OK', onPress: () => router.replace('/(auth)/register') }], type: 'error' });
             }
         };
 
@@ -108,7 +120,7 @@ export default function VerifyRegisterOTPScreen() {
         },
         onError: (error: any) => {
             const errorMessage = error?.message || 'Failed to verify OTP. Please try again.';
-            Alert.alert('Verification Failed', errorMessage);
+            showStyledAlert({ title: 'Verification Failed', message: errorMessage, type: 'error' });
         },
     });
 
@@ -117,11 +129,11 @@ export default function VerifyRegisterOTPScreen() {
         onSuccess: () => {
             setCountdown(120);
             setCanResend(false);
-            Alert.alert('Success', 'OTP resent successfully!');
+            showStyledAlert({ title: 'Success', message: 'OTP resent successfully!', type: 'success' });
         },
         onError: (error: any) => {
             const errorMessage = error?.message || 'Failed to resend OTP. Please try again.';
-            Alert.alert('Resend Failed', errorMessage);
+            showStyledAlert({ title: 'Resend Failed', message: errorMessage, type: 'error' });
         },
     });
 
@@ -142,6 +154,7 @@ export default function VerifyRegisterOTPScreen() {
     };
 
     return (
+        <>
         <View className="flex-1 bg-background-default">
             {/* Background Gradient Overlay */}
             <View className="absolute inset-0">
@@ -320,5 +333,14 @@ export default function VerifyRegisterOTPScreen() {
                 </ScrollView>
             </SafeAreaView>
         </View>
+        <StyledAlert
+            visible={alertState.visible}
+            type={alertState.type}
+            title={alertState.title}
+            message={alertState.message}
+            buttons={alertState.buttons}
+            onDismiss={() => setAlertState(s => ({ ...s, visible: false }))}
+        />
+        </>
     );
 }

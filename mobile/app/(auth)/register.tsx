@@ -1,14 +1,13 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
 	Text,
 	TextInput,
 	TouchableOpacity,
 	View,
-	Alert,
 	Image,
 	ScrollView,
 	ActivityIndicator,
-    ToastAndroid,
+	ToastAndroid,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome } from '@expo/vector-icons';
 import { auth } from '@/services/UserAuth';
 import * as SecureStore from 'expo-secure-store';
+import StyledAlert from '@/components/ui/StyledAlert';
 
 const REGISTRATION_EMAIL_KEY = 'registration_email';
 const REGISTRATION_PASSWORD_KEY = 'registration_password';
@@ -35,6 +35,29 @@ interface RegisterFormData {
 export default function RegisterScreen() {
 	const [showPassword, setShowPassword] = useState<boolean>(false);
 	const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
+
+	const [alertState, setAlertState] = useState<{
+		visible: boolean;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		title: string;
+		message?: string;
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}>({ visible: false, title: '' });
+
+	const showStyledAlert = (opts: {
+		title: string;
+		message?: string;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}) => {
+		setAlertState({
+			visible: true,
+			type: opts.type || 'info',
+			title: opts.title,
+			message: opts.message,
+			buttons: opts.buttons || [{ text: 'OK' }],
+		});
+	};
 
 	const {
 		control,
@@ -84,7 +107,7 @@ export default function RegisterScreen() {
 		},
 		onError: (error: any) => {
 			const errorMessage = error?.message;
-			Alert.alert('Registration Failed', errorMessage);
+			showStyledAlert({ title: 'Registration Failed', message: errorMessage, type: 'error' });
 		},
 	});
 
@@ -102,6 +125,7 @@ export default function RegisterScreen() {
 	const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
 	return (
+		<>
 		<View className="flex-1">
 			{/* Background Gradient Overlay */}
 			<View className="absolute inset-0">
@@ -417,5 +441,16 @@ export default function RegisterScreen() {
 				</ScrollView>
 			</SafeAreaView>
 		</View>
+
+		{/* Styled Alert */}
+		<StyledAlert
+			visible={alertState.visible}
+			type={alertState.type}
+			title={alertState.title}
+			message={alertState.message}
+			buttons={alertState.buttons}
+			onDismiss={() => setAlertState(s => ({ ...s, visible: false }))}
+		/>
+		</>
 	);
 }

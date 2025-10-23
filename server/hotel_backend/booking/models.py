@@ -52,6 +52,10 @@ class Bookings(models.Model):
     number_of_guests = models.PositiveIntegerField(default=1)
     is_discounted = models.BooleanField(default=False)
     has_food_order = models.BooleanField(default=False)
+    
+    # PayMongo integration fields
+    paymongo_source_id = models.CharField(max_length=255, null=True, blank=True, help_text='PayMongo source ID')
+    paymongo_payment_id = models.CharField(max_length=255, null=True, blank=True, help_text='PayMongo payment ID')
 
     def apply_pwd_senior_discount(self):
         from user_roles.models import PWD_SENIOR_DISCOUNT_PERCENT

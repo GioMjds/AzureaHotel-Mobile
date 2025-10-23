@@ -867,11 +867,7 @@ export default function BookingDetailsScreen() {
 											variant="montserrat-bold"
 											className="text-feedback-info-dark text-base"
 										>
-											{pesoFormatter.format(
-												parseInt(
-													bookingData.down_payment
-												)
-											)}
+											{bookingData.down_payment}
 										</StyledText>
 									</View>
 								)}

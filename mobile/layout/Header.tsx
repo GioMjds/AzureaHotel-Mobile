@@ -114,81 +114,65 @@ const Header = ({ headerLabel }: HeaderProps) => {
 					animationType="fade"
 				>
 					<Pressable style={{ flex: 1 }} onPress={closeDropdown}>
-						<View className="absolute right-4 top-20 bg-background-elevated rounded-2xl p-4 shadow-lg border border-border-subtle">
-							<View className="flex-row items-center mb-3">
+						{/* Enlarged dropdown container: wider, more padding */}
+						<View className="absolute right-4 top-20 bg-background-elevated rounded-3xl p-6 shadow-lg border border-border-subtle w-64">
+							<View className="flex-row items-center mb-4">
 								<View className="flex-1">
 									<StyledText
 										variant="montserrat-bold"
-										className="text-text-primary text-xl"
+										className="text-text-primary text-lg"
 									>
 										{`${guest.first_name} ${guest.last_name}`}{' '}
-										{guest.is_verified ===
-											IsVerified.VERIFIED && (
+										{guest.is_verified === IsVerified.VERIFIED && (
 											<FontAwesome
 												name="check-circle"
-												size={20}
+												size={18}
 												color="#34D399"
-												className="ml-1"
+												style={{ marginLeft: 6 }}
 											/>
 										)}
 									</StyledText>
 									<StyledText
 										variant="montserrat-regular"
-										className="text-text-muted text-sm"
+										className="text-text-muted text-sm mt-1"
 									>
 										{guest.email}
 									</StyledText>
 								</View>
 							</View>
 
-							<View className="space-y-2">
+							<View className="space-y-3">
 								<TouchableOpacity
-									activeOpacity={0.7}
-									onPress={() =>
-										handleNavigateTo(
-											'/(profile)/settings/change-password'
-										)
-									}
-									className="py-2 px-4 rounded-lg bg-interactive-ghost-hover"
+									activeOpacity={0.8}
+									onPress={() => handleNavigateTo('/(profile)/settings/change-password')}
+									className="flex-row items-center py-3 px-3 rounded-lg bg-interactive-ghost-hover"
 								>
-									<StyledText
-										variant="montserrat-regular"
-										className="text-text-primary"
-									>
+									<FontAwesome name="lock" size={18} color="#6F00FF" style={{ width: 28 }} />
+									<StyledText variant="montserrat-regular" className="text-text-primary ml-3">
 										Change Password
 									</StyledText>
 								</TouchableOpacity>
 
-								{guest.is_verified === 'pending' ||
-									((guest.is_verified === 'unverified' ||
-										guest.is_verified === 'rejected') && (
-										<TouchableOpacity
-											activeOpacity={0.7}
-											onPress={() =>
-												handleNavigateTo(
-													'/(profile)/settings/verify-account'
-												)
-											}
-											className="py-2 px-4 rounded-lg bg-interactive-ghost-hover"
-										>
-											<StyledText
-												variant="montserrat-regular"
-												className="text-text-primary"
-											>
-												Verify Account
-											</StyledText>
-										</TouchableOpacity>
-									))}
+								{(guest.is_verified === 'pending' || guest.is_verified === 'unverified' || guest.is_verified === 'rejected') && (
+									<TouchableOpacity
+										activeOpacity={0.8}
+										onPress={() => handleNavigateTo('/(profile)/settings/verify-account')}
+										className="flex-row items-center py-3 px-3 rounded-lg bg-interactive-ghost-hover"
+									>
+										<FontAwesome name="id-card" size={18} color="#3B0270" style={{ width: 28 }} />
+										<StyledText variant="montserrat-regular" className="text-text-primary ml-3">
+											Verify Account
+										</StyledText>
+									</TouchableOpacity>
+								)}
 
 								<TouchableOpacity
-									activeOpacity={0.7}
+									activeOpacity={0.8}
 									onPress={openLogoutAlert}
-									className="py-2 px-4 rounded-lg bg-interactive-ghost-hover"
+									className="flex-row items-center py-3 px-3 rounded-lg bg-interactive-ghost-hover"
 								>
-									<StyledText
-										variant="montserrat-regular"
-										className="text-text-primary"
-									>
+									<FontAwesome name="sign-out" size={18} color="#EF4444" style={{ width: 28 }} />
+									<StyledText variant="montserrat-regular" className="text-text-primary ml-3">
 										Log Out
 									</StyledText>
 								</TouchableOpacity>

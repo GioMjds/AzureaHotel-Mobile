@@ -20,7 +20,6 @@ import {
 	TouchableOpacity,
 	ScrollView,
 	ActivityIndicator,
-	Alert,
 	Image,
 } from 'react-native';
 import useAuthStore from '@/store/AuthStore';
@@ -28,6 +27,7 @@ import { GetAreaById, GetAreaBookings } from '@/types/Area.types';
 import { calculateAreaPricing } from '@/utils/pricing';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { booking } from '@/services/Booking';
+import StyledAlert from '@/components/ui/StyledAlert';
 
 interface BookingsByDate {
 	[date: string]: {
@@ -47,6 +47,30 @@ export default function AreaBookingCalendar() {
 	const [bookingsByDate, setBookingsByDate] = useState<BookingsByDate>({});
 	const [price, setPrice] = useState<number>(0);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+	// Styled alert state/helper
+	const [alertState, setAlertState] = useState<{
+		visible: boolean;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		title: string;
+		message?: string;
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}>({ visible: false, title: '' });
+
+	const showStyledAlert = (opts: {
+		title: string;
+		message?: string;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}) => {
+		setAlertState({
+			visible: true,
+			type: opts.type || 'info',
+			title: opts.title,
+			message: opts.message,
+			buttons: opts.buttons || [{ text: 'OK' }],
+		});
+	};
 
 	const { user } = useAuthStore();
 	const { areaId } = useLocalSearchParams<{ areaId: string }>();
@@ -173,10 +197,7 @@ export default function AreaBookingCalendar() {
 
 	const handleDateClick = (date: Date) => {
 		if (isDateUnavailable(date)) {
-			Alert.alert(
-				'Date Unavailable',
-				'This date is not available for booking.'
-			);
+			showStyledAlert({ title: 'Date Unavailable', message: 'This date is not available for booking.', type: 'warning' });
 			return;
 		}
 		setSelectedDate(date);
@@ -240,18 +261,12 @@ export default function AreaBookingCalendar() {
 
 	const handleProceed = () => {
 		if (!selectedDate || !areaData) {
-			Alert.alert(
-				'Selection Required',
-				'Please select a date to proceed.'
-			);
+			showStyledAlert({ title: 'Selection Required', message: 'Please select a date to proceed.', type: 'warning' });
 			return;
 		}
 
 		if (isBookingLocked) {
-			Alert.alert(
-				'Booking Limit Reached',
-				'Daily booking limit reached. Verify your ID to book multiple stays.'
-			);
+			showStyledAlert({ title: 'Booking Limit Reached', message: 'Daily booking limit reached. Verify your ID to book multiple stays.', type: 'warning' });
 			return;
 		}
 
@@ -606,6 +621,16 @@ export default function AreaBookingCalendar() {
 					</TouchableOpacity>
 				</View>
 			</ScrollView>
+
+			{/* Global Styled Alert */}
+			<StyledAlert
+				visible={alertState.visible}
+				type={alertState.type}
+				title={alertState.title}
+				message={alertState.message}
+				buttons={alertState.buttons}
+				onDismiss={() => setAlertState((s) => ({ ...s, visible: false }))}
+			/>
 		</SafeAreaView>
 	);
 };

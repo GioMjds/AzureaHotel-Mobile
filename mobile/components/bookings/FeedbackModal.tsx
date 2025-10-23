@@ -4,7 +4,6 @@ import {
 	Modal,
 	TextInput,
 	ScrollView,
-	Alert,
 	ActivityIndicator,
 	Dimensions,
 	Keyboard,
@@ -16,6 +15,7 @@ import { UserBooking } from '@/types/Bookings.types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { booking } from '@/services/Booking';
 import StyledText from '@/components/ui/StyledText';
+import StyledAlert from '@/components/ui/StyledAlert';
 
 interface FeedbackModalProps {
 	visible: boolean;
@@ -63,11 +63,10 @@ const FeedbackModal = ({
 				queryKey: ['booking-review', bookingItem.id],
 			});
 			queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
-			Alert.alert('Success', 'Thank you for your feedback!');
-			handleClose();
+			showStyledAlert({ type: 'success', title: 'Success', message: 'Thank you for your feedback!', buttons: [{ text: 'OK', onPress: () => handleClose() }] });
 		},
 		onError: (error) => {
-			Alert.alert('Error', 'Failed to submit review. Please try again.');
+			showStyledAlert({ type: 'error', title: 'Error', message: 'Failed to submit review. Please try again.', buttons: [{ text: 'OK' }] });
 			console.error('Review submission error:', error);
 		},
 		onSettled: () => {
@@ -77,24 +76,42 @@ const FeedbackModal = ({
 
 	const handleSubmit = () => {
 		if (rating === 0) {
-			Alert.alert(
-				'Rating Required',
-				'Please select a rating before submitting.'
-			);
+				showStyledAlert({ title: 'Rating Required', message: 'Please select a rating before submitting.', type: 'warning' });
 			return;
 		}
 
 		if (comment.length > 500) {
-			Alert.alert(
-				'Comment Too Long',
-				'Please keep your review under 500 characters.'
-			);
+			showStyledAlert({ title: 'Comment Too Long', message: 'Please keep your review under 500 characters.', type: 'warning' });
 			return;
 		}
 
 		setIsSubmitting(true);
 		Keyboard.dismiss();
 		submitReview({ rating, review_text: comment });
+	};
+
+	// Styled alert state/helper
+	const [alertState, setAlertState] = useState<{
+		visible: boolean;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		title: string;
+		message?: string;
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}>({ visible: false, title: '' });
+
+	const showStyledAlert = (opts: {
+		title: string;
+		message?: string;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}) => {
+		setAlertState({
+			visible: true,
+			type: opts.type || 'info',
+			title: opts.title,
+			message: opts.message,
+			buttons: opts.buttons || [{ text: 'OK' }],
+		});
 	};
 
 	const handleClose = () => {
@@ -104,6 +121,7 @@ const FeedbackModal = ({
 	};
 
 	return (
+		<>
 		<Modal
 			visible={visible}
 			animationType="fade"
@@ -315,6 +333,17 @@ const FeedbackModal = ({
 				</View>
 			</View>
 		</Modal>
+
+		{/* Styled Alert */}
+		<StyledAlert
+			visible={alertState.visible}
+			type={alertState.type}
+			title={alertState.title}
+			message={alertState.message}
+			buttons={alertState.buttons}
+			onDismiss={() => setAlertState((s) => ({ ...s, visible: false }))}
+		/>
+		</>
 	);
 };
 

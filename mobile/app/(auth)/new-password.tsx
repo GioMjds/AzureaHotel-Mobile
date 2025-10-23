@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
 	Text,
 	TextInput,
 	TouchableOpacity,
 	View,
-	Alert,
 	ScrollView,
 	ActivityIndicator,
 	ToastAndroid,
@@ -15,6 +14,7 @@ import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useForgotPassword } from '@/hooks/useForgotPassword';
+import StyledAlert from '@/components/ui/StyledAlert';
 
 interface NewPasswordFormData {
 	newPassword: string;
@@ -43,21 +43,42 @@ export default function NewPasswordScreen() {
 
 	const watchNewPassword = watch('newPassword');
 
+	const [alertState, setAlertState] = useState<{
+		visible: boolean;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		title: string;
+		message?: string;
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}>({ visible: false, title: '' });
+
+	const showStyledAlert = (opts: {
+		title: string;
+		message?: string;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}) => {
+		setAlertState({
+			visible: true,
+			type: opts.type || 'info',
+			title: opts.title,
+			message: opts.message,
+			buttons: opts.buttons || [{ text: 'OK' }],
+		});
+	};
+
 	// Load stored email on mount
 	useEffect(() => {
 		const loadEmail = async () => {
 			const storedEmail = await getStoredEmail();
 			if (!storedEmail) {
-				Alert.alert(
-					'Session Expired',
-					'Please start the password reset process again.',
-					[
-						{
-							text: 'OK',
-							onPress: () => router.replace('/(auth)/forgot-pass'),
-						},
-					]
-				);
+				showStyledAlert({
+					title: 'Session Expired',
+					message: 'Please start the password reset process again.',
+					buttons: [
+						{ text: 'OK', onPress: () => router.replace('/(auth)/forgot-pass') },
+					],
+					type: 'warning',
+				});
 			} else {
 				setEmail(storedEmail);
 			}
@@ -67,11 +88,10 @@ export default function NewPasswordScreen() {
 	}, [getStoredEmail]);
 
 	const onSubmit: SubmitHandler<NewPasswordFormData> = async (data) => {
-		if (!email) {
-			Alert.alert('Error', 'Email not found. Please restart the process.');
-			router.replace('/(auth)/forgot-pass');
-			return;
-		}
+			if (!email) {
+				showStyledAlert({ title: 'Error', message: 'Email not found. Please restart the process.', type: 'error', buttons: [{ text: 'OK', onPress: () => router.replace('/(auth)/forgot-pass') }] });
+				return;
+			}
 
 		await resetPasswordMutation.mutateAsync(
 			{
@@ -82,23 +102,21 @@ export default function NewPasswordScreen() {
 			{
 				onSuccess: () => {
 					ToastAndroid.show('Password reset successfully', ToastAndroid.LONG);
-					Alert.alert(
-						'Success',
-						'Your password has been reset successfully. Please login with your new password.',
-						[
-							{
-								text: 'Login',
-								onPress: () => router.replace('/(auth)/login'),
-							},
-						]
-					);
+					showStyledAlert({
+						title: 'Success',
+						message: 'Your password has been reset successfully. Please login with your new password.',
+						buttons: [
+							{ text: 'Login', onPress: () => router.replace('/(auth)/login') },
+						],
+						type: 'success',
+					});
 				},
 				onError: (error: any) => {
 					const errorMessage =
 						error?.response?.data?.error ||
 						error?.message ||
 						'Failed to reset password';
-					Alert.alert('Error', errorMessage);
+					showStyledAlert({ title: 'Error', message: errorMessage, type: 'error' });
 				},
 			}
 		);
@@ -108,6 +126,7 @@ export default function NewPasswordScreen() {
 	const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
 	return (
+		<>
 		<View className="flex-1 bg-background-default">
 			{/* Background Gradient Overlay */}
 			<View className="absolute inset-0">
@@ -368,5 +387,16 @@ export default function NewPasswordScreen() {
 				</ScrollView>
 			</SafeAreaView>
 		</View>
+
+		{/* Styled Alert */}
+		<StyledAlert
+			visible={alertState.visible}
+			type={alertState.type}
+			title={alertState.title}
+			message={alertState.message}
+			buttons={alertState.buttons}
+			onDismiss={() => setAlertState(s => ({ ...s, visible: false }))}
+		/>
+		</>
 	);
 }

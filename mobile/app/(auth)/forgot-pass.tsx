@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
 	Text,
 	TextInput,
 	TouchableOpacity,
 	View,
-	Alert,
 	ScrollView,
 	ActivityIndicator,
 	Modal,
@@ -16,6 +15,7 @@ import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useForgotPassword } from '@/hooks/useForgotPassword';
+import StyledAlert from '@/components/ui/StyledAlert';
 
 interface EmailFormData {
 	email: string;
@@ -29,6 +29,29 @@ export default function ForgotPassScreen() {
 	const [email, setEmail] = useState<string>('');
 	const [showOtpModal, setShowOtpModal] = useState<boolean>(false);
 	const [resendTimer, setResendTimer] = useState<number>(0);
+
+	const [alertState, setAlertState] = useState<{
+		visible: boolean;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		title: string;
+		message?: string;
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}>({ visible: false, title: '' });
+
+	const showStyledAlert = (opts: {
+		title: string;
+		message?: string;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}) => {
+		setAlertState({
+			visible: true,
+			type: opts.type || 'info',
+			title: opts.title,
+			message: opts.message,
+			buttons: opts.buttons || [{ text: 'OK' }],
+		});
+	};
 
 	const { forgotPasswordMutation, verifyResetOtpMutation } = useForgotPassword();
 
@@ -79,7 +102,7 @@ export default function ForgotPassScreen() {
 			},
 			onError: (error: any) => {
 				const errorMessage = error?.response?.data?.error || error?.message || 'Failed to send reset OTP';
-				Alert.alert('Error', errorMessage);
+				showStyledAlert({ title: 'Error', message: errorMessage, type: 'error' });
 			},
 		});
 	};
@@ -96,7 +119,7 @@ export default function ForgotPassScreen() {
 				},
 				onError: (error: any) => {
 					const errorMessage = error?.response?.data?.error || error?.message || 'Invalid OTP';
-					Alert.alert('Verification Failed', errorMessage);
+					showStyledAlert({ title: 'Verification Failed', message: errorMessage, type: 'error' });
 				},
 			}
 		);
@@ -112,12 +135,13 @@ export default function ForgotPassScreen() {
 			},
 			onError: (error: any) => {
 				const errorMessage = error?.response?.data?.error || error?.message || 'Failed to resend OTP';
-				Alert.alert('Error', errorMessage);
+				showStyledAlert({ title: 'Error', message: errorMessage, type: 'error' });
 			},
 		});
 	};
 
 	return (
+		<>
 		<View className="flex-1 bg-background-default">
 			{/* Background Gradient Overlay */}
 			<View className="absolute inset-0">
@@ -372,5 +396,16 @@ export default function ForgotPassScreen() {
 				</View>
 			</Modal>
 		</View>
+
+		{/* Styled Alert */}
+		<StyledAlert
+			visible={alertState.visible}
+			type={alertState.type}
+			title={alertState.title}
+			message={alertState.message}
+			buttons={alertState.buttons}
+			onDismiss={() => setAlertState(s => ({ ...s, visible: false }))}
+		/>
+		</>
 	);
 }

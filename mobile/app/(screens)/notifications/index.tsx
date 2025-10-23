@@ -1,10 +1,11 @@
+import React, { useState } from 'react';
 import { 
     View, 
     FlatList, 
     TouchableOpacity, 
     ActivityIndicator,
     RefreshControl,
-    Alert
+    
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -13,6 +14,7 @@ import StyledText from "@/components/ui/StyledText";
 import { useUserNotifications } from "@/hooks/useUserNotifications";
 import { LinearGradient } from "expo-linear-gradient";
 import NotificationItem from "@/components/notifications/NotificationItem";
+import StyledAlert from '@/components/ui/StyledAlert';
 
 export default function NotificationScreen() {
     const router = useRouter();
@@ -47,22 +49,43 @@ export default function NotificationScreen() {
 
     const handleMarkAllAsRead = () => {
         if (unreadCount === 0) {
-            Alert.alert('No Unread Notifications', 'All notifications are already marked as read.');
+            showStyledAlert({ title: 'No Unread Notifications', message: 'All notifications are already marked as read.' });
             return;
         }
 
-        Alert.alert(
-            'Mark All as Read',
-            'Are you sure you want to mark all notifications as read?',
-            [
+        showStyledAlert({
+            title: 'Mark All as Read',
+            message: 'Are you sure you want to mark all notifications as read?',
+            type: 'warning',
+            buttons: [
                 { text: 'Cancel', style: 'cancel' },
-                { 
-                    text: 'Mark All', 
-                    onPress: () => markAllAsRead(),
-                    style: 'default'
-                }
+                { text: 'Mark All', onPress: () => markAllAsRead(), style: 'default' }
             ]
-        );
+        });
+    };
+
+
+    const [alertState, setAlertState] = useState<{
+        visible: boolean;
+        type?: 'success' | 'error' | 'warning' | 'info';
+        title: string;
+        message?: string;
+        buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+    }>({ visible: false, title: '' });
+
+    const showStyledAlert = (opts: {
+        title: string;
+        message?: string;
+        type?: 'success' | 'error' | 'warning' | 'info';
+        buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+    }) => {
+        setAlertState({
+            visible: true,
+            type: opts.type || 'info',
+            title: opts.title,
+            message: opts.message,
+            buttons: opts.buttons || [{ text: 'OK' }],
+        });
     };
 
     if (isLoading) {
@@ -224,6 +247,16 @@ export default function NotificationScreen() {
                     }}
                 />
             )}
+
+            {/* Styled alert rendered here so showStyledAlert works */}
+            <StyledAlert
+                visible={alertState.visible}
+                type={alertState.type}
+                title={alertState.title}
+                message={alertState.message}
+                buttons={alertState.buttons}
+                onDismiss={() => setAlertState(s => ({ ...s, visible: false }))}
+            />
         </View>
     );
 }

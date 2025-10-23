@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Alert, Linking } from 'react-native';
+import { Linking } from 'react-native';
 import { Paths, File as FileSystemFile, Directory } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { booking } from '@/services/Booking';
@@ -54,48 +54,31 @@ export const useGenerateEReceipt = () => {
                         console.log('E-Receipt saved successfully:', pdfFile.uri);
 
                         // Show success message with file location
-                        Alert.alert(
-                            '✓ E-Receipt Downloaded',
-                            `Your e-receipt has been successfully downloaded and saved to your device.\n\n📄 File: ${filename}\n📁 Location: Documents/receipts\n\nYou can access it anytime from your Files app.`,
-                            [
-                                {
-                                    text: 'Share File',
-                                    onPress: async () => {
-                                        try {
-                                            const available = await Sharing.isAvailableAsync();
-                                            if (available) {
-                                                await Sharing.shareAsync(pdfFile.uri, {
-                                                    mimeType: 'application/pdf',
-                                                    dialogTitle: 'Share E-Receipt',
-                                                    UTI: 'com.adobe.pdf',
-                                                });
-                                                console.log('E-Receipt shared successfully');
-                                            } else {
-                                                Alert.alert('Info', 'Sharing is not available on this device');
-                                            }
-                                        } catch (error) {
-                                            console.error('Error sharing file:', error);
-                                            Alert.alert('Share Error', 'Could not share the file');
-                                        }
-                                    }
-                                },
-                                {
-                                    text: 'OK',
-                                    onPress: () => console.log('E-Receipt saved'),
-                                    style: 'default'
-                                }
-                            ]
-                        );
+                        // Note: Hooks cannot render UI directly. Use a global alert provider
+                        // or call a callback to surface UI alerts. For now, log and attempt to share.
+                        console.log('✓ E-Receipt Downloaded', `File: ${filename}`, pdfFile.uri);
+                        try {
+                            const available = await Sharing.isAvailableAsync();
+                            if (available) {
+                                await Sharing.shareAsync(pdfFile.uri, {
+                                    mimeType: 'application/pdf',
+                                    dialogTitle: 'Share E-Receipt',
+                                    UTI: 'com.adobe.pdf',
+                                });
+                                console.log('E-Receipt shared successfully');
+                            } else {
+                                console.warn('Sharing is not available on this device');
+                            }
+                        } catch (error) {
+                            console.error('Error sharing file:', error);
+                            console.warn('Could not share the file');
+                        }
 
                     } catch (error: any) {
                         console.error('PDF save/share error:', error);
                         
                         // Show user-friendly error message
-                        Alert.alert(
-                            'E-Receipt Processing Error',
-                            `Unable to save receipt locally: ${error.message}\n\nThe receipt was generated successfully on the server. Please check your email or contact support.`,
-                            [{ text: 'OK' }]
-                        );
+                        console.error('E-Receipt Processing Error:', error.message);
                         
                         throw error;
                     }
@@ -113,7 +96,7 @@ export const useGenerateEReceipt = () => {
                     const supported = await Linking.canOpenURL(url);
                     if (supported) {
                         await Linking.openURL(url);
-                        Alert.alert('E-Receipt', 'Opening PDF viewer...');
+                        console.log('E-Receipt: Opening PDF viewer...');
                         return;
                     }
                 }
@@ -169,17 +152,11 @@ export const useGenerateEReceipt = () => {
                 }
 
                 // Fallback: Show success message if we couldn't process the PDF
-                Alert.alert(
-                    'E-Receipt Generated',
-                    'Your e-receipt has been generated successfully. Please check your email or downloads folder.'
-                );
+                console.log('E-Receipt Generated: check email or downloads folder.');
 
             } catch (err) {
                 console.error('E-Receipt handling error:', err);
-                Alert.alert(
-                    'E-Receipt',
-                    'E-Receipt was generated but could not be processed. It may have been sent to your email.'
-                );
+                console.warn('E-Receipt was generated but could not be processed. It may have been sent to your email.');
             }
         },
         onError: (error: any) => {
@@ -188,14 +165,14 @@ export const useGenerateEReceipt = () => {
                           error?.message || 
                           'Failed to generate e-receipt';
             
-            Alert.alert('E-Receipt Error', message);
+            console.error('E-Receipt Error', message);
             console.error('E-Receipt generation error:', error);
         }
     });
 
     const generate = useCallback(async (bookingId: string) => {
         if (!bookingId) {
-            Alert.alert('E-Receipt', 'Invalid booking ID');
+            console.warn('E-Receipt: Invalid booking ID');
             return;
         }
 

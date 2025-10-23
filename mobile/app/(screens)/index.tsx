@@ -21,7 +21,7 @@ export default function BookingsScreen() {
     const [selectedBookingForFeedback, setSelectedBookingForFeedback] = useState<any>(null);
 
     const { 
-        data, 
+        data,  
         isLoading, 
         error, 
         refetch, 
@@ -74,7 +74,7 @@ export default function BookingsScreen() {
 
     if (isLoading) {
         return (
-            <View className="flex-1 bg-background-DEFAULT">
+            <View className="flex-1 bg-background">
                 <View className="flex-1 justify-center items-center px-6">
                     <View className="bg-background-elevated rounded-2xl p-8 items-center shadow-sm border border-border-subtle">
                         <ActivityIndicator size="large" color="#6F00FF" />
@@ -92,7 +92,7 @@ export default function BookingsScreen() {
 
     if (error) {
         return (
-            <View className="flex-1 bg-background-DEFAULT">
+            <View className="flex-1 bg-background">
                 <View className="flex-1 justify-center items-center px-6">
                     <View className="bg-background-elevated rounded-2xl p-8 items-center shadow-sm border border-border-subtle">
                         <Ionicons name="alert-circle" size={48} color="#dc2626" />

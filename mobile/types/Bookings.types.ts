@@ -22,14 +22,16 @@ export interface UserBooking {
     created_at: string;
     updated_at: string;
     payment_method: string;
-    payment_proof: string;
+    // payment_proof removed (no longer required for GCash). We persist numeric down_payment.
     payment_date: string;
-    down_payment: string;
+    down_payment: number | string | null;
     phone_number: string;
     total_amount: number;
     original_price: number;
     discount_percent: number;
     discounted_price: number | null;
+    paymongo_source_id: string | null;
+    paymongo_payment_id: string | null;
 }
 
 export interface UserBookingResponse {

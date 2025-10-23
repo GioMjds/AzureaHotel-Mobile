@@ -68,11 +68,9 @@ class BookingService {
 		formData.append('numberOfGuests', reservationData.numberOfGuests.toString());
 		formData.append('paymentMethod', reservationData.paymentMethod);
 
-		if (
-			reservationData.paymentMethod === 'gcash' &&
-			reservationData.paymentProof
-		) {
-			formData.append('paymentProof', reservationData.paymentProof);
+		// If reservationData includes a downPayment (numeric), send it to the server.
+		if ((reservationData as any).downPayment !== undefined) {
+			formData.append('downPayment', String((reservationData as any).downPayment));
 		}
 
         return await httpClient.post(BookingRoutes.BOOKINGS, formData, {
