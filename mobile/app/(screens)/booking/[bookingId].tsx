@@ -79,7 +79,6 @@ export default function BookingDetailsScreen() {
 			});
 			queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
 
-			// Show styled success alert
 			showStyledAlert({
 				type: 'success',
 				title: 'Cancellation Submitted',
@@ -160,8 +159,7 @@ export default function BookingDetailsScreen() {
 	};
 
 	const calculateNights = () => {
-		if (!bookingData?.check_in_date || !bookingData?.check_out_date)
-			return 0;
+		if (!bookingData?.check_in_date || !bookingData?.check_out_date) return 0;
 		const checkIn = new Date(bookingData.check_in_date);
 		const checkOut = new Date(bookingData.check_out_date);
 		const diffTime = Math.abs(checkOut.getTime() - checkIn.getTime());
@@ -287,13 +285,13 @@ export default function BookingDetailsScreen() {
 		);
 	}
 
-	const isVenueBooking = bookingData.is_venue_booking;
+	const isAreaBooking = bookingData.is_venue_booking;
 
-	const propertyName = isVenueBooking
+	const propertyName = isAreaBooking
 		? bookingData.area_details?.area_name
 		: bookingData.room_details?.room_name;
 
-	const propertyImage = isVenueBooking
+	const propertyImage = isAreaBooking
 		? bookingData.area_details?.images?.[0]?.area_image
 		: bookingData.room_details?.images?.[0]?.room_image;
 
@@ -329,7 +327,7 @@ export default function BookingDetailsScreen() {
 										variant="montserrat-bold"
 										className="text-text-inverse text-xs uppercase tracking-wide"
 									>
-										{isVenueBooking ? 'Area' : 'Room'}
+										{isAreaBooking ? 'Area' : 'Room'}
 									</StyledText>
 								</View>
 							</View>
@@ -373,7 +371,7 @@ export default function BookingDetailsScreen() {
 								</StyledText>
 							</View>
 							<View className="h-8 w-px bg-border-subtle" />
-							{!isVenueBooking && (
+							{!isAreaBooking && (
 								<View className="items-center flex-1">
 									<StyledText
 										variant="montserrat-bold"
@@ -385,7 +383,7 @@ export default function BookingDetailsScreen() {
 										variant="montserrat-regular"
 										className="text-text-secondary text-xs"
 									>
-										{isVenueBooking ? 'Days' : 'Nights'}
+										{isAreaBooking ? 'Days' : 'Nights'}
 									</StyledText>
 								</View>
 							)}
@@ -517,7 +515,7 @@ export default function BookingDetailsScreen() {
 									variant="playfair-bold"
 									className="text-text-primary text-2xl"
 								>
-									{isVenueBooking
+									{isAreaBooking
 										? 'Event Schedule'
 										: 'Stay Duration'}
 								</StyledText>
@@ -535,7 +533,7 @@ export default function BookingDetailsScreen() {
 											variant="montserrat-bold"
 											className="text-text-primary text-base ml-3"
 										>
-											{isVenueBooking
+											{isAreaBooking
 												? 'Start Date'
 												: 'Check-in'}
 										</StyledText>
@@ -551,14 +549,6 @@ export default function BookingDetailsScreen() {
 													)
 												: 'N/A'}
 										</StyledText>
-										<StyledText
-											variant="montserrat-regular"
-											className="text-text-muted text-sm"
-										>
-											{isVenueBooking
-												? 'Event begins'
-												: 'After 3:00 PM'}
-										</StyledText>
 									</View>
 								</View>
 
@@ -573,7 +563,7 @@ export default function BookingDetailsScreen() {
 											variant="montserrat-bold"
 											className="text-text-primary text-base ml-3"
 										>
-											{isVenueBooking
+											{isAreaBooking
 												? 'End Date'
 												: 'Check-out'}
 										</StyledText>
@@ -588,14 +578,6 @@ export default function BookingDetailsScreen() {
 														bookingData.check_out_date
 													)
 												: 'N/A'}
-										</StyledText>
-										<StyledText
-											variant="montserrat-regular"
-											className="text-text-muted text-sm"
-										>
-											{isVenueBooking
-												? 'Event ends'
-												: 'Before 12:00 PM'}
 										</StyledText>
 									</View>
 								</View>
@@ -798,13 +780,13 @@ export default function BookingDetailsScreen() {
 							</View>
 
 							<View className="space-y-4">
-								{!isVenueBooking && (
+								{!isAreaBooking && (
 									<View className="flex-row justify-between items-center py-3 border-b border-border-subtle">
 										<StyledText
 											variant="montserrat-regular"
 											className="text-text-secondary text-base"
 										>
-											{!isVenueBooking &&
+											{!isAreaBooking &&
 												`Room Rate × ${calculateNights()} night${calculateNights() !== 1 ? 's' : ''}`}
 										</StyledText>
 										<StyledText
@@ -867,7 +849,7 @@ export default function BookingDetailsScreen() {
 											variant="montserrat-bold"
 											className="text-feedback-info-dark text-base"
 										>
-											{bookingData.down_payment}
+											{pesoFormatter.format(bookingData.down_payment)}
 										</StyledText>
 									</View>
 								)}

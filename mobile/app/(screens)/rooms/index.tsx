@@ -47,7 +47,7 @@ export default function RoomsScreen() {
 				data={data?.data || []}
 				renderItem={({ item }) => <RoomCard item={item} />}
 				keyExtractor={(item: Room) => item.id.toString()}
-				contentContainerStyle={{ paddingTop: 16, paddingBottom: 110 }}
+				contentContainerStyle={{ paddingTop: 16, paddingBottom: 120 }}
 				showsVerticalScrollIndicator={false}
 				ListEmptyComponent={
 					<View className="flex-1 justify-center items-center py-20">

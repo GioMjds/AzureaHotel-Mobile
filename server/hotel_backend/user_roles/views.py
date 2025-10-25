@@ -116,7 +116,6 @@ def create_booking_notification(user, notification_type, booking_id, message):
 
 # Create your views here.
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def get_firebase_token(request):
     """
     Generate a Firebase custom token for the authenticated Django user.
@@ -171,7 +170,6 @@ def get_firebase_token(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def auth_logout(request):
     try:
         logout(request)
@@ -184,7 +182,6 @@ def auth_logout(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def change_password(request):
     try:
         user = request.user
@@ -201,6 +198,52 @@ def change_password(request):
         
         if not user.check_password(old_password):
             return Response({'error': 'Old password is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user.set_password(new_password)
+        user.save()
+        
+        return Response({
+            'message': 'Password changed successfully'
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+def check_old_password(request):
+    try:
+        user = request.user
+        old_password = request.data.get('old_password')
+        
+        if not old_password:
+            return Response({'error': 'Old password is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if user.check_password(old_password):
+            return Response({'message': 'Old password is correct'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Old password is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+def change_new_password(request):
+    try:
+        email = request.data.get('email')
+        new_password = request.data.get('new_password')
+        confirm_new_password = request.data.get('confirm_new_password')
+        
+        if not email or not new_password or not confirm_new_password:
+            return Response({'error': 'Email, new password, and confirm new password are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if new_password != confirm_new_password:
+            return Response({'error': 'New password and confirm new password do not match'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = CustomUsers.objects.filter(email=email).first()
+        
+        if not user:
+            return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if user.check_password(new_password):
+            return Response({'error': 'New password cannot be the same as the old password'}, status=status.HTTP_400_BAD_REQUEST)
         
         user.set_password(new_password)
         user.save()
@@ -720,7 +763,6 @@ def user_login(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def user_auth(request):
     try:
         user = request.user
@@ -753,7 +795,6 @@ def user_auth(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def user_details(request, id):
     try:
         user = CustomUsers.objects.get(id=id)
@@ -786,7 +827,6 @@ def change_profile_picture(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def update_user_details(request, id):
     try:
         if request.user.id != id:

@@ -8,7 +8,6 @@ from .validations.booking import validate_booking_request
 from django.utils import timezone
 from datetime import datetime
 from django.db.models import Sum
-from django.core.files.uploadedfile import InMemoryUploadedFile, UploadedFile
 import cloudinary.uploader
 import cloudinary
 import uuid

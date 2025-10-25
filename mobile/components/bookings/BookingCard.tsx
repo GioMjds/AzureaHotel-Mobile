@@ -7,7 +7,7 @@ import {
 	getStatusStyle,
 } from '@/utils/formatters';
 import StyledText from '@/components/ui/StyledText';
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 
 interface BookingCardProps {
 	item: UserBooking;
@@ -63,9 +63,9 @@ const BookingCard = ({
 					>
 						<StyledText
 							variant="montserrat-bold"
-							className="text-text-inverse text-xs capitalize"
+							className="text-text-inverse text-xs"
 						>
-							{item.status.replace('_', ' ')}
+							{item.status.replace('_', ' ').toUpperCase()}
 						</StyledText>
 					</View>
 				</View>
@@ -81,13 +81,21 @@ const BookingCard = ({
 					</View>
 
 					<View className="flex-1">
-						<StyledText
-							variant="playfair-bold"
-							className="text-2xl text-text-primary mb-1 leading-7"
-							numberOfLines={1}
-						>
-							{propertyName}
-						</StyledText>
+						<View className="flex-row items-center mb-1">
+							<FontAwesome
+								name={isAreaBooking ? 'map-marker' : 'bed'}
+								size={18}
+								color="#6F00FF"
+								style={{ marginRight: 8 }}
+							/>
+							<StyledText
+								variant="playfair-bold"
+								className="text-2xl text-text-primary leading-7"
+								numberOfLines={1}
+							>
+								{propertyName}
+							</StyledText>
+						</View>
 
 						<View className="mb-3">
 							<View className="flex-row items-center mb-1">

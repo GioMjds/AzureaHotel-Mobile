@@ -22,9 +22,8 @@ export interface UserBooking {
     created_at: string;
     updated_at: string;
     payment_method: string;
-    // payment_proof removed (no longer required for GCash). We persist numeric down_payment.
     payment_date: string;
-    down_payment: number | string | null;
+    down_payment: number | null;
     phone_number: string;
     total_amount: number;
     original_price: number;

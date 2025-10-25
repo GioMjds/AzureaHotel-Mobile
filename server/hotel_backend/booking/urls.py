@@ -25,6 +25,13 @@ urlpatterns = [
     path('bookings/<str:booking_id>/paymongo/create', views.create_paymongo_source, name='create_paymongo_source'),
     path('paymongo/sources/<str:source_id>/verify', views.verify_paymongo_source, name='verify_paymongo_source'),
     path('paymongo/webhook', views.paymongo_webhook, name='paymongo_webhook'),
+    # Enter amount flow for mobile deep-link + PayMongo
+    path('paymongo/enter_amount', views.enter_amount, name='paymongo_enter_amount'),
+    # Accept both with and without trailing slash to avoid 404 due to slash handling
+    path('paymongo/enter_amount/', views.enter_amount, name='paymongo_enter_amount_slash'),
+    path('paymongo/create_from_entry', views.create_from_entry, name='paymongo_create_from_entry'),
+    path('paymongo/redirect/success', views.paymongo_redirect_success, name='paymongo_redirect_success'),
+    path('paymongo/redirect/failed', views.paymongo_redirect_failed, name='paymongo_redirect_failed'),
     
     # For Food Ordering (fetch the API from the other system) -> CraveOn
     path('fetch_foods', views.fetch_foods, name='fetch_foods'),

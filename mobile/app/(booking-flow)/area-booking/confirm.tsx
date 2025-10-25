@@ -1,28 +1,28 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
 	View,
-	Text,
 	TouchableOpacity,
 	ScrollView,
 	ActivityIndicator,
 	Image,
 	TextInput,
-	Modal,
 } from 'react-native';
+import { queryClient } from '@/lib/queryClient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { format, parseISO } from 'date-fns';
 import { useForm, Controller } from 'react-hook-form';
 import useAuthStore from '@/store/AuthStore';
 import { booking } from '@/services/Booking';
-import { usePaymongo } from '@/hooks/usePayMongo';
 import { calculateAreaPricing } from '@/utils/pricing';
+import ConfirmBookingModal from '@/components/bookings/ConfirmBookingModal';
 import ConfirmingBooking from '@/components/ui/ConfirmingBooking';
 import { Area } from '@/types/Area.types';
 import StyledAlert from '@/components/ui/StyledAlert';
-import { queryClient } from '@/lib/queryClient';
+import StyledText from '@/components/ui/StyledText';
 
 interface FormData {
 	firstName: string;
@@ -33,6 +33,7 @@ interface FormData {
 	paymentMethod: 'gcash' | 'physical';
 }
 
+// Alert state interface
 interface AlertState {
 	visible: boolean;
 	type: 'success' | 'error' | 'warning' | 'info';
@@ -46,10 +47,11 @@ interface AlertState {
 }
 
 export default function ConfirmAreaBookingScreen() {
+	const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-	const [paymentPollingActive, setPaymentPollingActive] = useState<boolean>(false);
-	const [showDownPaymentModal, setShowDownPaymentModal] = useState<boolean>(false);
-	const [selectedDownPayment, setSelectedDownPayment] = useState<number | null>(null);
+	const [gcashProof, setGcashProof] = useState<string | null>(null);
+	const [gcashFile, setGcashFile] = useState<any>(null);
+	const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
 	
 	// Alert state
 	const [alertState, setAlertState] = useState<AlertState>({
@@ -62,14 +64,6 @@ export default function ConfirmAreaBookingScreen() {
 
 	const { user } = useAuthStore();
 	const router = useRouter();
-	const { createSourceAndRedirect, startPolling, stopPolling, paymentStatus } = usePaymongo();
-	
-	// Cleanup polling on unmount
-	useEffect(() => {
-		return () => {
-			stopPolling();
-		};
-	}, [stopPolling]);
 	
 	const { areaId, startTime, endTime, totalPrice } = useLocalSearchParams<{
 		areaId: string;
@@ -139,9 +133,47 @@ export default function ConfirmAreaBookingScreen() {
 
 	const formattedStartTime = formatDateTime(startTime);
 
+	const handlePickImage = async () => {
+		const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+		
+		if (status !== 'granted') {
+			showAlert(
+				'warning',
+				'Permission Required',
+				'Sorry, we need camera roll permissions to upload payment proof.',
+				[{ text: 'OK', style: 'default' }]
+			);
+			return;
+		}
+
+		const result = await ImagePicker.launchImageLibraryAsync({
+			mediaTypes: ['images'],
+			allowsEditing: true,
+			aspect: [4, 3],
+			quality: 0.8,
+		});
+
+		if (!result.canceled && result.assets[0]) {
+			const asset = result.assets[0];
+			setGcashProof(asset.uri);
+
+			const fileName = asset.uri.split('/').pop();
+			setGcashFile({
+				uri: asset.uri,
+				name: fileName,
+				type: 'image/jpeg',
+			} as any);
+		}
+	};
+
 	const onSubmit = (data: FormData) => {
-		if (data.paymentMethod === 'gcash' && !selectedDownPayment) {
-			showAlert('warning', 'Down Payment Required', 'Please enter your desired down payment amount for GCash payment', [{ text: 'OK' }]);
+		if (data.paymentMethod === 'gcash' && !gcashFile) {
+			showAlert(
+				'error',
+				'Payment Proof Required',
+				'Please upload GCash payment proof',
+				[{ text: 'OK', style: 'default' }]
+			);
 			return;
 		}
 
@@ -179,12 +211,14 @@ export default function ConfirmAreaBookingScreen() {
 			return;
 		}
 
-		handleConfirmBooking(data);
+		setPendingFormData(data);
+		setShowConfirmModal(true);
 	};
 
-	const handleConfirmBooking = async (data: FormData) => {
-		if (!areaId || !startTime || !endTime || !totalPrice) return;
+	const handleConfirmBooking = async () => {
+		if (!areaId || !startTime || !endTime || !totalPrice || !pendingFormData) return;
 
+		setShowConfirmModal(false);
 		setIsSubmitting(true);
 
 		try {
@@ -211,110 +245,40 @@ export default function ConfirmAreaBookingScreen() {
 			}
 
 			const reservationData = {
-				firstName: data.firstName,
-				lastName: data.lastName,
-				phoneNumber: data.phoneNumber.replace(/\s+/g, ''),
-				specialRequests: data.specialRequests,
+				firstName: pendingFormData.firstName,
+				lastName: pendingFormData.lastName,
+				phoneNumber: pendingFormData.phoneNumber.replace(/\s+/g, ''),
+				specialRequests: pendingFormData.specialRequests,
 				areaId: areaId,
 				startTime: new Date(startTime).toISOString(),
 				endTime: new Date(endTime).toISOString(),
 				totalPrice: finalPrice,
 				status: 'pending',
 				isVenueBooking: true,
-				numberOfGuests: data.numberOfGuests,
-				paymentMethod: data.paymentMethod,
-				// For PayMongo: send guest-selected down payment when GCash is chosen
-				downPayment: data.paymentMethod === 'gcash' && selectedDownPayment ? selectedDownPayment : undefined,
+				numberOfGuests: pendingFormData.numberOfGuests,
+				paymentMethod: pendingFormData.paymentMethod,
+				paymentProof: gcashFile,
 			};
 
-			// Create booking first
-			const resp: any = await booking.createAreaBooking(reservationData);
-			const createdBookingId = resp?.id || resp?.data?.id;
-
-			// If user selected GCash, create PayMongo source and redirect
-			if (data.paymentMethod === 'gcash' && createdBookingId && selectedDownPayment) {
-				try {
-					// Ensure we include redirect URLs (PayMongo requires redirect.success and redirect.failed)
-					const baseUrl = (process.env.EXPO_PUBLIC_DJANGO_URL || '').replace(/\/$/, '');
-					const successUrl = `${baseUrl}/booking/paymongo/redirect/success?booking_id=${createdBookingId}`;
-					const failedUrl = `${baseUrl}/booking/paymongo/redirect/failed?booking_id=${createdBookingId}`;
-
-					const createResult = await createSourceAndRedirect(String(createdBookingId), selectedDownPayment, {
-						success_url: successUrl,
-						failed_url: failedUrl,
-					});
-					console.log('PayMongo create source response:', createResult);
-					if (createResult.success && createResult.sourceId) {
-						// Start polling for payment status
-						setPaymentPollingActive(true);
-						startPolling(createResult.sourceId, (status) => {
-							if (status === 'paid' || status === 'chargeable') {
-								setPaymentPollingActive(false);
-								queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
-								showAlert(
-									'success',
-									'Payment Confirmed!',
-									'Your payment has been confirmed. Your booking is now complete.',
-									[{
-										text: 'OK',
-										onPress: () => {
-											hideAlert();
-											router.replace('/(screens)');
-										}
-									}]
-								);
-							} else if (status === 'failed' || status === 'expired') {
-								setPaymentPollingActive(false);
-								showAlert(
-									'error',
-									'Payment Failed',
-									'Your payment was not successful. Please try again or contact support.',
-									[{ text: 'OK' }]
-								);
-							}
-						});
-					}
-				} catch (pmErr: any) {
-					console.error('PayMongo create source error', pmErr);
-					setIsSubmitting(false);
-					showAlert('error', 'Payment Error', 'Failed to initiate PayMongo payment. Please try again.', [{ text: 'OK' }]);
-				}
-			}
+			await booking.createAreaBooking(reservationData);
 
 			setTimeout(() => {
 				setIsSubmitting(false);
-				if (data.paymentMethod !== 'gcash') {
-					showAlert(
-						'success',
-						'Booking Submitted',
-						'Your area booking has been submitted successfully.',
-						[
-							{
-								text: 'OK',
-								style: 'default',
-								onPress: () => {
-									hideAlert();
-									router.replace('/(screens)');
-								},
+				showAlert(
+					'success',
+					'Booking Successful!',
+					'Your area booking has been submitted. You will receive a confirmation shortly.',
+					[
+						{
+							text: 'OK',
+							style: 'default',
+							onPress: () => {
+								hideAlert();
+								router.replace('/(screens)');
 							},
-						]
-					);
-				} else {
-					showAlert(
-						'info',
-						'Payment Processing',
-						'Your booking has been created. Please complete the payment in the opened window. We will notify you once payment is confirmed.',
-						[
-							{
-								text: 'OK',
-								style: 'default',
-								onPress: () => {
-									hideAlert();
-								},
-							},
-						]
-					);
-				}
+						},
+					]
+				);
 			}, 1500);
 
 			queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
@@ -334,9 +298,9 @@ export default function ConfirmAreaBookingScreen() {
 		return (
 			<View className="flex-1 justify-center items-center bg-background-default">
 				<ActivityIndicator size="large" color="#6F00FF" />
-				<Text className="text-text-primary font-montserrat mt-4">
+				<StyledText className="text-text-primary font-montserrat mt-4">
 					Loading venue details...
-				</Text>
+				</StyledText>
 			</View>
 		);
 	}
@@ -344,7 +308,7 @@ export default function ConfirmAreaBookingScreen() {
 	return (
 		<SafeAreaView className="flex-1 bg-background">
 			{/* Header */}
-			<View className="bg-background px-6 py-4 border-b border-border-focus">
+			<View className="bg-surface-default px-6 py-4 border-b border-border-focus">
 				<View className="flex-row items-center justify-between">
 					<TouchableOpacity
 						onPress={() => router.back()}
@@ -352,9 +316,9 @@ export default function ConfirmAreaBookingScreen() {
 					>
 						<Ionicons name="arrow-back" size={24} color="#3B0270" />
 					</TouchableOpacity>
-					<Text className="text-text-primary font-playfair-semibold text-3xl text-center">
+					<StyledText className="text-text-primary font-playfair-semibold text-3xl text-center">
 						Confirm Booking
-					</Text>
+					</StyledText>
 					<View className="w-10" />
 				</View>
 			</View>
@@ -370,18 +334,18 @@ export default function ConfirmAreaBookingScreen() {
 								resizeMode="cover"
 							/>
 							<View className="p-4">
-								<Text className="text-text-primary font-playfair-semibold text-4xl mb-3">
+								<StyledText className="text-text-primary font-playfair-semibold text-4xl mb-3">
 									{areaData.area_name}
-								</Text>
+								</StyledText>
 								<View className="flex-row items-center mb-2">
 									<Ionicons
 										name="people-outline"
 										size={16}
 										color="#6F00FF"
 									/>
-									<Text className="text-text-primary font-montserrat ml-2">
+									<StyledText className="text-text-primary font-montserrat ml-2">
 										Capacity: {areaData.capacity} pax
-									</Text>
+									</StyledText>
 								</View>
 								<View className="flex-row items-center">
 									<Ionicons
@@ -389,9 +353,9 @@ export default function ConfirmAreaBookingScreen() {
 										size={16}
 										color="#6F00FF"
 									/>
-									<Text className="text-text-primary font-montserrat ml-2">
+									<StyledText className="text-text-primary font-montserrat ml-2">
 										9 hours (8:00 AM - 5:00 PM)
-									</Text>
+									</StyledText>
 								</View>
 							</View>
 						</View>
@@ -399,16 +363,16 @@ export default function ConfirmAreaBookingScreen() {
 
 					{/* Booking Form */}
 					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-focus">
-						<Text className="text-text-primary font-playfair-bold text-3xl mb-4">
+						<StyledText className="text-text-primary font-playfair-bold text-3xl mb-4">
 							Guest Information
-						</Text>
+						</StyledText>
 
 						{/* Name Fields */}
 						<View className="flex-row space-x-4 mb-4">
 							<View className="flex-1 mr-1">
-								<Text className="text-text-primary font-montserrat mb-2">
+								<StyledText className="text-text-primary font-montserrat mb-2">
 									First Name
-								</Text>
+								</StyledText>
 								<Controller
 									control={control}
 									name="firstName"
@@ -436,15 +400,15 @@ export default function ConfirmAreaBookingScreen() {
 									)}
 								/>
 								{errors.firstName && (
-									<Text className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
+									<StyledText className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
 										{errors.firstName.message}
-									</Text>
+									</StyledText>
 								)}
 							</View>
 							<View className="flex-1 ml-1">
-								<Text className="text-text-primary font-montserrat mb-2">
+								<StyledText className="text-text-primary font-montserrat mb-2">
 									Last Name
-								</Text>
+								</StyledText>
 								<Controller
 									control={control}
 									name="lastName"
@@ -472,18 +436,18 @@ export default function ConfirmAreaBookingScreen() {
 									)}
 								/>
 								{errors.lastName && (
-									<Text className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
+									<StyledText className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
 										{errors.lastName.message}
-									</Text>
+									</StyledText>
 								)}
 							</View>
 						</View>
 
 						{/* Phone Number */}
 						<View className="mb-4">
-							<Text className="text-text-primary font-montserrat mb-2">
+							<StyledText className="text-text-primary font-montserrat mb-2">
 								Phone Number *
-							</Text>
+							</StyledText>
 							<Controller
 								control={control}
 								name="phoneNumber"
@@ -506,17 +470,17 @@ export default function ConfirmAreaBookingScreen() {
 								)}
 							/>
 							{errors.phoneNumber && (
-								<Text className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
+								<StyledText className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
 									{errors.phoneNumber.message}
-								</Text>
+								</StyledText>
 							)}
 						</View>
 
 						{/* Number of Guests */}
 						<View className="mb-4">
-							<Text className="text-text-primary font-montserrat mb-2">
+							<StyledText className="text-text-primary font-montserrat mb-2">
 								Number of Guests *
-							</Text>
+							</StyledText>
 							<Controller
 								control={control}
 								name="numberOfGuests"
@@ -549,56 +513,66 @@ export default function ConfirmAreaBookingScreen() {
 								)}
 							/>
 							{errors.numberOfGuests && (
-								<Text className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
+								<StyledText className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
 									{errors.numberOfGuests.message}
-								</Text>
+								</StyledText>
 							)}
 							{areaData?.capacity && (
-								<Text className="text-text-muted font-montserrat text-sm mt-1">
+								<StyledText className="text-text-muted font-montserrat text-sm mt-1">
 									Maximum capacity: {areaData.capacity} guests
-								</Text>
+								</StyledText>
 							)}
 						</View>
 
-						<Controller
-							control={control}
-							name="paymentMethod"
-							render={({ field: { value } }) => (
-								<>
-									{value === 'gcash' && (
-										<View className="mb-4">
-											<Text className="text-text-primary font-montserrat mb-2">
-												Down Payment (GCash) *
-											</Text>
-											<TouchableOpacity
-												onPress={() => setShowDownPaymentModal(true)}
-												className="border border-interactive-primary rounded-xl p-4 bg-interactive-primary-hover/10 flex-row items-center justify-between"
-											>
-												<View>
-													<Text className="text-text-secondary font-montserrat text-sm mb-1">
-														Enter your desired down payment amount
-													</Text>
-													<Text className="text-text-primary font-montserrat-bold text-lg">
-														{selectedDownPayment 
-															? `₱ ${selectedDownPayment.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
-															: 'Tap to set amount'
-														}
-													</Text>
-												</View>
-												<Ionicons name="chevron-forward" size={24} color="#6F00FF" />
-											</TouchableOpacity>
-											<Text className="text-text-muted font-montserrat text-xs mt-2">
-												Total booking amount: ₱ {parseFloat(totalPrice || '0').toLocaleString()}
-											</Text>
-										</View>
-									)}
-								</>
-							)}
-						/>
+						{/* GCash Payment Proof */}
 						<View className="mb-4">
-							<Text className="text-text-primary font-montserrat mb-2">
+							<StyledText className="text-text-primary font-montserrat mb-2">
+								GCash Payment Proof *
+							</StyledText>
+							<TouchableOpacity
+								onPress={handlePickImage}
+								className="border border-border-focus rounded-xl p-4 items-center"
+							>
+								<Ionicons
+									name="cloud-upload-outline"
+									size={24}
+									color="#6F00FF"
+								/>
+								<StyledText className="text-text-secondary font-montserrat mt-2">
+									{gcashProof
+										? 'Payment Proof Uploaded'
+										: 'Upload Payment Proof'}
+								</StyledText>
+							</TouchableOpacity>
+							{gcashProof && (
+								<View className="mt-3">
+									<Image
+										source={{ uri: gcashProof }}
+										className="w-full h-40 rounded-xl"
+										resizeMode="contain"
+									/>
+									<TouchableOpacity
+										onPress={() => {
+											setGcashProof(null);
+											setGcashFile(null);
+										}}
+										className="absolute top-2 right-2 bg-surface-default rounded-full p-2"
+									>
+										<Ionicons
+											name="close"
+											size={16}
+											color="#EF4444"
+										/>
+									</TouchableOpacity>
+								</View>
+							)}
+						</View>
+
+						{/* Special Requests */}
+						<View className="mb-4">
+							<StyledText className="text-text-primary font-montserrat mb-2">
 								Special Requests
-							</Text>
+							</StyledText>
 							<Controller
 								control={control}
 								name="specialRequests"
@@ -619,151 +593,76 @@ export default function ConfirmAreaBookingScreen() {
 
 					{/* Booking Details */}
 					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-focus">
-						<Text className="text-text-primary font-playfair-bold text-3xl mb-4">
+						<StyledText className="text-text-primary font-playfair-bold text-3xl mb-4">
 							Booking Details
-						</Text>
+						</StyledText>
 
 						<View className="space-y-3">
 							<View className="flex-row justify-between">
-								<Text className="text-text-primary font-montserrat text-lg">
+								<StyledText className="text-text-primary font-montserrat text-lg">
 									Date:
-								</Text>
-								<Text className="text-text-secondary font-montserrat-bold text-lg">
+								</StyledText>
+								<StyledText className="text-text-secondary font-montserrat-bold text-lg">
 									{formattedStartTime}
-								</Text>
+								</StyledText>
 							</View>
 							<View className="flex-row justify-between">
-								<Text className="text-text-primary font-montserrat text-lg">
+								<StyledText className="text-text-primary font-montserrat text-lg">
 									Time:
-								</Text>
-								<Text className="text-text-secondary font-montserrat-bold text-lg">
+								</StyledText>
+								<StyledText className="text-text-secondary font-montserrat-bold text-lg">
 									8:00 AM - 5:00 PM
-								</Text>
+								</StyledText>
 							</View>
 							<View className="flex-row justify-between pt-2 border-t border-border-subtle">
-								<Text className="text-text-primary font-montserrat-bold text-xl">
+								<StyledText className="text-text-primary font-montserrat-bold text-xl">
 									Total:
-								</Text>
-								<Text className="text-text-secondary font-montserrat-bold text-2xl">
+								</StyledText>
+								<StyledText className="text-text-secondary font-montserrat-bold text-2xl">
 									₱{' '}
 									{parseFloat(totalPrice || '0').toLocaleString()}
-								</Text>
+								</StyledText>
 							</View>
 						</View>
 					</View>
-
-					{/* Payment Status Indicator */}
-					{paymentPollingActive && (
-						<View className="bg-feedback-info-light rounded-2xl p-4 mb-4 border border-feedback-info-DEFAULT">
-							<View className="flex-row items-center">
-								<ActivityIndicator size="small" color="#3B82F6" className="mr-3" />
-								<View className="flex-1">
-									<Text className="text-feedback-info-DEFAULT font-montserrat-bold text-base mb-1">
-										Verifying Payment
-									</Text>
-									<Text className="text-feedback-info-DEFAULT font-montserrat text-sm">
-										Status: {paymentStatus || 'pending'}
-									</Text>
-									<Text className="text-feedback-info-DEFAULT font-montserrat text-xs mt-1">
-										Please wait while we confirm your payment...
-									</Text>
-								</View>
-							</View>
-						</View>
-					)}
 
 					{/* Submit Button */}
 					<TouchableOpacity
 						onPress={handleSubmit(onSubmit)}
-						disabled={isSubmitting}
-						className={`rounded-2xl py-4 px-6 mb-8 ${isSubmitting ? 'bg-neutral-300' : 'bg-violet-primary'}`}
+						disabled={!gcashFile}
+						className={`rounded-2xl py-4 px-6 mb-8 ${
+							gcashFile ? 'bg-violet-primary' : 'bg-neutral-300'
+						}`}
 					>
-						<Text className="text-center font-montserrat-bold text-lg text-text-inverse">
+						<StyledText className="text-center font-montserrat-bold text-lg text-text-inverse">
 							Complete Booking
-						</Text>
+						</StyledText>
 					</TouchableOpacity>
 				</View>
 			</ScrollView>
 
-		{/* Styled Alert */}
-		<StyledAlert
-			visible={alertState.visible}
-			type={alertState.type}
-			title={alertState.title}
-			message={alertState.message}
-			buttons={alertState.buttons}
-			onDismiss={hideAlert}
-		/>
+			{/* Styled Alert */}
+			<StyledAlert
+				visible={alertState.visible}
+				type={alertState.type}
+				title={alertState.title}
+				message={alertState.message}
+				buttons={alertState.buttons}
+				onDismiss={hideAlert}
+			/>
 
-		{/* Down Payment Modal */}
-		<Modal
-			visible={showDownPaymentModal}
-			transparent
-			animationType="fade"
-			onRequestClose={() => setShowDownPaymentModal(false)}
-		>
-			<View className="flex-1 bg-black/50 justify-center items-center p-4">
-				<View className="bg-surface-default rounded-3xl p-6 w-full max-w-sm">
-					<Text className="text-text-primary font-playfair-bold text-2xl mb-4">
-						Down Payment Amount
-					</Text>
-					<Text className="text-text-secondary font-montserrat text-sm mb-4">
-						Enter your desired down payment for this booking. You&apos;ll pay the remainder at checkout.
-					</Text>
+			{/* Confirmation Modal */}
+			<ConfirmBookingModal
+				isVisible={showConfirmModal}
+				onClose={() => setShowConfirmModal(false)}
+				onConfirm={handleConfirmBooking}
+				title="Confirm Your Booking"
+				message={`You're about to book ${areaData?.area_name} in ${formattedStartTime}. Would you like to proceed?`}
+				confirmText="Confirm Booking"
+				cancelText="Cancel"
+			/>
 
-					<View className="mb-4">
-						<Text className="text-text-muted font-montserrat text-xs mb-2">
-							Total Booking Amount: ₱ {parseFloat(totalPrice || '0').toLocaleString()}
-						</Text>
-						<View className="flex-row items-center border border-border-focus rounded-xl p-3">
-							<Text className="text-text-primary font-montserrat text-xl mr-2">₱</Text>
-							<TextInput
-								keyboardType="decimal-pad"
-								placeholder="0.00"
-								defaultValue={selectedDownPayment ? selectedDownPayment.toString() : ''}
-								onChangeText={(text) => {
-									const num = parseFloat(text) || 0;
-									setSelectedDownPayment(num > 0 ? num : null);
-								}}
-								className="flex-1 font-montserrat text-lg text-text-primary"
-							/>
-						</View>
-					</View>
-
-					<View className="flex-row gap-3 mt-6">
-						<TouchableOpacity
-							onPress={() => setShowDownPaymentModal(false)}
-							className="flex-1 border border-border-focus rounded-xl py-3"
-						>
-							<Text className="text-text-primary font-montserrat-bold text-center">
-								Cancel
-							</Text>
-						</TouchableOpacity>
-						<TouchableOpacity
-							onPress={() => {
-								if (selectedDownPayment && selectedDownPayment > 0) {
-									setShowDownPaymentModal(false);
-								}
-							}}
-							disabled={!selectedDownPayment || selectedDownPayment <= 0}
-							className={`flex-1 rounded-xl py-3 ${
-								selectedDownPayment && selectedDownPayment > 0
-									? 'bg-interactive-primary'
-									: 'bg-neutral-300'
-							}`}
-						>
-							<Text className={`font-montserrat-bold text-center ${
-								selectedDownPayment && selectedDownPayment > 0
-									? 'text-text-inverse'
-									: 'text-text-disabled'
-							}`}>
-								Confirm
-							</Text>
-						</TouchableOpacity>
-					</View>
-				</View>
-			</View>
-		</Modal>			{/* Loading Overlay */}
+			{/* Loading Overlay */}
 			<ConfirmingBooking
 				isVisible={isSubmitting}
 				message="Securing your reservation and processing payment..."

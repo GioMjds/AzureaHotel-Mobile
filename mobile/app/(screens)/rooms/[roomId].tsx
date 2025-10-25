@@ -93,8 +93,8 @@ export default function GetRoomScreen() {
 									: 'bg-red-500'
 							}`}
 						>
-							<StyledText variant='montserrat-bold' className="text-white text-sm capitalize">
-								{roomData.status}
+							<StyledText variant='montserrat-bold' className="text-white text-sm">
+								{roomData.status.toUpperCase()}
 							</StyledText>
 						</View>
 					</View>

@@ -91,8 +91,8 @@ export default function GetAreaScreen() {
 									: 'bg-red-500'
 							}`}
 						>
-							<Text className="text-white font-montserrat-bold text-sm capitalize">
-								{areaData.status}
+							<Text className="text-white font-montserrat-bold text-sm">
+								{areaData.status.toUpperCase()}
 							</Text>
 						</View>
 					</View>

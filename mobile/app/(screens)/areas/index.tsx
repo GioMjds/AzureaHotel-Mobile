@@ -47,7 +47,7 @@ export default function AreasScreen() {
 				data={data?.data as Area[]}
 				renderItem={({ item }) => <AreaCard item={item} />}
 				keyExtractor={(item) => item.id.toString()}
-				contentContainerStyle={{ paddingTop: 16, paddingBottom: 110 }}
+				contentContainerStyle={{ paddingTop: 16, paddingBottom: 120 }}
 				showsVerticalScrollIndicator={false}
 				ListEmptyComponent={
 					<View className="flex-1 justify-center items-center mt-10">

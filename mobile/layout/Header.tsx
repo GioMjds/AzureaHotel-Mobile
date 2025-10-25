@@ -1,15 +1,18 @@
-import React, { useCallback, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import StyledText from '@/components/ui/StyledText';
 import { useAuth } from '@/hooks/useAuth';
 import { auth } from '@/services/UserAuth';
 import { GuestResponse, IsVerified } from '@/types/GuestUser.types';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, usePathname } from 'expo-router';
-import { Image, TouchableOpacity, View, Pressable, Modal } from 'react-native';
+import { Image, TouchableOpacity, View, Pressable, Modal, ActivityIndicator } from 'react-native';
 import NotificationBell from '@/components/ui/NotificationBell';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import StyledModal from '@/components/ui/StyledModal';
+import StyledAlert from '@/components/ui/StyledAlert';
+import * as ImagePicker from 'expo-image-picker';
+// Using ImagePicker's allowsEditing for cropping; avoid expo-image-manipulator dependency here to reduce install surface
 
 interface HeaderProps {
 	headerLabel: string;
@@ -30,6 +33,83 @@ const Header = ({ headerLabel }: HeaderProps) => {
 		},
 		enabled: !!user?.id,
 	});
+
+	const queryClient = useQueryClient();
+	const [isUploadingImage, setUploadingImage] = useState(false);
+
+	const [alertConfig, setAlertConfig] = useState<{
+		visible: boolean;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		title: string;
+		message?: string;
+		buttons?: { text: string; onPress?: (() => void) | undefined; style?: 'default' | 'cancel' | 'destructive' }[];
+	}>({ visible: false, title: '' });
+
+	const showAlert = useCallback((
+		type: 'success' | 'error' | 'warning' | 'info',
+		title: string,
+		message?: string,
+		buttons?: { text: string; onPress?: (() => void) | undefined; style?: 'default' | 'cancel' | 'destructive' }[]
+	) => {
+		setAlertConfig({ visible: true, type, title, message, buttons });
+	}, []);
+
+	// Pick an image, allow cropping, upload and refresh profile
+	const handleChangeProfileImage = useCallback(async () => {
+		try {
+			// Ask permissions (handled in expo image picker)
+			const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+			if (!permissionResult.granted) {
+				showAlert('warning', 'Permission required', 'Please allow photo access to change your profile image.', [
+					{ text: 'OK', style: 'default', onPress: () => setAlertConfig((s) => ({ ...s, visible: false })) },
+				]);
+				return;
+			}
+
+			const pickerResult = await ImagePicker.launchImageLibraryAsync({
+				mediaTypes: ImagePicker.MediaTypeOptions.Images,
+				allowsEditing: true,
+				aspect: [1, 1],
+				quality: 0.8,
+			});
+
+			const cancelled = (pickerResult as any).cancelled ?? (pickerResult as any).canceled;
+			if (cancelled) return;
+
+			// On web expo returns a different shape, normalize to have uri
+			const pickedUri = (pickerResult as any).uri || (pickerResult as any).assets?.[0]?.uri;
+			if (!pickedUri) {
+				showAlert('error', 'Image error', 'Could not read selected image.', [
+					{ text: 'OK', style: 'default', onPress: () => setAlertConfig((s) => ({ ...s, visible: false })) },
+				]);
+				return;
+			}
+
+			setUploadingImage(true);
+
+			// Build filename
+			const nameParts = pickedUri.split('.');
+			const ext = (nameParts.pop() || 'jpg').split('?')[0];
+			const fileName = `profile_${Date.now()}.${ext}`;
+
+			// Upload the (possibly edited/cropped) picked uri
+			await auth.changeProfileImage(pickedUri, fileName, 'image/jpeg');
+
+			// Refresh profile query
+			queryClient.invalidateQueries({ queryKey: ['userProfile', user?.id] });
+			setUploadingImage(false);
+			setDropdownOpen(false);
+			showAlert('success', 'Success', 'Profile image updated successfully.', [
+				{ text: 'OK', style: 'default', onPress: () => setAlertConfig((s) => ({ ...s, visible: false })) },
+			]);
+		} catch (error: any) {
+			console.warn('Failed to change profile image', error);
+			setUploadingImage(false);
+			showAlert('error', 'Upload failed', error?.message || 'Could not upload image.', [
+				{ text: 'OK', style: 'default', onPress: () => setAlertConfig((s) => ({ ...s, visible: false })) },
+			]);
+		}
+	}, [queryClient, user?.id, showAlert]);
 
 	const isOnProfileRoute = !!pathname && pathname.includes('/profile');
 
@@ -144,11 +224,27 @@ const Header = ({ headerLabel }: HeaderProps) => {
 							<View className="space-y-3">
 								<TouchableOpacity
 									activeOpacity={0.8}
+									onPress={handleChangeProfileImage}
+									disabled={isUploadingImage}
+									className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
+								>
+									<FontAwesome name="image" size={18} color="#6F00FF" style={{ width: 28 }} />
+									{isUploadingImage ? (
+										<ActivityIndicator size="small" color="#6F00FF" style={{ marginLeft: 6 }} />
+									) : (
+										<StyledText variant="montserrat-regular" className="text-text-primary ml-1">
+											Change Profile Image
+										</StyledText>
+									)}
+								</TouchableOpacity>
+
+								<TouchableOpacity
+									activeOpacity={0.8}
 									onPress={() => handleNavigateTo('/(profile)/settings/change-password')}
-									className="flex-row items-center py-3 px-3 rounded-lg bg-interactive-ghost-hover"
+									className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
 								>
 									<FontAwesome name="lock" size={18} color="#6F00FF" style={{ width: 28 }} />
-									<StyledText variant="montserrat-regular" className="text-text-primary ml-3">
+									<StyledText variant="montserrat-regular" className="text-text-primary ml-1">
 										Change Password
 									</StyledText>
 								</TouchableOpacity>
@@ -157,10 +253,10 @@ const Header = ({ headerLabel }: HeaderProps) => {
 									<TouchableOpacity
 										activeOpacity={0.8}
 										onPress={() => handleNavigateTo('/(profile)/settings/verify-account')}
-										className="flex-row items-center py-3 px-3 rounded-lg bg-interactive-ghost-hover"
+										className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
 									>
 										<FontAwesome name="id-card" size={18} color="#3B0270" style={{ width: 28 }} />
-										<StyledText variant="montserrat-regular" className="text-text-primary ml-3">
+										<StyledText variant="montserrat-regular" className="text-text-primary ml-1">
 											Verify Account
 										</StyledText>
 									</TouchableOpacity>
@@ -169,10 +265,10 @@ const Header = ({ headerLabel }: HeaderProps) => {
 								<TouchableOpacity
 									activeOpacity={0.8}
 									onPress={openLogoutAlert}
-									className="flex-row items-center py-3 px-3 rounded-lg bg-interactive-ghost-hover"
+									className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
 								>
 									<FontAwesome name="sign-out" size={18} color="#EF4444" style={{ width: 28 }} />
-									<StyledText variant="montserrat-regular" className="text-text-primary ml-3">
+									<StyledText variant="montserrat-regular" className="text-text-primary ml-1">
 										Log Out
 									</StyledText>
 								</TouchableOpacity>
@@ -180,6 +276,16 @@ const Header = ({ headerLabel }: HeaderProps) => {
 						</View>
 					</Pressable>
 				</Modal>
+
+				{/* Styled alerts (used by image upload flow) */}
+				<StyledAlert
+					visible={alertConfig.visible}
+					type={alertConfig.type}
+					title={alertConfig.title}
+					message={alertConfig.message}
+					buttons={alertConfig.buttons}
+					onDismiss={() => setAlertConfig((s) => ({ ...s, visible: false }))}
+				/>
 
 				{/* Logout confirmation alert */}
 				<StyledModal
@@ -203,4 +309,4 @@ const Header = ({ headerLabel }: HeaderProps) => {
 	);
 };
 
-export default React.memo(Header);
+export default memo(Header);

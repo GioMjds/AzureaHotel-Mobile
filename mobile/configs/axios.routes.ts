@@ -17,6 +17,8 @@ export class ApiRoutes {
     static readonly REGISTER = `${Routes.API}/auth/register`;
     static readonly LOGOUT = `${Routes.API}/auth/logout`;
     static readonly CHANGE_PASSWORD = `${Routes.API}/auth/change_password`;
+    static readonly CHECK_OLD_PASSWORD = `${Routes.API}/auth/check_old_password`;
+    static readonly CHANGE_NEW_PASSWORD = `${Routes.API}/auth/change_new_password`;
     static readonly RESET_PASSWORD = `${Routes.API}/auth/reset_password`;
     static readonly FORGOT_PASSWORD = `${Routes.API}/auth/forgot_password`;
     static readonly VERIFY_RESET_OTP = `${Routes.API}/auth/verify_reset_otp`;

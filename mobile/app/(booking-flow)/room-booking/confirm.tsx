@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
 	View,
-	Text,
 	TouchableOpacity,
 	ScrollView,
 	ActivityIndicator,
@@ -11,7 +10,6 @@ import {
 	Image,
 	TextInput,
 	Platform,
-	Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,9 +20,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import useAuthStore from '@/store/AuthStore';
 import { calculateRoomPricing, formatPrice, getDiscountLabel } from '@/utils/pricing';
 import { booking } from '@/services/Booking';
+import ConfirmBookingModal from '@/components/bookings/ConfirmBookingModal';
 import ConfirmingBooking from '@/components/ui/ConfirmingBooking';
 import { Amenities } from '@/types/Amenity.types';
 import { Room } from '@/types/Room.types';
+import { queryClient } from '@/lib/queryClient';
+import StyledText from '@/components/ui/StyledText';
 
 interface FormData {
 	firstName: string;
@@ -39,11 +40,10 @@ interface FormData {
 export default function ConfirmRoomBookingScreen() {
 	const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+	const [gcashProof, setGcashProof] = useState<string | null>(null);
 	const [gcashFile, setGcashFile] = useState<any>(null);
 	const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
 	const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
-	const [showDownPaymentModal, setShowDownPaymentModal] = useState<boolean>(false);
-	const [selectedDownPayment, setSelectedDownPayment] = useState<number | null>(null);
 
 	const getDefaultCheckInTime = () => {
 		const date = new Date();
@@ -67,7 +67,6 @@ export default function ConfirmRoomBookingScreen() {
 		control,
 		handleSubmit,
 		formState: { errors },
-		watch,
 	} = useForm<FormData>({
 		mode: 'onSubmit',
 		defaultValues: {
@@ -80,8 +79,6 @@ export default function ConfirmRoomBookingScreen() {
 			paymentMethod: 'gcash',
 		},
 	});
-
-	const paymentMethod = watch('paymentMethod');
 
 	const { data: roomResponse, isLoading } = useQuery({
 		queryKey: ['room', roomId],
@@ -131,6 +128,37 @@ export default function ConfirmRoomBookingScreen() {
 		: null)
 		: null;
 
+	const handlePickImage = async () => {
+		const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+		if (status !== 'granted') {
+			Alert.alert(
+				'Permission Required',
+				'Sorry, we need camera roll permissions to upload payment proof.'
+			);
+			return;
+		}
+
+		const result = await ImagePicker.launchImageLibraryAsync({
+			mediaTypes: ['images'],
+			allowsEditing: true,
+			aspect: [4, 3],
+			quality: 0.8,
+		});
+
+		if (!result.canceled && result.assets[0]) {
+			const asset = result.assets[0];
+			setGcashProof(asset.uri);
+
+			const fileName = asset.uri.split('/').pop();
+			setGcashFile({
+				uri: asset.uri,
+				name: fileName,
+				type: 'image/jpeg',
+			} as any);
+		}
+	};
+
 	const formatTimeDisplay = (timeString: string) => {
 		if (!timeString) return 'Select arrival time';
 		return timeString;
@@ -177,15 +205,6 @@ export default function ConfirmRoomBookingScreen() {
 	};
 
 	const onSubmit = (data: FormData) => {
-		// Check if down payment is required for GCash
-		if (data.paymentMethod === 'gcash' && !selectedDownPayment) {
-			Alert.alert(
-				'Down Payment Required',
-				'Please enter your desired down payment amount for GCash payment'
-			);
-			return;
-		}
-
 		if (!data.arrivalTime) {
 			Alert.alert(
 				'Arrival Time Required',
@@ -266,11 +285,6 @@ export default function ConfirmRoomBookingScreen() {
 			formData.append('isVenueBooking', 'false');
 			formData.append('paymentMethod', pendingFormData.paymentMethod);
 
-			// Add down payment if GCash is selected
-			if (pendingFormData.paymentMethod === 'gcash' && selectedDownPayment) {
-				formData.append('downPayment', selectedDownPayment.toString());
-			}
-
 			if (pendingFormData.arrivalTime) {
 				const arrivalTime24h = convertTo24Hour(pendingFormData.arrivalTime);
 				formData.append('arrivalTime', arrivalTime24h);
@@ -295,6 +309,8 @@ export default function ConfirmRoomBookingScreen() {
 					]
 				);
 			}, 1500);
+
+			queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
 		} catch (error: any) {
 			console.error('❌ Booking error:', error);
 			setIsSubmitting(false);
@@ -315,15 +331,15 @@ export default function ConfirmRoomBookingScreen() {
 		return (
 			<View className="flex-1 justify-center items-center bg-background-default">
 				<ActivityIndicator size="large" color="#6F00FF" />
-				<Text className="text-text-primary font-montserrat mt-4">
+				<StyledText className="text-text-primary font-montserrat mt-4">
 					Loading room details...
-				</Text>
+				</StyledText>
 			</View>
 		);
 	}
 
 	return (
-		<SafeAreaView className="flex-1 bg-background-default">
+		<SafeAreaView className="flex-1 bg-background">
 			{/* Header */}
 			<View className="bg-surface-default px-6 py-4 border-b border-border-focus">
 				<View className="flex-row items-center justify-between">
@@ -333,9 +349,9 @@ export default function ConfirmRoomBookingScreen() {
 					>
 						<Ionicons name="arrow-back" size={24} color="#3B0270" />
 					</TouchableOpacity>
-					<Text className="text-text-primary font-playfair-semibold text-3xl text-center">
+					<StyledText className="text-text-primary font-playfair-semibold text-3xl text-center">
 						Confirm Booking
-					</Text>
+					</StyledText>
 					<View className="w-10" />
 				</View>
 			</View>
@@ -351,45 +367,45 @@ export default function ConfirmRoomBookingScreen() {
 								resizeMode="cover"
 							/>
 							<View className="p-4">
-								<Text className="text-text-primary font-playfair-bold text-4xl mb-3">
+								<StyledText className="text-text-primary font-playfair-bold text-4xl mb-3">
 									{roomData.room_name}
-								</Text>
+								</StyledText>
 								<View className="flex-row items-center mb-2">
 									<Ionicons
 										name="people-outline"
 										size={16}
 										color="#6F00FF"
 									/>
-									<Text className="text-text-primary font-montserrat ml-2">
+									<StyledText className="text-text-primary font-montserrat ml-2">
 										Max Guests: {roomData.max_guests}
-									</Text>
+									</StyledText>
 								</View>
 								<View className="flex-row items-center mb-3">
 									<Ionicons
-										name="moon-outline"
+										name="bed-outline"
 										size={16}
 										color="#6F00FF"
 									/>
-									<Text className="text-text-primary font-montserrat ml-2">
+									<StyledText className="text-text-primary font-montserrat ml-2">
 										{nights} {nights === 1 ? 'Night' : 'Nights'}
-									</Text>
+									</StyledText>
 								</View>
 								
 								{/* Amenities */}
 								{roomData.amenities && roomData.amenities.length > 0 && (
 									<View className="mt-2">
-										<Text className="text-text-primary font-montserrat-bold text-sm mb-2">
+										<StyledText className="text-text-primary font-montserrat-bold text-sm mb-2">
 											Amenities:
-										</Text>
+										</StyledText>
 										<View className="flex-row flex-wrap gap-2">
 											{roomData.amenities.map((amenity: Amenities) => (
 												<View
 													key={amenity.id}
 													className="bg-brand-primary rounded-full px-3 py-1.5 flex-row items-center"
 												>
-													<Text className="text-text-inverse font-montserrat text-md ml-1">
+													<StyledText className="text-text-inverse font-montserrat text-md ml-1">
 														{amenity.description}
-													</Text>
+													</StyledText>
 												</View>
 											))}
 										</View>
@@ -401,16 +417,16 @@ export default function ConfirmRoomBookingScreen() {
 
 					{/* Booking Form */}
 					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-focus">
-						<Text className="text-text-primary font-playfair-bold text-3xl mb-4">
+						<StyledText className="text-text-primary font-playfair-bold text-3xl mb-4">
 							Guest Information
-						</Text>
+						</StyledText>
 
 						{/* Name Fields */}
 						<View className="flex-row space-x-4 mb-4">
 							<View className="flex-1 mr-1">
-								<Text className="text-text-primary font-montserrat mb-2">
+								<StyledText className="text-text-primary font-montserrat mb-2">
 									First Name
-								</Text>
+								</StyledText>
 								<Controller
 									control={control}
 									name="firstName"
@@ -438,15 +454,15 @@ export default function ConfirmRoomBookingScreen() {
 									)}
 								/>
 								{errors.firstName && (
-									<Text className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
+									<StyledText className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
 										{errors.firstName.message}
-									</Text>
+									</StyledText>
 								)}
 							</View>
 							<View className="flex-1 ml-1">
-								<Text className="text-text-primary font-montserrat mb-2">
+								<StyledText className="text-text-primary font-montserrat mb-2">
 									Last Name
-								</Text>
+								</StyledText>
 								<Controller
 									control={control}
 									name="lastName"
@@ -474,18 +490,18 @@ export default function ConfirmRoomBookingScreen() {
 									)}
 								/>
 								{errors.lastName && (
-									<Text className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
+									<StyledText className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
 										{errors.lastName.message}
-									</Text>
+									</StyledText>
 								)}
 							</View>
 						</View>
 
 						{/* Phone Number */}
 						<View className="mb-4">
-							<Text className="text-text-primary font-montserrat mb-2">
+							<StyledText className="text-text-primary font-montserrat mb-2">
 								Phone Number *
-							</Text>
+							</StyledText>
 							<Controller
 								control={control}
 								name="phoneNumber"
@@ -508,17 +524,17 @@ export default function ConfirmRoomBookingScreen() {
 								)}
 							/>
 							{errors.phoneNumber && (
-								<Text className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
+								<StyledText className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
 									{errors.phoneNumber.message}
-								</Text>
+								</StyledText>
 							)}
 						</View>
 
 						{/* Number of Guests */}
 						<View className="mb-4">
-							<Text className="text-text-primary font-montserrat mb-2">
+							<StyledText className="text-text-primary font-montserrat mb-2">
 								Number of Guests *
-							</Text>
+							</StyledText>
 							<Controller
 								control={control}
 								name="numberOfGuests"
@@ -551,51 +567,22 @@ export default function ConfirmRoomBookingScreen() {
 								)}
 							/>
 							{errors.numberOfGuests && (
-								<Text className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
+								<StyledText className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
 									{errors.numberOfGuests.message}
-								</Text>
+								</StyledText>
 							)}
 							{roomData?.max_guests && (
-								<Text className="text-text-muted font-montserrat text-sm mt-1">
+								<StyledText className="text-text-muted font-montserrat text-sm mt-1">
 									Maximum capacity: {roomData.max_guests} guests
-								</Text>
+								</StyledText>
 							)}
 						</View>
 
-						{/* Down Payment for GCash */}
-						{paymentMethod === 'gcash' && (
-							<View className="mb-4">
-								<Text className="text-text-primary font-montserrat mb-2">
-									Down Payment (GCash) *
-								</Text>
-								<TouchableOpacity
-									onPress={() => setShowDownPaymentModal(true)}
-									className="border border-interactive-primary rounded-xl p-4 bg-interactive-primary-hover/10 flex-row items-center justify-between"
-								>
-									<View>
-										<Text className="text-text-secondary font-montserrat text-sm mb-1">
-											Enter your desired down payment amount
-										</Text>
-										<Text className="text-text-primary font-montserrat-bold text-lg">
-											{selectedDownPayment 
-												? `₱ ${selectedDownPayment.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
-												: 'Tap to set amount'
-											}
-										</Text>
-									</View>
-									<Ionicons name="chevron-forward" size={24} color="#6F00FF" />
-								</TouchableOpacity>
-								<Text className="text-text-muted font-montserrat text-xs mt-2">
-									Total booking amount: ₱ {parseFloat(totalPrice || '0').toLocaleString()}
-								</Text>
-							</View>
-						)}
-
 						{/* Arrival Time */}
 						<View className="mb-4">
-							<Text className="text-text-primary font-montserrat mb-2">
+							<StyledText className="text-text-primary font-montserrat mb-2">
 								Expected Arrival Time *
-							</Text>
+							</StyledText>
 							<Controller
 								control={control}
 								name="arrivalTime"
@@ -612,9 +599,9 @@ export default function ConfirmRoomBookingScreen() {
 													: 'border-border-focus'
 											}`}
 										>
-											<Text className={`font-montserrat ${value ? 'text-text-primary' : 'text-text-muted'}`}>
+											<StyledText className={`font-montserrat ${value ? 'text-text-primary' : 'text-text-muted'}`}>
 												{formatTimeDisplay(value)}
-											</Text>
+											</StyledText>
 											<Ionicons name="time-outline" size={20} color="#6F00FF" />
 										</TouchableOpacity>
 										{showTimePicker && (
@@ -640,26 +627,73 @@ export default function ConfirmRoomBookingScreen() {
 												onPress={() => setShowTimePicker(false)}
 												className="bg-interactive-primary rounded-xl py-2 px-4 mt-2"
 											>
-												<Text className="text-interactive-primary-foreground font-montserrat-bold text-center">
+												<StyledText className="text-interactive-primary-foreground font-montserrat-bold text-center">
 													Done
-												</Text>
+												</StyledText>
 											</TouchableOpacity>
 										)}
 									</>
 								)}
 							/>
+							<StyledText variant='montserrat-regular' className='text-sm mt-1'>
+								Expected arrival time between 2:00 PM and 11:00 PM.
+							</StyledText>
 							{errors.arrivalTime && (
-								<Text className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
+								<StyledText className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
 									{errors.arrivalTime.message}
-								</Text>
+								</StyledText>
+							)}
+						</View>
+
+						{/* GCash Payment Proof */}
+						<View className="mb-4">
+							<StyledText className="text-text-primary font-montserrat mb-2">
+								GCash Payment Proof *
+							</StyledText>
+							<TouchableOpacity
+								onPress={handlePickImage}
+								className="border border-border-focus rounded-xl p-4 items-center"
+							>
+								<Ionicons
+									name="cloud-upload-outline"
+									size={24}
+									color="#6F00FF"
+								/>
+								<StyledText className="text-text-secondary font-montserrat mt-2">
+									{gcashProof
+										? 'Payment Proof Uploaded'
+										: 'Upload Payment Proof'}
+								</StyledText>
+							</TouchableOpacity>
+							{gcashProof && (
+								<View className="mt-3">
+									<Image
+										source={{ uri: gcashProof }}
+										className="w-full h-40 rounded-xl"
+										resizeMode="contain"
+									/>
+									<TouchableOpacity
+										onPress={() => {
+											setGcashProof(null);
+											setGcashFile(null);
+										}}
+										className="absolute top-2 right-2 bg-surface-default rounded-full p-2"
+									>
+										<Ionicons
+											name="close"
+											size={16}
+											color="#EF4444"
+										/>
+									</TouchableOpacity>
+								</View>
 							)}
 						</View>
 
 						{/* Special Requests */}
 						<View className="mb-4">
-							<Text className="text-text-primary font-montserrat mb-2">
+							<StyledText className="text-text-primary font-montserrat mb-2">
 								Special Requests
-							</Text>
+							</StyledText>
 							<Controller
 								control={control}
 								name="specialRequests"
@@ -680,62 +714,62 @@ export default function ConfirmRoomBookingScreen() {
 
 					{/* Booking Details */}
 					<View className="bg-surface-default rounded-2xl p-4 mb-6 border border-border-focus">
-						<Text className="text-text-primary font-playfair-bold text-3xl mb-4">
+						<StyledText className="text-text-primary font-playfair-bold text-3xl mb-4">
 							Booking Details
-						</Text>
+						</StyledText>
 
 						<View className="space-y-3">
 							<View className="flex-row justify-between">
-								<Text className="text-text-primary font-montserrat text-lg">
+								<StyledText className="text-text-primary font-montserrat text-lg">
 									Check-in:
-								</Text>
-								<Text className="text-text-secondary font-montserrat-bold text-lg">
+								</StyledText>
+								<StyledText className="text-text-secondary font-montserrat-bold text-lg">
 									{formattedCheckIn}
-								</Text>
+								</StyledText>
 							</View>
 							<View className="flex-row justify-between">
-								<Text className="text-text-primary font-montserrat text-lg">
+								<StyledText className="text-text-primary font-montserrat text-lg">
 									Check-out:
-								</Text>
-								<Text className="text-text-secondary font-montserrat-bold text-lg">
+								</StyledText>
+								<StyledText className="text-text-secondary font-montserrat-bold text-lg">
 									{formattedCheckOut}
-								</Text>
+								</StyledText>
 							</View>
 							<View className="flex-row justify-between">
-								<Text className="text-text-primary font-montserrat text-lg">
+								<StyledText className="text-text-primary font-montserrat text-lg">
 									Duration:
-								</Text>
-								<Text className="text-text-secondary font-montserrat-bold text-lg">
+								</StyledText>
+								<StyledText className="text-text-secondary font-montserrat-bold text-lg">
 									{nights} {nights === 1 ? 'Night' : 'Nights'}
-								</Text>
+								</StyledText>
 							</View>
 							<View className="flex-row justify-between">
-								<Text className="text-text-primary font-montserrat text-lg">
+								<StyledText className="text-text-primary font-montserrat text-lg">
 									No. of Guest(s):
-								</Text>
-								<Text className="text-text-secondary font-montserrat-bold text-lg">
+								</StyledText>
+								<StyledText className="text-text-secondary font-montserrat-bold text-lg">
 									{pendingFormData?.numberOfGuests || control._formValues.numberOfGuests}
-								</Text>
+								</StyledText>
 							</View>
 							<View className="flex-row justify-between pt-2 border-t border-border-subtle">
-								<Text className="text-text-primary font-montserrat-bold text-xl">
+								<StyledText className="text-text-primary font-montserrat-bold text-xl">
 									Total:
-								</Text>
-								<Text className="text-text-secondary font-montserrat-bold text-2xl">
+								</StyledText>
+								<StyledText className="text-text-secondary font-montserrat-bold text-2xl">
 									₱{' '}
 									{parseFloat(totalPrice || '0').toLocaleString()}
-								</Text>
+								</StyledText>
 							</View>
 
 							{/* Discount breakdown */}
 							{pricingResult && pricingResult.discountType !== 'none' && (
 								<View className="mt-3 p-3 bg-brand-primary rounded-lg">
-									<Text className="text-text-inverse font-montserrat mb-1">
+									<StyledText className="text-text-inverse font-montserrat mb-1">
 										{getDiscountLabel(pricingResult.discountType, pricingResult.discountPercent)}
-									</Text>
-									<Text className="text-text-inverse font-montserrat text-sm">
+									</StyledText>
+									<StyledText className="text-text-inverse font-montserrat text-sm">
 										Price/night: {formatPrice(pricingResult.finalPrice)} • Original/night: {formatPrice(pricingResult.originalPrice)}
-									</Text>
+									</StyledText>
 								</View>
 							)}
 						</View>
@@ -744,87 +778,34 @@ export default function ConfirmRoomBookingScreen() {
 					{/* Submit Button */}
 					<TouchableOpacity
 						onPress={handleSubmit(onSubmit)}
-						disabled={isSubmitting || (paymentMethod === 'gcash' && (!gcashFile || !selectedDownPayment))}
+						disabled={!gcashFile}
 						className={`rounded-2xl py-4 px-6 mb-8 ${
-							(isSubmitting || (paymentMethod === 'gcash' && (!gcashFile || !selectedDownPayment))) 
-								? 'bg-neutral-300' 
-								: 'bg-violet-primary'
+							gcashFile ? 'bg-violet-primary' : 'bg-neutral-300'
 						}`}
 					>
-						<Text className="text-center font-montserrat-bold text-lg text-text-inverse">
+						<StyledText className="text-center font-montserrat-bold text-lg text-text-inverse">
 							Complete Booking
-						</Text>
+						</StyledText>
 					</TouchableOpacity>
 				</View>
 			</ScrollView>
 
-			{/* Down Payment Modal */}
-			<Modal
-				visible={showDownPaymentModal}
-				transparent
-				animationType="fade"
-				onRequestClose={() => setShowDownPaymentModal(false)}
-			>
-				<View className="flex-1 bg-black/50 justify-center items-center p-4">
-					<View className="bg-surface-default rounded-3xl p-6 w-full max-w-sm">
-						<Text className="text-text-primary font-playfair-bold text-2xl mb-4">
-							Down Payment Amount
-						</Text>
-						<Text className="text-text-secondary font-montserrat text-sm mb-4">
-							Enter your desired down payment for this booking. You&apos;ll pay the remainder at checkout.
-						</Text>
-
-						<View className="mb-4">
-							<Text className="text-text-muted font-montserrat text-xs mb-2">
-								Total Booking Amount: ₱ {parseFloat(totalPrice || '0').toLocaleString()}
-							</Text>
-							<View className="flex-row items-center border border-border-focus rounded-xl p-3">
-								<Text className="text-text-primary font-montserrat text-xl mr-2">₱</Text>
-								<TextInput
-									keyboardType="decimal-pad"
-									placeholder="0.00"
-									defaultValue={selectedDownPayment ? selectedDownPayment.toString() : ''}
-									onChangeText={(text) => {
-										const num = parseFloat(text) || 0;
-										setSelectedDownPayment(num > 0 ? num : null);
-									}}
-									className="flex-1 font-montserrat text-lg text-text-primary"
-								/>
-							</View>
-						</View>
-
-						<View className="flex-row gap-3 mt-6">
-							<TouchableOpacity
-								onPress={() => setShowDownPaymentModal(false)}
-								className="flex-1 border border-border-focus rounded-xl py-3"
-							>
-								<Text className="text-text-primary font-montserrat-bold text-center">
-									Cancel
-								</Text>
-							</TouchableOpacity>
-							<TouchableOpacity
-								onPress={() => {
-									if (selectedDownPayment && selectedDownPayment > 0) {
-										setShowDownPaymentModal(false);
-									} else {
-										Alert.alert('Invalid Amount', 'Please enter a valid down payment amount.');
-									}
-								}}
-								className="flex-1 bg-interactive-primary rounded-xl py-3"
-							>
-								<Text className="text-interactive-primary-foreground font-montserrat-bold text-center">
-									Confirm
-								</Text>
-							</TouchableOpacity>
-						</View>
-					</View>
-				</View>
-			</Modal>
+			{/* Confirmation Modal */}
+			<ConfirmBookingModal
+				isVisible={showConfirmModal}
+				onClose={() => setShowConfirmModal(false)}
+				onConfirm={handleConfirmBooking}
+				title="Confirm Your Booking"
+				message={`You're about to book ${roomData?.room_name} from ${formattedCheckIn} to ${formattedCheckOut}. The total price is ₱${parseFloat(totalPrice || '0').toLocaleString()}. Would you like to proceed?`}
+				confirmText="Confirm"
+				cancelText="Cancel"
+			/>
 
 			{/* Loading Overlay */}
-			{isSubmitting && (
-				<ConfirmingBooking isVisible={true} />
-			)}
+			<ConfirmingBooking
+				isVisible={isSubmitting}
+				message="Securing your reservation and processing payment..."
+			/>
 		</SafeAreaView>
 	);
 }

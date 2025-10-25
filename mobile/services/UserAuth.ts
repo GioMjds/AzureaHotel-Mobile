@@ -96,6 +96,22 @@ class UserAuthService {
 		return await httpClient.get(ApiRoutes.USER_DETAILS(userId));
 	}
 
+	async checkOldPassword(oldPassword: string) {
+		return await httpClient.post(ApiRoutes.CHECK_OLD_PASSWORD, {
+			old_password: oldPassword,
+		});
+	}
+
+	async changeNewPassword(
+		newPassword: string,
+		confirmNewPassword: string
+	) {
+		return await httpClient.post(ApiRoutes.CHANGE_NEW_PASSWORD, {
+			new_password: newPassword,
+			confirm_new_password: confirmNewPassword,
+		});
+	}
+
 	async changeProfileImage(uri: string, fileName?: string, mimeType = 'image/jpeg') {
 		if (!uri) throw new Error('Image uri is required');
 

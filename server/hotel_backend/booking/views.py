@@ -24,6 +24,9 @@ import imghdr
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from .service import paymongo as paymongo_service
+from django.http import HttpResponseRedirect
+import uuid
+from django.utils.http import urlencode
 
 logger = logging.getLogger(__name__)
 
@@ -1232,8 +1235,7 @@ def verify_paymongo_source(request, source_id):
 
 @csrf_exempt
 def paymongo_webhook(request):
-    """
-    Handle PayMongo webhook events for source and payment updates.
+    """Handle PayMongo webhook events for source and payment updates.
     Supports: source.chargeable, payment.paid, payment.failed events
     """
     if request.method != 'POST':
@@ -1363,3 +1365,142 @@ def paymongo_webhook(request):
     except Exception as e:
         logger.exception(f'Error handling PayMongo webhook: {str(e)}')
         return HttpResponse(status=500)
+
+
+@api_view(['GET'])
+def enter_amount(request):
+    """Simple HTML form allowing the guest to enter a down payment amount.
+    Query params accepted: return_to (deep link), total, area_id
+    This returns a minimal HTML page that POSTs to create_from_entry.
+    """
+    return_to = request.GET.get('return_to', '')
+    total = request.GET.get('total', '')
+    area_id = request.GET.get('area_id', '')
+
+    html = f"""
+    <!doctype html>
+    <html>
+    <head>
+      <meta charset="utf-8" />
+      <title>Enter Down Payment</title>
+      <meta name="viewport" content="width=device-width,initial-scale=1" />
+    </head>
+    <body>
+      <h1>Enter Down Payment</h1>
+      <p>Total: {total}</p>
+      <form method="post" action="/booking/paymongo/create_from_entry">
+        <label>Amount (PHP): <input name="amount" type="number" step="0.01" value="{total}" /></label>
+        <input type="hidden" name="return_to" value="{return_to}" />
+        <input type="hidden" name="area_id" value="{area_id}" />
+        <button type="submit">Proceed to Pay</button>
+      </form>
+    </body>
+    </html>
+    """
+
+    # Log the incoming request path and query for debugging why clients may hit 404
+    try:
+        logger.info('enter_amount called: path=%s query=%s method=%s', request.path, request.META.get('QUERY_STRING', ''), request.method)
+    except Exception:
+        # best-effort logging
+        logger.info('enter_amount called')
+
+    return HttpResponse(html, content_type='text/html')
+
+
+@csrf_exempt
+@api_view(['POST'])
+def create_from_entry(request):
+    """Create a PayMongo source from the user-entered amount and redirect to checkout.
+    Expects POST fields: amount (PHP decimal), return_to (deep link), area_id (optional)
+    """
+    # Parse posted fields
+    amount_raw = request.POST.get('amount') or request.data.get('amount')
+    return_to = request.POST.get('return_to') or request.data.get('return_to')
+    area_id = request.POST.get('area_id') or request.data.get('area_id')
+
+    if not amount_raw:
+        return Response({'error': 'amount is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # convert PHP amount to centavos (integer)
+        amount_float = float(amount_raw)
+        amount_centavos = int(round(amount_float * 100))
+    except Exception:
+        return Response({'error': 'invalid amount'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Generate a temporary reference in case you want to link later
+    temp_ref = str(uuid.uuid4())
+
+    # Recommended UX: immediately redirect back to the app deep link with the amount
+    # The app will receive the amount and should continue the flow (create booking, call create_paymongo_source with booking_id, etc.)
+    params = {
+        'status': 'entered',
+        'amount': str(amount_centavos),
+        'temp_ref': temp_ref,
+    }
+
+    if area_id:
+        params['area_id'] = str(area_id)
+
+    if return_to:
+        sep = '&' if '?' in return_to else '?'
+        try:
+            return HttpResponseRedirect(f"{return_to}{sep}{urlencode(params)}")
+        except Exception:
+            # Fallback: render a simple page with a link the user can tap to open the app
+            link = f"{return_to}{sep}{urlencode(params)}"
+            html = f"<html><body><p>Open app with amount: <a href=\"{link}\">{link}</a></p></body></html>"
+            return HttpResponse(html, content_type='text/html')
+
+    # If no return_to was provided, just return the params as JSON so callers can handle it.
+    return Response({'status': 'entered', 'amount': amount_centavos, 'temp_ref': temp_ref}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def paymongo_redirect_success(request):
+    # This endpoint is used as PayMongo redirect target. It forwards the browser to the app deep link (return_to) with amount and status.
+    temp_ref = request.GET.get('temp_ref')
+    return_to = request.GET.get('return_to')
+    amount = request.GET.get('amount')
+
+    params = {'status': 'paid'}
+    if amount:
+        params['amount'] = amount
+    if temp_ref:
+        params['temp_ref'] = temp_ref
+
+    if return_to:
+        # Append params and redirect to return_to (which may be an exp:// deep link)
+        sep = '&' if '?' in return_to else '?'
+        try:
+            return HttpResponseRedirect(f"{return_to}{sep}{urlencode(params)}")
+        except Exception:
+            # Fallback: render simple page with link to open app
+            link = f"{return_to}{sep}{urlencode(params)}"
+            return HttpResponse(f'<html><body><p>Open app: <a href="{link}">{link}</a></p></body></html>')
+
+    return Response({'status': 'ok', 'params': params})
+
+
+@api_view(['GET'])
+def paymongo_redirect_failed(request):
+    temp_ref = request.GET.get('temp_ref')
+    return_to = request.GET.get('return_to')
+    amount = request.GET.get('amount')
+
+    params = {'status': 'failed'}
+    if amount:
+        params['amount'] = amount
+    if temp_ref:
+        params['temp_ref'] = temp_ref
+
+    if return_to:
+        sep = '&' if '?' in return_to else '?'
+        try:
+            return HttpResponseRedirect(f"{return_to}{sep}{urlencode(params)}")
+        except Exception:
+            link = f"{return_to}{sep}{urlencode(params)}"
+            return HttpResponse(f'<html><body><p>Open app: <a href="{link}">{link}</a></p></body></html>')
+
+    return Response({'status': 'failed', 'params': params})
