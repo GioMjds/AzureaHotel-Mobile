@@ -82,9 +82,9 @@ def booking_status_changed(sender, instance, created, **kwargs):
         # Notify admin dashboard about booking changes
         property_name = ""
         if instance.room:
-            property_name = f"Room {instance.room.room_name}"
+            property_name = f"{instance.room.room_name}"
         elif instance.area:
-            property_name = f"Area {instance.area.area_name}"
+            property_name = f"{instance.area.area_name}"
         
         firebase_service.broadcast_admin_notification(
             message=f"Booking #{instance.id} ({property_name}) status changed to {instance.status}",
@@ -114,7 +114,7 @@ def booking_deleted(sender, instance, **kwargs):
             notification_data={
                 'type': 'booking_deleted',
                 'booking_id': instance.id,
-                'message': f'Booking #{instance.id} has been deleted',
+                'message': f'({property_name}) has been deleted',
             }
         )
         
@@ -142,7 +142,7 @@ def booking_deleted(sender, instance, **kwargs):
             property_name = f"Area {instance.area.area_name}"
             
         firebase_service.broadcast_admin_notification(
-            message=f"Booking #{instance.id} ({property_name}) has been deleted",
+            message=f"({property_name}) has been deleted",
             data={
                 'booking_id': instance.id,
                 'user_id': instance.user.id,

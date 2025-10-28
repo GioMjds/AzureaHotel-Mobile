@@ -46,7 +46,7 @@ export function useBookingUpdates(bookingId?: number) {
 // Hook for getting all booking updates for a user
 export function useUserBookingUpdates(userId?: number) {
     const [bookingUpdates, setBookingUpdates] = useState<Record<number, BookingUpdate>>({});
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         if (!userId) {

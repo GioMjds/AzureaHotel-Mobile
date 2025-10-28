@@ -4,7 +4,7 @@ import {
     RefreshControl,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -14,6 +14,7 @@ import StatusFilter from '@/components/bookings/StatusFilter';
 import { Ionicons } from '@expo/vector-icons';
 import { useBookingUpdates } from '@/hooks/useBookingUpdates';
 import FeedbackModal from '@/components/bookings/FeedbackModal';
+import { StatusBar } from 'expo-status-bar';
 
 export default function BookingsScreen() {
     const [selectedStatus, setSelectedStatus] = useState<string>('');
@@ -136,6 +137,8 @@ export default function BookingsScreen() {
 
     return (
         <View className="flex-1 bg-background">
+            <StatusBar style="dark" animated backgroundColor={feedbackModalVisible ? 'rgba(0, 0, 0, 0.4)' : 'transparent'} />
+
             {/* Status Filter */}
             <StatusFilter 
                 selectedStatus={selectedStatus} 

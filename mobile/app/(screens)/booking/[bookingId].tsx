@@ -194,6 +194,11 @@ export default function BookingDetailsScreen() {
 				text: 'text-feedback-error-dark',
 				label: 'Rejected',
 			},
+			'checked_in': {
+				color: 'bg-feedback-success-dark',
+				text: 'text-feedback-success-light',
+				label: 'Checked In',
+			},
 			checked_out: {
 				color: 'bg-feedback-info-light',
 				text: 'text-feedback-info-dark',
@@ -812,8 +817,7 @@ export default function BookingDetailsScreen() {
 												variant="montserrat-regular"
 												className="text-feedback-success-dark text-base ml-2"
 											>
-												Discount (
-												{bookingData.discount_percent}%)
+												Discount ({bookingData.discount_percent}%)
 											</StyledText>
 										</View>
 										<StyledText
@@ -830,6 +834,7 @@ export default function BookingDetailsScreen() {
 									</View>
 								)}
 
+								{/* Down Payment */}
 								{bookingData.down_payment && (
 									<View className="flex-row justify-between items-center py-3 border-b border-border-subtle">
 										<View className="flex-row items-center">
@@ -854,11 +859,37 @@ export default function BookingDetailsScreen() {
 									</View>
 								)}
 
+								{/* Remaining Balance */}
+								{bookingData.total_price !== bookingData.down_payment && (
+									<View className="flex-row justify-between items-center py-3 border-b border-border-subtle">
+										<View className="flex-row items-center">
+											<Ionicons
+												name="wallet"
+												size={18}
+												color="#3B82F6"
+											/>
+											<StyledText
+												variant="montserrat-regular"
+												className="text-feedback-info-dark text-base ml-2"
+											>
+												Remaining Balance
+											</StyledText>
+										</View>
+										<StyledText
+											variant="montserrat-bold"
+											className="text-feedback-info-dark text-base"
+										>
+											{pesoFormatter.format(bookingData?.total_price - bookingData?.down_payment!)}
+										</StyledText>
+									</View>
+								)}
+
+								{/* Total Amount to Pay */}
 								<View className="pt-4 mt-2 rounded-2xl">
 									<View className="flex-row justify-between items-center">
 										<StyledText
 											variant="montserrat-bold"
-											className="text-text-primary text-3xl"
+											className="text-feedback-info-dark text-3xl"
 										>
 											Total Amount
 										</StyledText>

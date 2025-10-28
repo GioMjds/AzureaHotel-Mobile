@@ -10,5 +10,4 @@ export const statusFilters: StatusFilter[] = [
 	{ label: 'Reserved', value: 'reserved', icon: 'bookmark' },
 	{ label: 'Checked In', value: 'checked_in', icon: 'enter' },
 	{ label: 'Checked Out', value: 'checked_out', icon: 'exit' },
-	{ label: 'Completed', value: 'completed', icon: 'checkmark-circle' },
 ];

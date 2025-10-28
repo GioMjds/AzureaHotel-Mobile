@@ -31,8 +31,7 @@ const BookingCard = ({
 		: item.room_details?.images?.[0]?.room_image;
 
 	const router = useRouter();
-	
-	// Check if feedback already exists by searching nested reviews for this booking id
+
 	const areaReviews = item.area_details?.reviews ?? [];
 	const roomReviews = item.room_details?.reviews ?? [];
 	const hasFeedback = [...areaReviews, ...roomReviews].some((r: any) => r?.booking === item.id);
@@ -75,7 +74,7 @@ const BookingCard = ({
 					<View className="relative">
 						<Image
 							source={{ uri: propertyImage }}
-							className="w-24 h-24 rounded-xl mr-4"
+							className="w-24 h-32 rounded-lg mr-4"
 							resizeMode="cover"
 						/>
 					</View>
@@ -135,7 +134,7 @@ const BookingCard = ({
 						<View className="flex-row items-center justify-between">
 							<StyledText
 								variant="montserrat-bold"
-								className="text-interactive-primary text-xl"
+								className="text-interactive-primary text-2xl"
 							>
 								{pesoFormatter.format(item.total_price)}
 							</StyledText>

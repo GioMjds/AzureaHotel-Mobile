@@ -306,9 +306,9 @@ export default function ConfirmAreaBookingScreen() {
 	}
 
 	return (
-		<SafeAreaView className="flex-1 bg-background">
+		<SafeAreaView className="flex-1 bg-surface-default">
 			{/* Header */}
-			<View className="bg-surface-default px-6 py-4 border-b border-border-focus">
+			<View className="bg-surface-default px-6 py-4 border-b border-border-focus shadow-lg shadow-black">
 				<View className="flex-row items-center justify-between">
 					<TouchableOpacity
 						onPress={() => router.back()}

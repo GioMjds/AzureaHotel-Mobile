@@ -5,14 +5,20 @@ import { auth } from '@/services/UserAuth';
 import { GuestResponse, IsVerified } from '@/types/GuestUser.types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, usePathname } from 'expo-router';
-import { Image, TouchableOpacity, View, Pressable, Modal, ActivityIndicator } from 'react-native';
+import {
+	Image,
+	TouchableOpacity,
+	View,
+	Pressable,
+	Modal,
+	ActivityIndicator,
+} from 'react-native';
 import NotificationBell from '@/components/ui/NotificationBell';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import StyledModal from '@/components/ui/StyledModal';
 import StyledAlert from '@/components/ui/StyledAlert';
 import * as ImagePicker from 'expo-image-picker';
-// Using ImagePicker's allowsEditing for cropping; avoid expo-image-manipulator dependency here to reduce install surface
 
 interface HeaderProps {
 	headerLabel: string;
@@ -20,6 +26,8 @@ interface HeaderProps {
 
 const Header = ({ headerLabel }: HeaderProps) => {
 	const [isDropdownOpen, setDropdownOpen] = useState<boolean>(false);
+	const [isUploadingImage, setUploadingImage] = useState<boolean>(false);
+	const [isLogoutAlertOpen, setLogoutAlertOpen] = useState<boolean>(false);
 
 	const { user, logout } = useAuth();
 
@@ -35,34 +43,52 @@ const Header = ({ headerLabel }: HeaderProps) => {
 	});
 
 	const queryClient = useQueryClient();
-	const [isUploadingImage, setUploadingImage] = useState(false);
 
 	const [alertConfig, setAlertConfig] = useState<{
 		visible: boolean;
 		type?: 'success' | 'error' | 'warning' | 'info';
 		title: string;
 		message?: string;
-		buttons?: { text: string; onPress?: (() => void) | undefined; style?: 'default' | 'cancel' | 'destructive' }[];
+		buttons?: {
+			text: string;
+			onPress?: (() => void) | undefined;
+			style?: 'default' | 'cancel' | 'destructive';
+		}[];
 	}>({ visible: false, title: '' });
 
 	const showAlert = useCallback((
 		type: 'success' | 'error' | 'warning' | 'info',
 		title: string,
 		message?: string,
-		buttons?: { text: string; onPress?: (() => void) | undefined; style?: 'default' | 'cancel' | 'destructive' }[]
+		buttons?: {
+			text: string;
+			onPress?: (() => void) | undefined;
+			style?: 'default' | 'cancel' | 'destructive';
+		}[]
 	) => {
 		setAlertConfig({ visible: true, type, title, message, buttons });
 	}, []);
 
-	// Pick an image, allow cropping, upload and refresh profile
 	const handleChangeProfileImage = useCallback(async () => {
 		try {
-			// Ask permissions (handled in expo image picker)
 			const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 			if (!permissionResult.granted) {
-				showAlert('warning', 'Permission required', 'Please allow photo access to change your profile image.', [
-					{ text: 'OK', style: 'default', onPress: () => setAlertConfig((s) => ({ ...s, visible: false })) },
-				]);
+				showAlert(
+					'warning',
+					'Permission required',
+					'Please allow photo access to change your profile image.',
+					[
+						{
+							text: 'OK',
+							style: 'default',
+							onPress: () =>
+								setAlertConfig((s) => ({
+									...s,
+									visible: false,
+								})),
+						},
+					]
+				);
 				return;
 			}
 
@@ -73,15 +99,31 @@ const Header = ({ headerLabel }: HeaderProps) => {
 				quality: 0.8,
 			});
 
-			const cancelled = (pickerResult as any).cancelled ?? (pickerResult as any).canceled;
+			const cancelled =
+				(pickerResult as any).cancelled ??
+				(pickerResult as any).canceled;
 			if (cancelled) return;
 
-			// On web expo returns a different shape, normalize to have uri
-			const pickedUri = (pickerResult as any).uri || (pickerResult as any).assets?.[0]?.uri;
+			const pickedUri =
+				(pickerResult as any).uri ||
+				(pickerResult as any).assets?.[0]?.uri;
 			if (!pickedUri) {
-				showAlert('error', 'Image error', 'Could not read selected image.', [
-					{ text: 'OK', style: 'default', onPress: () => setAlertConfig((s) => ({ ...s, visible: false })) },
-				]);
+				showAlert(
+					'error',
+					'Image error',
+					'Could not read selected image.',
+					[
+						{
+							text: 'OK',
+							style: 'default',
+							onPress: () =>
+								setAlertConfig((s) => ({
+									...s,
+									visible: false,
+								})),
+						},
+					]
+				);
 				return;
 			}
 
@@ -96,18 +138,40 @@ const Header = ({ headerLabel }: HeaderProps) => {
 			await auth.changeProfileImage(pickedUri, fileName, 'image/jpeg');
 
 			// Refresh profile query
-			queryClient.invalidateQueries({ queryKey: ['userProfile', user?.id] });
+			queryClient.invalidateQueries({
+				queryKey: ['userProfile', user?.id],
+			});
 			setUploadingImage(false);
 			setDropdownOpen(false);
-			showAlert('success', 'Success', 'Profile image updated successfully.', [
-				{ text: 'OK', style: 'default', onPress: () => setAlertConfig((s) => ({ ...s, visible: false })) },
-			]);
+			showAlert(
+				'success',
+				'Success',
+				'Profile image updated successfully.',
+				[
+					{
+						text: 'OK',
+						style: 'default',
+						onPress: () =>
+							setAlertConfig((s) => ({ ...s, visible: false })),
+					},
+				]
+			);
 		} catch (error: any) {
 			console.warn('Failed to change profile image', error);
 			setUploadingImage(false);
-			showAlert('error', 'Upload failed', error?.message || 'Could not upload image.', [
-				{ text: 'OK', style: 'default', onPress: () => setAlertConfig((s) => ({ ...s, visible: false })) },
-			]);
+			showAlert(
+				'error',
+				'Upload failed',
+				error?.message || 'Could not upload image.',
+				[
+					{
+						text: 'OK',
+						style: 'default',
+						onPress: () =>
+							setAlertConfig((s) => ({ ...s, visible: false })),
+					},
+				]
+			);
 		}
 	}, [queryClient, user?.id, showAlert]);
 
@@ -127,9 +191,6 @@ const Header = ({ headerLabel }: HeaderProps) => {
 		},
 		[router]
 	);
-
-	// Logout alert state and handlers
-	const [isLogoutAlertOpen, setLogoutAlertOpen] = useState(false);
 
 	const openLogoutAlert = useCallback(() => {
 		setDropdownOpen(false);
@@ -200,10 +261,11 @@ const Header = ({ headerLabel }: HeaderProps) => {
 								<View className="flex-1">
 									<StyledText
 										variant="montserrat-bold"
-										className="text-text-primary text-lg"
+										className="text-text-primary text-xl"
 									>
 										{`${guest.first_name} ${guest.last_name}`}{' '}
-										{guest.is_verified === IsVerified.VERIFIED && (
+										{guest.is_verified ===
+											IsVerified.VERIFIED && (
 											<FontAwesome
 												name="check-circle"
 												size={18}
@@ -228,11 +290,23 @@ const Header = ({ headerLabel }: HeaderProps) => {
 									disabled={isUploadingImage}
 									className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
 								>
-									<FontAwesome name="image" size={18} color="#6F00FF" style={{ width: 28 }} />
+									<FontAwesome
+										name="image"
+										size={18}
+										color="#6F00FF"
+										style={{ width: 28 }}
+									/>
 									{isUploadingImage ? (
-										<ActivityIndicator size="small" color="#6F00FF" style={{ marginLeft: 6 }} />
+										<ActivityIndicator
+											size="small"
+											color="#6F00FF"
+											style={{ marginLeft: 6 }}
+										/>
 									) : (
-										<StyledText variant="montserrat-regular" className="text-text-primary ml-1">
+										<StyledText
+											variant="montserrat-regular"
+											className="text-text-primary ml-1"
+										>
 											Change Profile Image
 										</StyledText>
 									)}
@@ -240,23 +314,49 @@ const Header = ({ headerLabel }: HeaderProps) => {
 
 								<TouchableOpacity
 									activeOpacity={0.8}
-									onPress={() => handleNavigateTo('/(profile)/settings/change-password')}
+									onPress={() =>
+										handleNavigateTo(
+											'/(profile)/settings/change-password'
+										)
+									}
 									className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
 								>
-									<FontAwesome name="lock" size={18} color="#6F00FF" style={{ width: 28 }} />
-									<StyledText variant="montserrat-regular" className="text-text-primary ml-1">
+									<FontAwesome
+										name="lock"
+										size={18}
+										color="#6F00FF"
+										style={{ width: 28 }}
+									/>
+									<StyledText
+										variant="montserrat-regular"
+										className="text-text-primary ml-1"
+									>
 										Change Password
 									</StyledText>
 								</TouchableOpacity>
 
-								{(guest.is_verified === 'pending' || guest.is_verified === 'unverified' || guest.is_verified === 'rejected') && (
+								{(guest.is_verified === 'pending' ||
+									guest.is_verified === 'unverified' ||
+									guest.is_verified === 'rejected') && (
 									<TouchableOpacity
 										activeOpacity={0.8}
-										onPress={() => handleNavigateTo('/(profile)/settings/verify-account')}
+										onPress={() =>
+											handleNavigateTo(
+												'/(profile)/settings/verify-account'
+											)
+										}
 										className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
 									>
-										<FontAwesome name="id-card" size={18} color="#3B0270" style={{ width: 28 }} />
-										<StyledText variant="montserrat-regular" className="text-text-primary ml-1">
+										<FontAwesome
+											name="id-card"
+											size={18}
+											color="#3B0270"
+											style={{ width: 28 }}
+										/>
+										<StyledText
+											variant="montserrat-regular"
+											className="text-text-primary ml-1"
+										>
 											Verify Account
 										</StyledText>
 									</TouchableOpacity>
@@ -267,8 +367,16 @@ const Header = ({ headerLabel }: HeaderProps) => {
 									onPress={openLogoutAlert}
 									className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
 								>
-									<FontAwesome name="sign-out" size={18} color="#EF4444" style={{ width: 28 }} />
-									<StyledText variant="montserrat-regular" className="text-text-primary ml-1">
+									<FontAwesome
+										name="sign-out"
+										size={18}
+										color="#EF4444"
+										style={{ width: 28 }}
+									/>
+									<StyledText
+										variant="montserrat-regular"
+										className="text-text-primary ml-1"
+									>
 										Log Out
 									</StyledText>
 								</TouchableOpacity>
@@ -284,7 +392,9 @@ const Header = ({ headerLabel }: HeaderProps) => {
 					title={alertConfig.title}
 					message={alertConfig.message}
 					buttons={alertConfig.buttons}
-					onDismiss={() => setAlertConfig((s) => ({ ...s, visible: false }))}
+					onDismiss={() =>
+						setAlertConfig((s) => ({ ...s, visible: false }))
+					}
 				/>
 
 				{/* Logout confirmation alert */}

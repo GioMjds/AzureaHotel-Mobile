@@ -1,8 +1,7 @@
 import firebase_admin
-from firebase_admin import credentials, auth, messaging, db
+from firebase_admin import credentials, auth, db
 import logging
 from datetime import datetime
-import os
 from pathlib import Path
 
 logger = logging.getLogger(__name__)

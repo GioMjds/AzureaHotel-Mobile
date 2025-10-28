@@ -339,7 +339,7 @@ export default function ConfirmRoomBookingScreen() {
 	}
 
 	return (
-		<SafeAreaView className="flex-1 bg-background">
+		<SafeAreaView className="flex-1 bg-surface-default">
 			{/* Header */}
 			<View className="bg-surface-default px-6 py-4 border-b border-border-focus">
 				<View className="flex-row items-center justify-between">
