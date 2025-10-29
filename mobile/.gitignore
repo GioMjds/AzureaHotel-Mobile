@@ -42,4 +42,7 @@ app-example
 # generated native folders
 /ios
 /android
+
 azureahotel-mobile-firebase-adminsdk-fbsvc-37eb3239af.json
+google-services.json
+credentials.json

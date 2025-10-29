@@ -18,7 +18,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.azureahotel",
-      "googleServicesFile": "azureahotel-mobile-firebase-adminsdk-fbsvc-37eb3239af.json"
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",

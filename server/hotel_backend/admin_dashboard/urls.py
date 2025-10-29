@@ -5,7 +5,7 @@ from . import views
 urlpatterns = [
     path('stats', views.dashboard_stats, name='dashboard_stats'),
     path('booking_status_counts', views.booking_status_counts, name='booking_status_counts'),
-    
+
     # Analytics
     path('daily_revenue', views.daily_revenue, name='daily_revenue'),
     path('daily_bookings', views.daily_bookings, name='daily_bookings'),
@@ -17,28 +17,28 @@ urlpatterns = [
     path('room_bookings', views.room_bookings, name='room_bookings'),
     path('area_revenue', views.area_revenue, name='area_revenue'),
     path('area_bookings', views.area_bookings, name='area_bookings'),
-    
+
     # CRUD Rooms
     path('rooms', views.fetch_rooms, name='fetch_rooms'),
     path('add_room', views.add_new_room, name='add_new_room'),
     path('show_room/<int:room_id>', views.show_room_details, name='show_room_details'),
     path('edit_room/<int:room_id>', views.edit_room, name='edit_room'),
     path('delete_room/<int:room_id>', views.delete_room, name='delete_room'),
-    
+
     # CRUD Areas
     path('areas', views.fetch_areas, name='fetch_areas'),
     path('add_area', views.add_new_area, name='add_new_area'),
     path('show_area/<int:area_id>', views.show_area_details, name='show_area_details'),
     path('edit_area/<int:area_id>', views.edit_area, name='edit_area'),
     path('delete_area/<int:area_id>', views.delete_area, name='delete_area'),
-    
+
     # CRUD Amenities
     path('amenities', views.fetch_amenities, name='fetch_amenities'),
     path('add_amenity', views.create_amenity, name='create_amenity'),
     path('show_amenity/<int:pk>', views.retreive_amenity, name='retreive_amenity'),
     path('edit_amenity/<int:pk>', views.update_amenity, name='update_amenity'),
     path('delete_amenity/<int:pk>', views.delete_amenity, name='delete_amenity'),
-    
+
     # Regular Users Management
     path('users', views.fetch_all_users, name='fetch_all_users'),
     path('show_user/<int:user_id>', views.show_user_details, name='show_user_details'),
