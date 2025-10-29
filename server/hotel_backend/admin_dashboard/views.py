@@ -12,6 +12,8 @@ from booking.serializers import BookingSerializer
 from user_roles.models import CustomUsers, Notification
 from user_roles.serializers import CustomUserSerializer
 from user_roles.views import create_booking_notification
+from user_roles.service.firebase import firebase_service
+from firebase_admin import db as firebase_db
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Q, Sum, Count, Avg, Max
 from datetime import datetime, date, timedelta
@@ -20,6 +22,9 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import traceback
 import io
+import logging
+
+logger = logging.getLogger(__name__)
 from django.db.models import Sum, Count, Avg
 
 def convert_tempfile_to_inmemory(file):
@@ -169,6 +174,42 @@ def dashboard_stats(request):
         return Response({
             "error": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def send_test_notification(request):
+    """Dev-only endpoint: push a test notification to a user using the Firebase Admin SDK.
+
+    Body (optional): { user_id: int, message: str }
+    If user_id is omitted, the authenticated user's id is used.
+    """
+    try:
+        user = request.user
+        user_id = request.data.get('user_id') or getattr(user, 'id', None)
+        if not user_id:
+            return Response({'detail': 'user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        message = request.data.get('message') or f'Dev test notification @ {timezone.now().isoformat()}'
+
+        # Write directly to the Realtime DB path mobile subscribes to: user-notifications/{userId}
+        try:
+            root_ref = firebase_db.reference('/')
+            user_notifications_ref = root_ref.child('user-notifications').child(str(user_id)).push()
+            notif_payload = {
+                'type': 'general',
+                'message': message,
+                'timestamp': int(timezone.now().timestamp() * 1000),
+                'read': False,
+                'data': {'dev': True}
+            }
+            user_notifications_ref.set(notif_payload)
+            return Response({'success': True, 'message': 'Notification sent'}, status=status.HTTP_200_OK)
+        except Exception:
+            logger.exception('Failed to write user-notifications entry')
+            return Response({'success': False, 'message': 'Failed to write to realtime DB'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        logger.exception('send_test_notification failed')
+        return Response({'success': False, 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Rooms
 @api_view(['GET'])

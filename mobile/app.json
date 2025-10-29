@@ -17,7 +17,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.azureahotel"
+      "package": "com.anonymous.azureahotel",
+      "googleServicesFile": "azureahotel-mobile-firebase-adminsdk-fbsvc-37eb3239af.json"
     },
     "web": {
       "bundler": "metro",
@@ -34,7 +35,14 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "default",
+          "enableBackgroundRemoteNotifications": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

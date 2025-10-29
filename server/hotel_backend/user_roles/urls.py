@@ -7,6 +7,8 @@ urlpatterns = [
     path('token', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh', TokenRefreshView.as_view(), name="token_refresh_pair"),
     path('firebase_token', views.get_firebase_token, name='get_firebase_token'),
+    # Endpoint to register device FCM tokens (guests or authenticated devices)
+    path('register_fcm_token', views.register_firebase_token, name='register_fcm_token'),
     
     # For user authentication
     path('auth/user', views.user_auth, name='user_auth'),

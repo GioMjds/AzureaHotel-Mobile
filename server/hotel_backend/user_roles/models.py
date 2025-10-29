@@ -86,3 +86,15 @@ class CraveOnUser(models.Model):
         managed = False  # Don't let Django manage this table
         db_table = 'customers'
         app_label = 'craveon'  # Use a separate app label for routing
+
+
+class DeviceToken(models.Model):
+    """Stores device FCM tokens optionally linked to a user. Useful for sending pushes to guests/devices."""
+    token = models.CharField(max_length=512, unique=True)
+    user = models.ForeignKey(CustomUsers, on_delete=models.CASCADE, null=True, blank=True)
+    platform = models.CharField(max_length=20, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'device_tokens'

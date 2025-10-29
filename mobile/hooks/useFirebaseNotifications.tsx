@@ -21,7 +21,6 @@ export function useFirebaseNotifications() {
 	useEffect(() => {
 		if (!user?.id) return;
 
-		// helper: present a local notification using expo-notifications
 		const showLocalNotification = async (notification: FirebaseNotification) => {
 			try {
 				const perm = await Notifications.getPermissionsAsync();

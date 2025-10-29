@@ -1,8 +1,10 @@
 import firebase_admin
-from firebase_admin import credentials, auth, db
+from firebase_admin import credentials, auth, db, messaging
 import logging
 from datetime import datetime
 from pathlib import Path
+import requests
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +115,59 @@ class FirebaseService:
             })
             
             logger.info(f"✅ Successfully wrote booking update to Firebase")
+
+            # ALSO: send FCM push to topic `user_{user_id}` and to any saved device tokens
+            try:
+                title = f"Booking #{booking_id} update"
+                body = f"Status: {status}"
+                data_payload = (additional_data or {})
+
+                # Topic send
+                topic = f"user_{user_id}"
+                message = messaging.Message(
+                    notification=messaging.Notification(title=title, body=body),
+                    data={k: str(v) for k, v in data_payload.items()},
+                    topic=topic
+                )
+                resp = messaging.send(message)
+                logger.info(f"✅ FCM message sent to topic {topic}: {resp}")
+
+                # Send to saved device tokens (if any)
+                try:
+                    from ..models import DeviceToken
+                    tokens_qs = DeviceToken.objects.filter(user_id=user_id).values_list('token', 'platform')
+                    token_rows = list(tokens_qs)
+                    if token_rows:
+                        # Separate Expo tokens from FCM tokens
+                        expo_tokens: List[str] = []
+                        fcm_tokens: List[str] = []
+
+                        for t, plat in token_rows:
+                            # if platform explicitly marked as 'expo' or token looks like an Expo token
+                            if (plat and str(plat).lower() == 'expo') or (isinstance(t, str) and t.startswith('ExponentPushToken')):
+                                expo_tokens.append(t)
+                            else:
+                                fcm_tokens.append(t)
+
+                        if fcm_tokens:
+                            multicast = messaging.MulticastMessage(
+                                notification=messaging.Notification(title=title, body=body),
+                                data={k: str(v) for k, v in data_payload.items()},
+                                tokens=fcm_tokens
+                            )
+                            res = messaging.send_multicast(multicast)
+                            logger.info(f"✅ FCM multicast sent to {len(fcm_tokens)} tokens: success={res.success_count} failure={res.failure_count}")
+
+                        if expo_tokens:
+                            try:
+                                self._send_expo_pushes(expo_tokens, title, body, data_payload)
+                            except Exception:
+                                logger.exception("Failed sending Expo pushes to saved device tokens")
+                except Exception:
+                    logger.exception("Failed sending FCM to saved device tokens")
+            except Exception:
+                logger.exception("Failed to send FCM push for booking update")
+
             return True
             
         except Exception as e:
@@ -221,11 +276,96 @@ class FirebaseService:
             })
             
             logger.info(f"✅ Successfully wrote user notification to Firebase")
+
+            # ALSO: send FCM push to topic and device tokens
+            try:
+                title = notification_data.get('title', 'Booking Update')
+                body = notification_data.get('message') or notification_data.get('body') or ''
+                data_payload = notification_data.get('data', {}) or {}
+
+                topic = f"user_{user_id}"
+                message = messaging.Message(
+                    notification=messaging.Notification(title=title, body=body),
+                    data={k: str(v) for k, v in data_payload.items()},
+                    topic=topic
+                )
+                resp = messaging.send(message)
+                logger.info(f"✅ FCM message sent to topic {topic}: {resp}")
+
+                try:
+                    from ..models import DeviceToken
+                    tokens_qs = DeviceToken.objects.filter(user_id=user_id).values_list('token', 'platform')
+                    token_rows = list(tokens_qs)
+                    if token_rows:
+                        expo_tokens: List[str] = []
+                        fcm_tokens: List[str] = []
+                        for t, plat in token_rows:
+                            if (plat and str(plat).lower() == 'expo') or (isinstance(t, str) and t.startswith('ExponentPushToken')):
+                                expo_tokens.append(t)
+                            else:
+                                fcm_tokens.append(t)
+
+                        if fcm_tokens:
+                            multicast = messaging.MulticastMessage(
+                                notification=messaging.Notification(title=title, body=body),
+                                data={k: str(v) for k, v in data_payload.items()},
+                                tokens=fcm_tokens
+                            )
+                            res = messaging.send_multicast(multicast)
+                            logger.info(f"✅ FCM multicast sent to {len(fcm_tokens)} tokens: success={res.success_count} failure={res.failure_count}")
+
+                        if expo_tokens:
+                            try:
+                                self._send_expo_pushes(expo_tokens, title, body, data_payload)
+                            except Exception:
+                                logger.exception("Failed sending Expo pushes to saved device tokens")
+                except Exception:
+                    logger.exception("Failed sending FCM to saved device tokens")
+            except Exception:
+                logger.exception("Failed to send user FCM push")
+
             return True
             
         except Exception as e:
             logger.error(f"Error sending user notification to Firebase: {str(e)}")
             return False
+
+    def _send_expo_pushes(self, tokens: List[str], title: str, body: str, data: dict = None):
+        """Send push notifications via Expo Push API for Expo-managed clients.
+        Batches requests in groups of 100 as recommended by Expo.
+        """
+        if not tokens:
+            return
+
+        url = "https://exp.host/--/api/v2/push/send"
+        headers = {
+            'Accept': 'application/json',
+            'Accept-Encoding': 'gzip, deflate',
+            'Content-Type': 'application/json'
+        }
+
+        # Expo recommends batches of up to 100
+        batch_size = 100
+        for i in range(0, len(tokens), batch_size):
+            batch = tokens[i : i + batch_size]
+            messages = []
+            for t in batch:
+                msg = {
+                    'to': t,
+                    'title': title,
+                    'body': body,
+                    'data': data or {}
+                }
+                messages.append(msg)
+
+            try:
+                resp = requests.post(url, json=messages, headers=headers, timeout=10)
+                if resp.status_code != 200:
+                    logger.warning(f"Expo push send returned status {resp.status_code}: {resp.text}")
+                else:
+                    logger.info(f"✅ Expo push batch sent: {len(messages)} messages")
+            except Exception as e:
+                logger.exception(f"Exception when sending Expo push batch: {str(e)}")
 
 # Create singleton instance
 firebase_service = FirebaseService()

@@ -1,5 +1,5 @@
 import { database } from '@/configs/firebase';
-import { ref, onValue, off, update, remove, onDisconnect } from 'firebase/database';
+import { ref, onValue, off, update, remove, onDisconnect, push } from 'firebase/database';
 import { FirebaseAuthService } from '@/services/firebase/FirebaseAuth';
 
 export interface FirebaseNotification {
@@ -360,3 +360,38 @@ class FirebaseRealtimeService {
 }
 
 export const firebaseRealtimeService = new FirebaseRealtimeService();
+
+// Dev helper: push a test notification into user-notifications/{userId}
+export async function pushTestNotification(
+	userId: number,
+	opts?: Partial<FirebaseNotification>
+) {
+	try {
+		const notificationsRef = ref(database, `user-notifications/${userId}`);
+		const payload: FirebaseNotification = {
+			id: '',
+			type: opts?.type || 'booking_update',
+			booking_id: opts?.booking_id || 0,
+			status: opts?.status || 'test',
+			message: opts?.message || `Test notification ${new Date().toLocaleTimeString()}`,
+			timestamp: opts?.timestamp || Date.now(),
+			read: false,
+			data: opts?.data || {},
+		} as FirebaseNotification;
+
+		// push returns a reference; we don't need its value here
+		await push(notificationsRef, {
+			type: payload.type,
+			booking_id: payload.booking_id,
+			status: payload.status,
+			message: payload.message,
+			timestamp: payload.timestamp,
+			read: payload.read,
+			data: payload.data,
+		});
+		return true;
+	} catch (error) {
+		console.error('pushTestNotification failed', error);
+		throw error;
+	}
+}

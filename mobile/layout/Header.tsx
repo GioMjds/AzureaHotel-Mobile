@@ -220,7 +220,9 @@ const Header = ({ headerLabel }: HeaderProps) => {
 			className="bg-background-elevated border-b border-border-subtle"
 		>
 			<View className="flex-row items-center justify-between px-6 py-4">
-				<NotificationBell />
+				<View className="flex-row items-center">
+					<NotificationBell />
+				</View>
 
 				{/* Centered Header Label */}
 				<View className="flex-1 items-center justify-center">

@@ -169,6 +169,37 @@ def get_firebase_token(request):
             'trace': error_trace if os.getenv('MODE') == 'development' else None
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+@api_view(['POST'])
+def register_firebase_token(request):
+        """Register a device FCM token. If user is authenticated, link token to user.
+        This endpoint can be called by guest devices as well (no authentication required).
+        """
+        try:
+            token = request.data.get('token')
+            # `provider` can be 'expo' for Expo push tokens, otherwise platform may be 'android'|'ios'
+            platform = request.data.get('platform') or request.data.get('provider')
+
+            if not token:
+                return Response({'error': 'Token is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            user = request.user if getattr(request, 'user', None) and request.user.is_authenticated else None
+
+            # Lazy import to avoid circular issues
+            from .models import DeviceToken
+
+            obj, created = DeviceToken.objects.update_or_create(
+                token=token,
+                defaults={
+                    'user': user,
+                    'platform': platform
+                }
+            )
+
+            return Response({'message': 'Token registered', 'created': created}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @api_view(['POST'])
 def auth_logout(request):
     try:

@@ -3,12 +3,17 @@ import { queryClient } from '@/lib/queryClient';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
 import useAuthStore from '@/store/AuthStore';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Notifications from 'expo-notifications';
+import { Platform, Alert } from 'react-native';
+import { useFirebaseNotifications } from '@/hooks/useFirebaseNotifications';
+
+import messaging from '@react-native-firebase/messaging';
 
 import {
 	useFonts as usePlayfairDisplay,
@@ -32,6 +37,16 @@ import {
 
 SplashScreen.preventAutoHideAsync();
 
+// Ensure notifications are shown while app is in foreground
+Notifications.setNotificationHandler({
+	handleNotification: async () => ({
+		shouldShowBanner: false,
+		shouldShowList: false,
+		shouldPlaySound: false,
+		shouldSetBadge: true,
+	}),
+});
+
 function AuthInitializer() {
 	const { initializeAuth, authenticateFirebase } = useAuthStore();
 
@@ -43,14 +58,214 @@ function AuthInitializer() {
 			if (currentState.user && currentState.isAuthenticated) {
 				try {
 					await authenticateFirebase();
+					try {
+						await messaging().registerDeviceForRemoteMessages();
+
+						const fcmToken = await messaging().getToken();
+						console.log('FCM Token:', fcmToken);
+
+						if (currentState.user?.id) {
+							await messaging().subscribeToTopic(
+								`user_${currentState.user.id}`
+							);
+						}
+
+						try {
+							if (fcmToken) {
+								try {
+									const backendUrl = `${process.env.EXPO_PUBLIC_DJANGO_URL}/api/register_fcm_token`;
+									const accessToken = await (
+										await import('expo-secure-store')
+									).getItemAsync('access_token');
+									await fetch(backendUrl, {
+										method: 'POST',
+										headers: {
+											'Content-Type': 'application/json',
+											Authorization: accessToken
+												? `Bearer ${accessToken}`
+												: '',
+										},
+										body: JSON.stringify({
+											token: fcmToken,
+											platform: Platform.OS,
+										}),
+									});
+								} catch (e) {
+									console.warn(
+										'Failed to register FCM token with backend',
+										e
+									);
+								}
+							}
+						} catch (error) {
+							console.error(
+								`⚠️ Error retrieving access token for FCM registration:`,
+								error
+							);
+						}
+					} catch (error) {
+						console.error(`⚠️ FCM registration failed:`, error);
+						// Fallback for Expo managed apps or when native Firebase isn't configured
+						try {
+							const expoTokenObj =
+								await Notifications.getExpoPushTokenAsync();
+							const expoToken =
+								(expoTokenObj as any).data ?? expoTokenObj;
+							const backendUrl = `${process.env.EXPO_PUBLIC_DJANGO_URL}/api/register_fcm_token`;
+							const accessToken = await (
+								await import('expo-secure-store')
+							).getItemAsync('access_token');
+							await fetch(backendUrl, {
+								method: 'POST',
+								headers: {
+									'Content-Type': 'application/json',
+									Authorization: accessToken
+										? `Bearer ${accessToken}`
+										: '',
+								},
+								body: JSON.stringify({
+									token: expoToken,
+									platform: Platform.OS,
+									provider: 'expo',
+								}),
+							});
+							console.log(
+								'Registered Expo push token as fallback:',
+								expoToken
+							);
+						} catch (e) {
+							console.warn(
+								'Failed to register Expo push token as fallback',
+								e
+							);
+						}
+					}
 				} catch (error) {
-					console.warn('⚠️ Firebase initialization failed for existing user:', error);
+					console.warn(
+						'⚠️ Firebase initialization failed for existing user:',
+						error
+					);
 				}
 			}
 		};
 
 		initApp();
 	}, [initializeAuth, authenticateFirebase]);
+
+	return null;
+}
+
+function NotificationsInitializer() {
+	const router = useRouter();
+	useFirebaseNotifications();
+
+	useEffect(() => {
+		const setup = async () => {
+			try {
+				const { status: existingStatus } =
+					await Notifications.getPermissionsAsync();
+				let finalStatus = existingStatus;
+				if (existingStatus !== 'granted') {
+					const { status } =
+						await Notifications.requestPermissionsAsync();
+					finalStatus = status;
+				}
+
+				if (Platform.OS === 'android') {
+					await Notifications.setNotificationChannelAsync('default', {
+						name: 'Default',
+						importance: Notifications.AndroidImportance.MAX,
+						vibrationPattern: [0, 250, 250, 250],
+					});
+				}
+
+				if (finalStatus !== 'granted') {
+					console.warn('Notification permissions not granted');
+				}
+			} catch (e) {
+				console.warn('Failed to setup notifications', e);
+			}
+		};
+
+		void setup();
+
+		const receivedSub = Notifications.addNotificationReceivedListener(
+			(notification) => {
+				try {
+					const { title, body } = notification.request.content;
+					if (title || body) {
+						Alert.alert(title ?? 'Notification', body ?? undefined);
+					}
+
+					// Increment badge count on iOS so the app icon reflects the new item.
+					if (Platform.OS === 'ios') {
+						Notifications.getBadgeCountAsync()
+							.then((count) =>
+								Notifications.setBadgeCountAsync(count + 1)
+							)
+							.catch(() => {});
+					}
+
+					if (Platform.OS === 'android') {
+						Notifications.getBadgeCountAsync()
+							.then((count) =>
+								Notifications.setBadgeCountAsync(count + 1)
+							)
+							.catch(() => {});
+
+						const data = notification.request.content.data as any;
+						if (data?.screen) {
+							router.push(data.screen);
+							return;
+						}
+
+						if (data?.bookingId) {
+							router.push(`/booking/${data.bookingId}`);
+							return;
+						}
+
+						if (data?.path) {
+							router.push(data.path);
+						}
+					}
+				} catch (e) {
+					console.warn('Error handling received notification:', e);
+				}
+			}
+		);
+
+		const responseSub =
+			Notifications.addNotificationResponseReceivedListener(
+				(response) => {
+					try {
+						const data = response.notification.request.content
+							.data as any;
+						// Prefer an explicit `screen` key, otherwise try common ids (bookingId)
+						if (data?.screen) {
+							router.push(data.screen);
+							return;
+						}
+
+						if (data?.bookingId) {
+							router.push(`/booking/${data.bookingId}`);
+							return;
+						}
+
+						if (data?.path) router.push(data.path);
+					} catch (e) {
+						console.warn(
+							'Error handling notification response:',
+							e
+						);
+					}
+				}
+			);
+
+		return () => {
+			receivedSub.remove();
+			responseSub.remove();
+		};
+	}, [router]);
 
 	return null;
 }
@@ -92,8 +307,14 @@ export default function RootLayout() {
 			<SafeAreaProvider>
 				<QueryClientProvider client={queryClient}>
 					<AuthInitializer />
+					<NotificationsInitializer />
 					<StatusBar style="dark" />
-					<Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+					<Stack
+						screenOptions={{
+							headerShown: false,
+							animation: 'fade',
+						}}
+					/>
 				</QueryClientProvider>
 			</SafeAreaProvider>
 		</GestureHandlerRootView>
