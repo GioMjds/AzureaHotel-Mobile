@@ -13,7 +13,11 @@ import * as Notifications from 'expo-notifications';
 import { Platform, Alert } from 'react-native';
 import { useFirebaseNotifications } from '@/hooks/useFirebaseNotifications';
 
-import messaging from '@react-native-firebase/messaging';
+import messaging, {
+	registerDeviceForRemoteMessages,
+	getToken,
+	subscribeToTopic
+} from '@react-native-firebase/messaging';
 
 import {
 	useFonts as usePlayfairDisplay,
@@ -37,7 +41,6 @@ import {
 
 SplashScreen.preventAutoHideAsync();
 
-// Ensure notifications are shown while app is in foreground
 Notifications.setNotificationHandler({
 	handleNotification: async () => ({
 		shouldShowBanner: false,
@@ -59,13 +62,16 @@ function AuthInitializer() {
 				try {
 					await authenticateFirebase();
 					try {
-						await messaging().registerDeviceForRemoteMessages();
+						// Pass the messaging instance to modular helpers
+						const messagingInstance = messaging();
+						await registerDeviceForRemoteMessages(messagingInstance);
 
-						const fcmToken = await messaging().getToken();
+						const fcmToken = await getToken(messagingInstance);
 						console.log('FCM Token:', fcmToken);
 
 						if (currentState.user?.id) {
-							await messaging().subscribeToTopic(
+							await subscribeToTopic(
+								messagingInstance,
 								`user_${currentState.user.id}`
 							);
 						}
@@ -81,9 +87,7 @@ function AuthInitializer() {
 										method: 'POST',
 										headers: {
 											'Content-Type': 'application/json',
-											Authorization: accessToken
-												? `Bearer ${accessToken}`
-												: '',
+											Authorization: `Bearer ${accessToken}`,
 										},
 										body: JSON.stringify({
 											token: fcmToken,
