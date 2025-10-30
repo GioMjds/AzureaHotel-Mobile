@@ -44,5 +44,5 @@ app-example
 /android
 
 azureahotel-mobile-firebase-adminsdk-fbsvc-37eb3239af.json
-google-services.json
+# google-services.json
 credentials.json

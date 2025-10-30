@@ -123,9 +123,9 @@ const CancellationModal = ({
                                         {reasons.map((reason, index) => (
                                             <TouchableOpacity
                                                 key={index}
-                                                className={`flex-row items-center space-x-3 p-3 rounded-lg border ${
+                                                className={`flex-row items-center space-x-4 p-2 mt-2 rounded-lg border ${
                                                     selectedReason === reason 
-                                                        ? 'bg-violet-50 border-violet-300' 
+                                                        ? 'bg-violet-600 border-violet-300' 
                                                         : 'bg-gray-50 border-gray-200'
                                                 } ${isSubmitting ? 'opacity-50' : ''}`}
                                                 onPress={() => !isSubmitting && handleReasonSelect(reason)}
@@ -133,10 +133,10 @@ const CancellationModal = ({
                                             >
                                                 <Text className={`font-montserrat flex-1 ${
                                                     selectedReason === reason 
-                                                        ? 'text-violet-900' 
+                                                        ? 'text-white' 
                                                         : 'text-gray-700'
                                                 }`}>
-                                                    {reason}
+                                                    - {reason}
                                                 </Text>
                                             </TouchableOpacity>
                                         ))}
@@ -178,7 +178,7 @@ const CancellationModal = ({
                             {/* Footer Actions */}
                             <View className="flex-row border-t border-gray-200 px-6 py-4 space-x-4">
                                 <TouchableOpacity
-                                    className={`flex-1 bg-gray-100 border-black border active:bg-gray-200 py-3 px-4 rounded-xl items-center ${
+                                    className={`flex-1 bg-gray-100 border-black border active:bg-gray-200 py-3 px-4 mr-1 rounded-xl items-center ${
                                         isSubmitting ? 'opacity-50' : ''
                                     }`}
                                     onPress={handleClose}
@@ -189,10 +189,10 @@ const CancellationModal = ({
                                     </Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                    className={`flex-1 py-3 px-4 rounded-xl border-black border items-center ${
+                                    className={`flex-1 py-3 px-4 ml-1 rounded-xl border-black border items-center ${
                                         isDisabled
                                             ? 'bg-gray-300' 
-                                            : 'bg-red-600 active:bg-red-700'
+                                            : 'bg-red-500'
                                     }`}
                                     onPress={handleConfirm}
                                     disabled={isDisabled}

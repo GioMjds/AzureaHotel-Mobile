@@ -42,12 +42,17 @@ import {
 SplashScreen.preventAutoHideAsync();
 
 Notifications.setNotificationHandler({
-	handleNotification: async () => ({
-		shouldShowBanner: false,
-		shouldShowList: false,
-		shouldPlaySound: false,
-		shouldSetBadge: true,
-	}),
+		handleNotification: async () => ({
+			// Show system notification (alert/banner) even when the app is in the foreground
+			shouldShowAlert: true,
+			// For some SDK versions these expanded fields are required by the typings
+			shouldShowBanner: true,
+			shouldShowList: true,
+			// Play sound when a notification arrives
+			shouldPlaySound: true,
+			// Update app badge count
+			shouldSetBadge: true,
+		}),
 });
 
 function AuthInitializer() {
@@ -198,39 +203,31 @@ function NotificationsInitializer() {
 				try {
 					const { title, body } = notification.request.content;
 					if (title || body) {
+						// Show a simple alert for immediate feedback while in foreground
 						Alert.alert(title ?? 'Notification', body ?? undefined);
 					}
 
-					// Increment badge count on iOS so the app icon reflects the new item.
-					if (Platform.OS === 'ios') {
-						Notifications.getBadgeCountAsync()
-							.then((count) =>
-								Notifications.setBadgeCountAsync(count + 1)
-							)
-							.catch(() => {});
+					// Increment badge count so the app icon reflects the new item
+					Notifications.getBadgeCountAsync()
+						.then((count) => Notifications.setBadgeCountAsync(count + 1))
+						.catch(() => {});
+
+					// Try to route based on payload regardless of platform
+					const data = notification.request.content.data as any;
+					if (data?.screen) {
+						router.push(data.screen);
+						return;
 					}
 
-					if (Platform.OS === 'android') {
-						Notifications.getBadgeCountAsync()
-							.then((count) =>
-								Notifications.setBadgeCountAsync(count + 1)
-							)
-							.catch(() => {});
+					// Accept both camelCase and snake_case booking id keys
+					const bookingId = data?.bookingId ?? data?.booking_id ?? data?.booking;
+					if (bookingId) {
+						router.push(`/booking/${bookingId}`);
+						return;
+					}
 
-						const data = notification.request.content.data as any;
-						if (data?.screen) {
-							router.push(data.screen);
-							return;
-						}
-
-						if (data?.bookingId) {
-							router.push(`/booking/${data.bookingId}`);
-							return;
-						}
-
-						if (data?.path) {
-							router.push(data.path);
-						}
+					if (data?.path) {
+						router.push(data.path);
 					}
 				} catch (e) {
 					console.warn('Error handling received notification:', e);
@@ -242,16 +239,16 @@ function NotificationsInitializer() {
 			Notifications.addNotificationResponseReceivedListener(
 				(response) => {
 					try {
-						const data = response.notification.request.content
-							.data as any;
-						// Prefer an explicit `screen` key, otherwise try common ids (bookingId)
+						const data = response.notification.request.content.data as any;
+						// Prefer an explicit `screen` key, otherwise try common ids (bookingId / booking_id)
 						if (data?.screen) {
 							router.push(data.screen);
 							return;
 						}
 
-						if (data?.bookingId) {
-							router.push(`/booking/${data.bookingId}`);
+						const bookingIdResp = data?.bookingId ?? data?.booking_id ?? data?.booking;
+						if (bookingIdResp) {
+							router.push(`/booking/${bookingIdResp}`);
 							return;
 						}
 

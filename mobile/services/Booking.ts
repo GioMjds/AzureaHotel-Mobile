@@ -49,6 +49,7 @@ class BookingService {
 		formData.append('roomId', reservationData.areaId);
 		formData.append('isVenueBooking', 'true');
 		formData.append('status', reservationData.status || 'pending');
+		formData.append('paymentProof', reservationData.paymentProof || '');
 
 		if (reservationData.startTime) {
 			const startDate = new Date(reservationData.startTime);
@@ -67,11 +68,6 @@ class BookingService {
 		formData.append('totalPrice', reservationData.totalPrice?.toString() || '0');
 		formData.append('numberOfGuests', reservationData.numberOfGuests.toString());
 		formData.append('paymentMethod', reservationData.paymentMethod);
-
-		// If reservationData includes a downPayment (numeric), send it to the server.
-		if ((reservationData as any).downPayment !== undefined) {
-			formData.append('downPayment', String((reservationData as any).downPayment));
-		}
 
         return await httpClient.post(BookingRoutes.BOOKINGS, formData, {
             headers: {

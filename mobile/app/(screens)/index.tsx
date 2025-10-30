@@ -46,6 +46,8 @@ export default function BookingsScreen() {
             return currentPage < totalPages ? currentPage + 1 : undefined;
         },
         initialPageParam: 1,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        refetchInterval: 10 * 60 * 1000, // 10 minutes
     });
 
     const allBookings = data?.pages?.flatMap(page => page.data) || [];

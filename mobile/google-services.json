@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "2518147103",
+    "firebase_url": "https://azureahotel-mobile-default-rtdb.firebaseio.com",
+    "project_id": "azureahotel-mobile",
+    "storage_bucket": "azureahotel-mobile.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:2518147103:android:7c2903d68cf31c3080352a",
+        "android_client_info": {
+          "package_name": "com.anonymous.azureahotel"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "2518147103-nmkk5k2n0ud3ue6o5os6k78hak8drvrj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5ZbLDEz1lTauGuZ_Vfqn3_92GhW3a1ik"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "2518147103-nmkk5k2n0ud3ue6o5os6k78hak8drvrj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

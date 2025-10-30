@@ -1,5 +1,4 @@
-import firebase_admin
-from firebase_admin import credentials, auth, db, messaging
+from firebase_admin import credentials, auth, db, messaging, get_app, initialize_app
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -25,7 +24,7 @@ class FirebaseService:
     def _initialize_firebase(self):
         try:
             # Check if Firebase is already initialized
-            firebase_admin.get_app()
+            get_app()
             logger.info("Firebase already initialized")
         except ValueError:
             # Firebase not initialized, initialize it
@@ -41,7 +40,7 @@ class FirebaseService:
                 cred = credentials.Certificate(str(cred_path))
                 
                 # Initialize with Realtime Database URL
-                firebase_admin.initialize_app(cred, {
+                initialize_app(cred, {
                     'databaseURL': 'https://azureahotel-mobile-default-rtdb.firebaseio.com/'
                 })
                 
@@ -52,7 +51,7 @@ class FirebaseService:
     def is_available(self) -> bool:
         """Check if Firebase is properly initialized"""
         try:
-            firebase_admin.get_app()
+            get_app()
             return True
         except ValueError:
             return False
@@ -150,13 +149,42 @@ class FirebaseService:
                                 fcm_tokens.append(t)
 
                         if fcm_tokens:
-                            multicast = messaging.MulticastMessage(
-                                notification=messaging.Notification(title=title, body=body),
-                                data={k: str(v) for k, v in data_payload.items()},
-                                tokens=fcm_tokens
-                            )
-                            res = messaging.send_multicast(multicast)
-                            logger.info(f"✅ FCM multicast sent to {len(fcm_tokens)} tokens: success={res.success_count} failure={res.failure_count}")
+                            # Build notification payload for per-token sends
+                            notif = messaging.Notification(title=title, body=body)
+                            data_strings = {k: str(v) for k, v in data_payload.items()}
+
+                            # Preferred: use send_multicast if available, otherwise try send_all, otherwise fall back to per-token sends
+                            try:
+                                if hasattr(messaging, 'send_multicast'):
+                                    multicast = messaging.MulticastMessage(
+                                        notification=notif,
+                                        data=data_strings,
+                                        tokens=fcm_tokens
+                                    )
+                                    res = messaging.send_multicast(multicast)
+                                    logger.info(f"✅ FCM multicast sent to {len(fcm_tokens)} tokens: success={res.success_count} failure={res.failure_count}")
+                                elif hasattr(messaging, 'send_all'):
+                                    # send_all takes a list of Message objects
+                                    messages = [messaging.Message(notification=notif, data=data_strings, token=t) for t in fcm_tokens]
+                                    res = messaging.send_all(messages)
+                                    success = getattr(res, 'success_count', None)
+                                    failure = getattr(res, 'failure_count', None)
+                                    logger.info(f"✅ FCM send_all sent to {len(fcm_tokens)} tokens: success={success} failure={failure}")
+                                else:
+                                    # Last resort: send individually
+                                    success = 0
+                                    failure = 0
+                                    for t in fcm_tokens:
+                                        try:
+                                            m = messaging.Message(notification=notif, data=data_strings, token=t)
+                                            messaging.send(m)
+                                            success += 1
+                                        except Exception:
+                                            logger.exception(f"Failed sending FCM to token {t}")
+                                            failure += 1
+                                    logger.info(f"✅ FCM per-token send: attempted={len(fcm_tokens)} success={success} failure={failure}")
+                            except Exception:
+                                logger.exception("Failed sending FCM to saved device tokens (multicast/send_all/per-token)")
 
                         if expo_tokens:
                             try:
@@ -306,13 +334,40 @@ class FirebaseService:
                                 fcm_tokens.append(t)
 
                         if fcm_tokens:
-                            multicast = messaging.MulticastMessage(
-                                notification=messaging.Notification(title=title, body=body),
-                                data={k: str(v) for k, v in data_payload.items()},
-                                tokens=fcm_tokens
-                            )
-                            res = messaging.send_multicast(multicast)
-                            logger.info(f"✅ FCM multicast sent to {len(fcm_tokens)} tokens: success={res.success_count} failure={res.failure_count}")
+                            # Build notification payload for per-token sends
+                            notif = messaging.Notification(title=title, body=body)
+                            data_strings = {k: str(v) for k, v in data_payload.items()}
+
+                            # Preferred: use send_multicast if available, otherwise try send_all, otherwise fall back to per-token sends
+                            try:
+                                if hasattr(messaging, 'send_multicast'):
+                                    multicast = messaging.MulticastMessage(
+                                        notification=notif,
+                                        data=data_strings,
+                                        tokens=fcm_tokens
+                                    )
+                                    res = messaging.send_multicast(multicast)
+                                    logger.info(f"✅ FCM multicast sent to {len(fcm_tokens)} tokens: success={res.success_count} failure={res.failure_count}")
+                                elif hasattr(messaging, 'send_all'):
+                                    messages = [messaging.Message(notification=notif, data=data_strings, token=t) for t in fcm_tokens]
+                                    res = messaging.send_all(messages)
+                                    success = getattr(res, 'success_count', None)
+                                    failure = getattr(res, 'failure_count', None)
+                                    logger.info(f"✅ FCM send_all sent to {len(fcm_tokens)} tokens: success={success} failure={failure}")
+                                else:
+                                    success = 0
+                                    failure = 0
+                                    for t in fcm_tokens:
+                                        try:
+                                            m = messaging.Message(notification=notif, data=data_strings, token=t)
+                                            messaging.send(m)
+                                            success += 1
+                                        except Exception:
+                                            logger.exception(f"Failed sending FCM to token {t}")
+                                            failure += 1
+                                    logger.info(f"✅ FCM per-token send: attempted={len(fcm_tokens)} success={success} failure={failure}")
+                            except Exception:
+                                logger.exception("Failed sending FCM to saved device tokens (multicast/send_all/per-token)")
 
                         if expo_tokens:
                             try:
