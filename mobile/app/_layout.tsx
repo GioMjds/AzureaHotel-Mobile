@@ -42,17 +42,12 @@ import {
 SplashScreen.preventAutoHideAsync();
 
 Notifications.setNotificationHandler({
-		handleNotification: async () => ({
-			// Show system notification (alert/banner) even when the app is in the foreground
-			shouldShowAlert: true,
-			// For some SDK versions these expanded fields are required by the typings
-			shouldShowBanner: true,
-			shouldShowList: true,
-			// Play sound when a notification arrives
-			shouldPlaySound: true,
-			// Update app badge count
-			shouldSetBadge: true,
-		}),
+	handleNotification: async () => ({
+		shouldShowBanner: true,
+		shouldShowList: true,
+		shouldPlaySound: true,
+		shouldSetBadge: true,
+	}),
 });
 
 function AuthInitializer() {

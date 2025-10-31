@@ -101,35 +101,85 @@ class FirebaseService:
                 'is_venue_booking': additional_data.get('is_venue_booking', False) if additional_data else False
             })
             
-            # Create notification for user
-            notification_ref = ref.child('notifications').child(f'user_{user_id}').push()
-            notification_ref.set({
-                'type': 'booking_update',
-                'booking_id': booking_id,
-                'status': status,
-                'message': f'Booking #{booking_id} status: {status}',
-                'timestamp': datetime.now().isoformat(),
-                'read': False,
-                'data': additional_data or {}
-            })
+            # Decide whether to push a user-facing notification. We still write
+            # booking-updates and user-bookings for every change, but avoid
+            # creating RTDB notification entries or sending FCM pushes for
+            # initial/pending states (e.g. 'pending' or 'created'). Mobile
+            # clients expect actionable notifications only for meaningful
+            # state transitions such as reserved/confirmed/checked_in/etc.
+            status_lower = str(status).lower() if status is not None else ''
+            suppress_notification_for = ['pending', 'created']
+            should_notify = status_lower not in suppress_notification_for
+
+            # Try to resolve a friendly property name for the booking so we can
+            # use the same human-friendly message templates as
+            # `create_notification` in views.
+            property_name = "your reservation"
+            try:
+                # Local import to avoid circular imports at module import time
+                from booking.models import Bookings
+                booking_obj = Bookings.objects.filter(id=booking_id).select_related('room', 'area').first()
+                if booking_obj:
+                    if getattr(booking_obj, 'is_venue_booking', False) and getattr(booking_obj, 'area', None):
+                        property_name = booking_obj.area.area_name
+                    elif getattr(booking_obj, 'room', None):
+                        property_name = booking_obj.room.room_name
+            except Exception:
+                # Fail silently and keep default property_name
+                pass
+
+            # Notification message templates (match create_notification)
+            messages = {
+                'reserved': f"Your booking for {property_name} has been confirmed!",
+                'no_show': f"You did not show up for your booking at {property_name}.",
+                'rejected': f"Your booking for {property_name} has been rejected. Click to see booking details.",
+                'checkin_reminder': f"Reminder: You have a booking at {property_name} today. Click to see booking details.",
+                'checked_in': f"You have been checked in to {property_name}. Welcome!",
+                'checked_out': f"You have been checked out from {property_name}. Thank you for staying with us!",
+                'cancelled': f"Your booking for {property_name} has been cancelled. Click to see details."
+            }
+
+            # Allow an explicit message override via additional_data
+            override_message = (additional_data or {}).get('message') if additional_data else None
+            message_text = override_message or messages.get(status_lower) or f"Booking #{booking_id} status: {status}"
+
+            if should_notify:
+                # Create notification for user in RTDB
+                notification_ref = ref.child('notifications').child(f'user_{user_id}').push()
+                notification_ref.set({
+                    'type': 'booking_update',
+                    'booking_id': booking_id,
+                    'status': status,
+                    'message': message_text,
+                    'timestamp': datetime.now().isoformat(),
+                    'read': False,
+                    'data': additional_data or {}
+                })
+            else:
+                logger.info(f"Skipping creating RTDB notification for booking {booking_id} status '{status}'")
             
             logger.info(f"✅ Successfully wrote booking update to Firebase")
 
             # ALSO: send FCM push to topic `user_{user_id}` and to any saved device tokens
             try:
                 title = f"Booking #{booking_id} update"
-                body = f"Status: {status}"
+                # Use the friendly message_text for push body when available
+                body = message_text
                 data_payload = (additional_data or {})
 
-                # Topic send
-                topic = f"user_{user_id}"
-                message = messaging.Message(
-                    notification=messaging.Notification(title=title, body=body),
-                    data={k: str(v) for k, v in data_payload.items()},
-                    topic=topic
-                )
-                resp = messaging.send(message)
-                logger.info(f"✅ FCM message sent to topic {topic}: {resp}")
+                # Only send FCM notifications when we intend to notify the user
+                if should_notify:
+                    # Topic send
+                    topic = f"user_{user_id}"
+                    message = messaging.Message(
+                        notification=messaging.Notification(title=title, body=body),
+                        data={k: str(v) for k, v in data_payload.items()},
+                        topic=topic
+                    )
+                    resp = messaging.send(message)
+                    logger.info(f"✅ FCM message sent to topic {topic}: {resp}")
+                else:
+                    logger.info(f"Skipping FCM push for booking {booking_id} status '{status}'")
 
                 # Send to saved device tokens (if any)
                 try:
@@ -152,7 +202,7 @@ class FirebaseService:
                             # Build notification payload for per-token sends
                             notif = messaging.Notification(title=title, body=body)
                             data_strings = {k: str(v) for k, v in data_payload.items()}
-
+                        if should_notify:
                             # Preferred: use send_multicast if available, otherwise try send_all, otherwise fall back to per-token sends
                             try:
                                 if hasattr(messaging, 'send_multicast'):
@@ -187,10 +237,13 @@ class FirebaseService:
                                 logger.exception("Failed sending FCM to saved device tokens (multicast/send_all/per-token)")
 
                         if expo_tokens:
-                            try:
-                                self._send_expo_pushes(expo_tokens, title, body, data_payload)
-                            except Exception:
-                                logger.exception("Failed sending Expo pushes to saved device tokens")
+                            if should_notify:
+                                try:
+                                    self._send_expo_pushes(expo_tokens, title, body, data_payload)
+                                except Exception:
+                                    logger.exception("Failed sending Expo pushes to saved device tokens")
+                            else:
+                                logger.info(f"Skipping Expo push for booking {booking_id} status '{status}'")
                 except Exception:
                     logger.exception("Failed sending FCM to saved device tokens")
             except Exception:

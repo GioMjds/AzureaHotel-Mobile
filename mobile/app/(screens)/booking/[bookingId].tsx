@@ -860,7 +860,7 @@ export default function BookingDetailsScreen() {
 								)}
 
 								{/* Remaining Balance */}
-								{bookingData.total_price !== bookingData.down_payment && (
+								{bookingData.total_amount > 0 && (
 									<View className="flex-row justify-between items-center py-3 border-b border-border-subtle">
 										<View className="flex-row items-center">
 											<Ionicons

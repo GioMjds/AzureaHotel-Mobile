@@ -44,9 +44,7 @@ export default function NotificationScreen() {
 	} = useUserNotifications();
 
 	const handleNotificationPress = (notification: any) => {
-		if (!notification.is_read) {
-			markAsRead(notification.id);
-		}
+		if (!notification.is_read) markAsRead(notification.id);
 
 		if (notification.booking_id) {
 			router.push({
@@ -162,7 +160,7 @@ export default function NotificationScreen() {
 				<TouchableOpacity
 					onPress={handleMarkAllAsRead}
 					disabled={isMarkingAllAsRead}
-					className="bg-brand-primary px-4 py-2 rounded-full"
+					className="bg-brand-primary px-4 py-2 m-2 rounded-full"
 					activeOpacity={0.7}
 				>
 					{isMarkingAllAsRead ? (
@@ -263,7 +261,6 @@ export default function NotificationScreen() {
 				/>
 			)}
 
-			{/* Styled alert rendered here so showStyledAlert works */}
 			<StyledAlert
 				visible={alertState.visible}
 				type={alertState.type}

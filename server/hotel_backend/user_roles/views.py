@@ -55,7 +55,7 @@ def create_notification(user, booking, notification_type):
             'no_show': f"You did not show up for your booking at {booking.property_name}.",
             'rejected': f"Your booking for {booking.property_name} has been rejected. Click to see booking details.",
             'checkin_reminder': f"Reminder: You have a booking at {booking.property_name} today. Click to see booking details.",
-            'checked_in': f"You have been checked in to {booking.property_name}. Welcome!",
+            'checked_in': f"You have been checked in to {booking.property_name}",
             'checked_out': f"You have been checked out from {booking.property_name}. Thank you for staying with us!",
             'cancelled': f"Your booking for {booking.property_name} has been cancelled. Click to see details."
         }
@@ -94,7 +94,7 @@ def create_booking_notification(user, notification_type, booking_id, message):
             notification_type=clean_type,
             booking=booking
         )
-                
+
         try:
             channel_layer = get_channel_layer()
             notification_data = NotificationSerializer(notification).data
@@ -110,7 +110,7 @@ def create_booking_notification(user, notification_type, booking_id, message):
             
             return notification
         except Exception as e:
-            return notification
+            return str(e)
     except Exception as e:
         return None
 
@@ -168,7 +168,6 @@ def get_firebase_token(request):
             'message': str(e),
             'trace': error_trace if os.getenv('MODE') == 'development' else None
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 @api_view(['POST'])
 def register_firebase_token(request):

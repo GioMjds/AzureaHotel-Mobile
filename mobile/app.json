@@ -43,8 +43,6 @@
           "enableBackgroundRemoteNotifications": true
         }
       ]
-      ,
-      "./plugins/add-fcm-channel-plugin"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -173,19 +173,19 @@ export default function GetAreaScreen() {
 							<View>
 								{areaData.discounted_price_numeric ? (
 									<View>
-										<Text className="text-neutral-400 font-montserrat text-lg line-through">
+										<Text className="text-neutral-400 font-montserrat-bold text-lg line-through">
 											{pesoFormatter.format(
 												areaData.price_per_hour_numeric
 											)}
 										</Text>
-										<Text className="text-violet-600 font-black text-3xl">
+										<Text className="text-violet-600 font-montserrat-bold text-3xl">
 											{pesoFormatter.format(
 												areaData.discounted_price_numeric
 											)}
 										</Text>
 									</View>
 								) : (
-									<Text className="text-violet-600 font-black text-3xl">
+									<Text className="text-violet-600 font-montserrat-bold text-3xl">
 										{pesoFormatter.format(
 											areaData.price_per_hour_numeric
 										)}

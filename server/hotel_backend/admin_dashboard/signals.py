@@ -125,7 +125,6 @@ def booking_post_save(sender, instance: Bookings, created: bool, **kwargs):
         except Exception:
             logger.exception('Failed to write mirror entries to Firebase realtime DB for booking %s', booking_id)
 
-        # Persist an internal Notification DB record for audit/admin views
         try:
             if user is not None:
                 notif_type = 'booking_update'
@@ -138,7 +137,6 @@ def booking_post_save(sender, instance: Bookings, created: bool, **kwargs):
         except Exception:
             logger.exception('Failed to create Notification db record for booking %s', booking_id)
 
-        # Push active count update to channels group (admin dashboard realtime)
         try:
             if get_channel_layer is not None and async_to_sync is not None:
                 channel_layer = get_channel_layer()
