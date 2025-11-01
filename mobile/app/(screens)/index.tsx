@@ -162,7 +162,7 @@ export default function BookingsScreen() {
                         tintColor="#6F00FF"
                     />
                 }
-                contentContainerStyle={{ paddingBottom: 110, paddingTop: 60 }}
+                contentContainerStyle={{ paddingBottom: 140, paddingTop: 55 }}
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.5}
                 ListFooterComponent={renderFooter}

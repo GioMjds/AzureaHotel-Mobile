@@ -18,6 +18,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { auth } from '@/services/UserAuth';
 import * as SecureStore from 'expo-secure-store';
 import StyledAlert from '@/components/ui/StyledAlert';
+import { useGoogleOAuth } from '@/hooks/useGoogleOAuth';
 
 const REGISTRATION_EMAIL_KEY = 'registration_email';
 const REGISTRATION_PASSWORD_KEY = 'registration_password';
@@ -35,6 +36,9 @@ interface RegisterFormData {
 export default function RegisterScreen() {
 	const [showPassword, setShowPassword] = useState<boolean>(false);
 	const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
+	const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
+
+	const { handleGoogleSignIn, isLoading: isGoogleLoading } = useGoogleOAuth();
 
 	const [alertState, setAlertState] = useState<{
 		visible: boolean;
@@ -57,6 +61,14 @@ export default function RegisterScreen() {
 			message: opts.message,
 			buttons: opts.buttons || [{ text: 'OK' }],
 		});
+	};
+
+	const handleGoogleSignUpPress = async () => {
+		setGoogleAuthError(null);
+		const result = await handleGoogleSignIn();
+		if (!result.success && result.error) {
+			setGoogleAuthError(result.error);
+		}
 	};
 
 	const {
@@ -164,14 +176,64 @@ export default function RegisterScreen() {
 							<View className="w-16 h-1 bg-brand-primary rounded-full" />
 						</View>
 
-						{/* Welcome Text */}
-						<View className="mb-8 text-center">
-							<Text className="text-text-secondary font-montserrat text-lg text-center leading-6">
-								Create your account to start booking luxury accommodations
-							</Text>
-						</View>
+					{/* Welcome Text */}
+					<View className="mb-8 text-center">
+						<Text className="text-text-secondary font-montserrat text-lg text-center leading-6">
+							Create your account to start booking luxury accommodations
+						</Text>
+					</View>
 
-						{/* First & Last Name (same line) */}
+					{/* Google Auth Error */}
+					{googleAuthError && (
+						<View className="mb-6 bg-feedback-error-light border border-feedback-error-DEFAULT rounded-xl p-4">
+							<View className="flex-row items-center">
+								<FontAwesome
+									name="exclamation-circle"
+									size={20}
+									color="#DC2626"
+								/>
+								<Text className="text-feedback-error-dark font-montserrat-bold text-sm ml-2 flex-1">
+									{googleAuthError}
+								</Text>
+							</View>
+						</View>
+					)}						{/* Google Sign Up Button */}
+					<TouchableOpacity
+						className={`border-2 border-interactive-primary rounded-2xl p-4 mb-4 flex-row items-center justify-center ${isGoogleLoading ? 'opacity-70' : ''}`}
+						onPress={handleGoogleSignUpPress}
+						disabled={isGoogleLoading || sendRegisterOTPMutation.isPending}
+						activeOpacity={0.8}
+					>
+						{isGoogleLoading ? (
+							<>
+								<ActivityIndicator
+									size="small"
+									color="#6F00FF"
+								/>
+								<Text className="text-interactive-primary font-montserrat-bold text-base ml-2">
+									Signing up with Google...
+								</Text>
+							</>
+						) : (
+							<>
+								<FontAwesome
+									name="google"
+									size={20}
+									color="#6F00FF"
+								/>
+								<Text className="text-interactive-primary font-montserrat-bold text-base ml-3">
+									Sign Up with Google
+								</Text>
+							</>
+						)}
+					</TouchableOpacity>
+
+					{/* Divider */}
+					<View className="flex-row items-center mb-6">
+						<View className="flex-1 h-px bg-border-subtle" />
+						<Text className="text-text-muted font-montserrat text-sm px-3">Or continue with email</Text>
+						<View className="flex-1 h-px bg-border-subtle" />
+					</View>
 						<View className="mb-4">
 							<View className="flex-row">
 								<View className="flex-1 mx-1">
@@ -395,28 +457,26 @@ export default function RegisterScreen() {
 							)}
 						</View>
 
-						{/* Register Button */}
-						<TouchableOpacity
-							className={`bg-interactive-primary rounded-2xl p-4 mb-4 shadow-lg ${sendRegisterOTPMutation.isPending ? 'opacity-70' : ''}`}
-							onPress={handleSubmit(onSubmit)}
-							disabled={sendRegisterOTPMutation.isPending}
-							activeOpacity={0.8}
-						>
-							{sendRegisterOTPMutation.isPending ? (
-								<View className="flex-row items-center justify-center">
-									<ActivityIndicator size="small" color="#FFF1F1" />
-									<Text className="text-interactive-primary-foreground text-lg font-montserrat-bold ml-2">
-										Creating Account...
-									</Text>
-								</View>
-							) : (
-								<Text className="text-interactive-primary-foreground text-lg font-montserrat-bold text-center">
-									Create Account
+					{/* Register Button */}
+					<TouchableOpacity
+						className={`bg-interactive-primary rounded-2xl p-4 mb-4 shadow-lg ${sendRegisterOTPMutation.isPending || isGoogleLoading ? 'opacity-70' : ''}`}
+						onPress={handleSubmit(onSubmit)}
+						disabled={sendRegisterOTPMutation.isPending || isGoogleLoading}
+						activeOpacity={0.8}
+					>
+						{sendRegisterOTPMutation.isPending ? (
+							<View className="flex-row items-center justify-center">
+								<ActivityIndicator size="small" color="#FFF1F1" />
+								<Text className="text-interactive-primary-foreground text-lg font-montserrat-bold ml-2">
+									Creating Account...
 								</Text>
-							)}
-						</TouchableOpacity>
-
-						{/* Login Link */}
+							</View>
+						) : (
+							<Text className="text-interactive-primary-foreground text-lg font-montserrat-bold text-center">
+								Create Account
+							</Text>
+						)}
+					</TouchableOpacity>						{/* Login Link */}
 						<View className="flex-row justify-center items-center">
 							<Text className="text-text-muted font-montserrat text-base">
 								Already have an account? 

@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { router } from 'expo-router';
 import { useAuthMutations } from '@/hooks/useAuthMutations';
+import { useGoogleOAuth } from '@/hooks/useGoogleOAuth';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 interface LoginFormData {
@@ -22,8 +23,10 @@ interface LoginFormData {
 
 export default function LoginScreen() {
     const [showPassword, setShowPassword] = useState<boolean>(false);
+    const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
 
     const { loginMutation } = useAuthMutations();
+    const { handleGoogleSignIn, isLoading: isGoogleLoading } = useGoogleOAuth();
 
     const {
         control,
@@ -39,6 +42,14 @@ export default function LoginScreen() {
 
     const onSubmit: SubmitHandler<LoginFormData> = (data) => {
         loginMutation.mutate(data);
+    };
+
+    const handleGoogleSignInPress = async () => {
+        setGoogleAuthError(null);
+        const result = await handleGoogleSignIn();
+        if (!result.success && result.error) {
+            setGoogleAuthError(result.error);
+        }
     };
 
     const togglePasswordVisibility = () => setShowPassword(!showPassword);
@@ -114,6 +125,22 @@ export default function LoginScreen() {
                                     />
                                     <Text className="text-feedback-error-dark font-montserrat-bold text-sm ml-2 flex-1">
                                         {errorMessage}
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+
+                        {/* Google Auth Error */}
+                        {googleAuthError && (
+                            <View className="mb-6 bg-feedback-error-light border border-feedback-error-DEFAULT rounded-xl p-4">
+                                <View className="flex-row items-center">
+                                    <FontAwesome
+                                        name="exclamation-circle"
+                                        size={20}
+                                        color="#DC2626"
+                                    />
+                                    <Text className="text-feedback-error-dark font-montserrat-bold text-sm ml-2 flex-1">
+                                        {googleAuthError}
                                     </Text>
                                 </View>
                             </View>
@@ -264,9 +291,9 @@ export default function LoginScreen() {
 
                         {/* Login Button */}
                         <TouchableOpacity
-                            className={`bg-interactive-primary rounded-2xl p-4 mb-2 shadow-lg ${loginMutation.isPending ? 'opacity-70' : ''}`}
+                            className={`bg-interactive-primary rounded-2xl p-4 mb-2 shadow-lg ${loginMutation.isPending || isGoogleLoading ? 'opacity-70' : ''}`}
                             onPress={handleSubmit(onSubmit)}
-                            disabled={loginMutation.isPending}
+                            disabled={loginMutation.isPending || isGoogleLoading}
                             activeOpacity={0.8}
                         >
                             {loginMutation.isPending ? (
@@ -283,6 +310,44 @@ export default function LoginScreen() {
                                 <Text className="text-interactive-primary-foreground text-xl font-montserrat-bold text-center">
                                     Login
                                 </Text>
+                            )}
+                        </TouchableOpacity>
+
+                        {/* Divider */}
+                        <View className="flex-row items-center mb-4 mt-4">
+                            <View className="flex-1 h-px bg-border-subtle" />
+                            <Text className="text-text-muted font-montserrat text-sm px-3">Or</Text>
+                            <View className="flex-1 h-px bg-border-subtle" />
+                        </View>
+
+                        {/* Google Sign In Button */}
+                        <TouchableOpacity
+                            className={`border-2 border-interactive-primary rounded-2xl p-4 mb-4 flex-row items-center justify-center ${isGoogleLoading ? 'opacity-70' : ''}`}
+                            onPress={handleGoogleSignInPress}
+                            disabled={isGoogleLoading || loginMutation.isPending}
+                            activeOpacity={0.8}
+                        >
+                            {isGoogleLoading ? (
+                                <>
+                                    <ActivityIndicator
+                                        size="small"
+                                        color="#6F00FF"
+                                    />
+                                    <Text className="text-interactive-primary font-montserrat-bold text-base ml-2">
+                                        Signing in with Google...
+                                    </Text>
+                                </>
+                            ) : (
+                                <>
+                                    <FontAwesome
+                                        name="google"
+                                        size={20}
+                                        color="#6F00FF"
+                                    />
+                                    <Text className="text-interactive-primary font-montserrat-bold text-base ml-3">
+                                        Sign In with Google
+                                    </Text>
+                                </>
                             )}
                         </TouchableOpacity>
 
