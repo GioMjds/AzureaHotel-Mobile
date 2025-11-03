@@ -291,7 +291,7 @@ export default function LoginScreen() {
 
                         {/* Login Button */}
                         <TouchableOpacity
-                            className={`bg-interactive-primary rounded-2xl p-4 mb-2 shadow-lg ${loginMutation.isPending || isGoogleLoading ? 'opacity-70' : ''}`}
+                            className={`bg-interactive-primary rounded-2xl p-4 mb-1 shadow-lg ${loginMutation.isPending || isGoogleLoading ? 'opacity-70' : ''}`}
                             onPress={handleSubmit(onSubmit)}
                             disabled={loginMutation.isPending || isGoogleLoading}
                             activeOpacity={0.8}
@@ -314,7 +314,7 @@ export default function LoginScreen() {
                         </TouchableOpacity>
 
                         {/* Divider */}
-                        <View className="flex-row items-center mb-4 mt-4">
+                        <View className="flex-row items-center my-2">
                             <View className="flex-1 h-px bg-border-subtle" />
                             <Text className="text-text-muted font-montserrat text-sm px-3">Or</Text>
                             <View className="flex-1 h-px bg-border-subtle" />

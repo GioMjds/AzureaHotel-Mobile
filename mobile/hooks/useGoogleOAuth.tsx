@@ -1,36 +1,3 @@
-/**
- * Hook for Google OAuth integration using @react-native-google-signin/google-signin
- * 
- * This implementation uses the native Google Sign-In SDK for better performance and reliability.
- * 
- * SETUP REQUIREMENTS:
- * 
- * 1. Installation:
- *    npm install @react-native-google-signin/google-signin
- * 
- * 2. Add to app.json plugins array:
- *    {
- *      "plugins": [
- *        ["@react-native-google-signin/google-signin"]
- *      ]
- *    }
- * 
- *    Note: If using Firebase, the google-services.json is already configured.
- *    For iOS without Firebase, add:
- *    "ios": {
- *      "googleServicePlistPath": "./GoogleService-Info.plist"
- *    }
- * 
- * 3. Build native app:
- *    npx expo prebuild --clean
- *    npx expo run:android
- *    npx expo run:ios
- * 
- * 4. Configuration in Google Cloud Console:
- *    - Android: SHA-1 fingerprint must be registered
- *    - iOS: Bundle ID must be registered
- *    - Web Client ID: Required for idToken and server-side validation
- */
 import { useCallback, useEffect, useState } from 'react';
 import {
 	GoogleSignin,
@@ -41,13 +8,10 @@ import {
 } from '@react-native-google-signin/google-signin';
 import * as SecureStore from 'expo-secure-store';
 
-// Web Client ID from Google Cloud Console (required for idToken)
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
 
-// Log for debugging
 console.log('📱 Google OAuth Web Client ID:', GOOGLE_WEB_CLIENT_ID);
 
-// Initialize Google Sign-In on module load
 GoogleSignin.configure({
 	webClientId: GOOGLE_WEB_CLIENT_ID,
 	scopes: ['profile', 'email'],
@@ -75,7 +39,7 @@ export function useGoogleOAuth() {
 						// User is already signed in
 					}
 				}
-			} catch (err) {
+			} catch {
 				console.log('ℹ️ No previous sign-in found');
 				setIsInitialized(true);
 			}
@@ -116,7 +80,6 @@ export function useGoogleOAuth() {
 						},
 						body: JSON.stringify({
 							idToken: idToken,
-							// Optional: send additional user info if needed
 							email: user.user.email,
 							name: user.user.name,
 						}),
