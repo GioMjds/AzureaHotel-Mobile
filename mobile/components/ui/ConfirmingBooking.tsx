@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { FC, useEffect } from 'react';
 import { View, Modal } from 'react-native';
 import Animated, {
 	useSharedValue,
@@ -18,7 +18,7 @@ interface ConfirmingBookingProps {
 	message?: string;
 }
 
-const ConfirmingBooking: React.FC<ConfirmingBookingProps> = ({
+const ConfirmingBooking: FC<ConfirmingBookingProps> = ({
 	isVisible,
 	message = 'Please wait while we confirm your reservation details',
 }) => {

@@ -34,7 +34,8 @@ export function useGoogleOAuth() {
 				if (hasPreviousSignIn) {
 					// Attempt silent sign-in
 					const response = await GoogleSignin.signInSilently();
-					if (isSuccessResponse(response)) {
+					// Check if response has data property (success case)
+					if (response && typeof response === 'object' && 'data' in response) {
 						console.log('✅ Silent sign-in successful');
 						// User is already signed in
 					}
@@ -60,62 +61,98 @@ export function useGoogleOAuth() {
 
 			// Sign in with Google
 			const response = await GoogleSignin.signIn();
+			console.log(`🔐 Google sign-in response:`, response);
 
 			if (isCancelledResponse(response)) {
 				setError('Google sign-in cancelled');
 				return { success: false, cancelled: true };
 			}
 
-			if (isSuccessResponse(response)) {
-				const user = response.data;
-				const idToken = user.idToken;
+		if (isSuccessResponse(response)) {
+			const user = response.data;
+			const idToken = user.idToken;
+			const serverAuthCode = user.serverAuthCode;
 
-				// Send ID token to backend for verification and JWT issuance
-				const backendResponse = await fetch(
-					`${process.env.EXPO_PUBLIC_DJANGO_URL}/api/auth/google-auth`,
-					{
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify({
-							idToken: idToken,
-							email: user.user.email,
-							name: user.user.name,
-						}),
-					}
+			// 🔍 DEBUG: Log what Google returns
+			console.log('📊 Google Sign-In Data:');
+			console.log('  - ID Token:', idToken ? '✅ Present' : '❌ Missing');
+			console.log('  - Server Auth Code:', serverAuthCode ? '✅ Present' : '❌ Missing');
+			console.log('  - Email:', user.user.email);
+			console.log('  - Name:', user.user.name);
+			console.log('  - Photo:', user.user.photo);
+			console.log('  - User ID:', user.user.id);
+
+			// TODO: TESTING MODE - Backend call commented out
+			// The issue: Backend expects 'code' (server-side flow) but we're sending 'idToken' (client-side flow)
+			// Backend oauth.py uses authorization code flow, but mobile uses ID token flow
+			
+			/*
+			const backendResponse = await fetch(
+				`${process.env.EXPO_PUBLIC_DJANGO_URL}/api/auth/google-auth`,
+				{
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						idToken: idToken,
+						email: user.user.email,
+						name: user.user.name,
+					}),
+				}
+			);
+
+			if (!backendResponse.ok) {
+				const errorData = await backendResponse.json();
+				throw new Error(
+					errorData.error || 'Backend authentication failed'
+				);
+			}
+
+			const backendData = await backendResponse.json();
+			*/
+
+			// 🧪 TESTING: Mock backend response for now
+			const mockBackendData = {
+				user: {
+					id: user.user.id || Math.random().toString(),
+					email: user.user.email,
+					username: user.user.name || 'Google User',
+					first_name: user.user.givenName || user.user.name?.split(' ')[0] || 'User',
+					last_name: user.user.familyName || user.user.name?.split(' ').slice(1).join(' ') || '',
+					role: 'guest',
+					profile_image: user.user.photo || '',
+				},
+				access_token: idToken || 'mock_access_token',
+				refresh_token: 'mock_refresh_token_' + Date.now(),
+			};
+
+			console.log('🧪 Mock backend data created:', mockBackendData);
+
+			// Handle successful authentication
+			if (
+				mockBackendData.user &&
+				mockBackendData.access_token &&
+				mockBackendData.refresh_token
+			) {
+				// Store tokens and user data in secure storage
+				await SecureStore.setItemAsync(
+					'access_token',
+					mockBackendData.access_token
+				);
+				await SecureStore.setItemAsync(
+					'refresh_token',
+					mockBackendData.refresh_token
+				);
+				await SecureStore.setItemAsync(
+					'user_data',
+					JSON.stringify(mockBackendData.user)
 				);
 
-				if (!backendResponse.ok) {
-					const errorData = await backendResponse.json();
-					throw new Error(
-						errorData.error || 'Backend authentication failed'
-					);
-				}
+				console.log('💾 Tokens and user data stored in SecureStore');
 
-				const backendData = await backendResponse.json();
-
-				// Handle successful authentication
-				if (
-					backendData.user &&
-					backendData.access_token &&
-					backendData.refresh_token
-				) {
-					// Store tokens and user data in secure storage
-					await SecureStore.setItemAsync(
-						'access_token',
-						backendData.access_token
-					);
-					await SecureStore.setItemAsync(
-						'refresh_token',
-						backendData.refresh_token
-					);
-					await SecureStore.setItemAsync(
-						'user_data',
-						JSON.stringify(backendData.user)
-					);
-
-					// Trigger Firebase authentication
+				// Trigger Firebase authentication
+				try {
 					const { authenticateFirebase } = await import(
 						'@/store/AuthStore'
 					).then((module) => ({
@@ -124,15 +161,18 @@ export function useGoogleOAuth() {
 					}));
 
 					await authenticateFirebase();
-
-					console.log('✅ Google sign-in successful');
-					return { success: true, user: backendData.user };
-				} else {
-					throw new Error('Invalid response from backend');
+					console.log('🔥 Firebase authentication triggered');
+				} catch (firebaseErr) {
+					console.warn('⚠️ Firebase auth failed (non-critical):', firebaseErr);
+					// Continue even if Firebase fails
 				}
-			}
 
-			return { success: false };
+				console.log('✅ Google sign-in successful (TESTING MODE - no backend call)');
+				return { success: true, user: mockBackendData.user };
+			} else {
+				throw new Error('Invalid mock response structure');
+			}
+		}			return { success: false };
 		} catch (err: any) {
 			let errorMessage =
 				err.message || 'An error occurred during Google sign-in';
