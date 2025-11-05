@@ -4,12 +4,14 @@ import os
 
 def google_auth(code, CLIENT_ID, CLIENT_SECRET):
     try:
-        token_url = "https://oauth2.googleapis.com/token"
+        token_url = os.getenv('GOOGLE_TOKEN_URL')
+        
+        # For React Native Google Sign-In, we need to exchange the serverAuthCode
+        # The redirect_uri should be empty or not included for mobile flows
         token_data = {
             'code': code,
             'client_id': CLIENT_ID,
             'client_secret': CLIENT_SECRET,
-            'redirect_uri': os.getenv('REDIRECT_URI'),
             'grant_type': 'authorization_code',
         }
 
@@ -24,7 +26,7 @@ def google_auth(code, CLIENT_ID, CLIENT_SECRET):
         if not access_token:
             raise Exception("No access token in response")
 
-        userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+        userinfo_url = os.getenv('GOOGLE_USERINFO_URL')
         headers = {'Authorization': f'Bearer {access_token}'}
 
         userinfo_response = requests.get(userinfo_url, headers=headers)
@@ -40,7 +42,7 @@ def google_auth(code, CLIENT_ID, CLIENT_SECRET):
         
         if not email:
             raise Exception("Missing email in user info")
-            
+        
         return email, username, profile_image
     except Exception:
-        return None, None, None
+        return None

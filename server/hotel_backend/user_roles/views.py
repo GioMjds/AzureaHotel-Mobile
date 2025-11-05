@@ -2,8 +2,7 @@ from django.contrib.auth import authenticate, logout, login
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import CustomUsers, Notification
 from .serializers import CustomUserSerializer, NotificationSerializer
@@ -28,6 +27,9 @@ import requests
 import cloudinary
 import cloudinary.uploader
 import traceback
+import logging
+
+logger = logging.getLogger(__name__)
 
 def save_google_profile_image_to_cloudinary(image_url):
     try:
@@ -76,7 +78,7 @@ def create_notification(user, booking, notification_type):
         return None
 
 def create_booking_notification(user, notification_type, booking_id, message):
-    """Create a notification for a booking status change and send via WebSocket."""
+    """Create a notification for a booking status change and send via WebSocket + FCM."""
     try:
         booking = Bookings.objects.get(id=booking_id)
         
@@ -95,6 +97,7 @@ def create_booking_notification(user, notification_type, booking_id, message):
             booking=booking
         )
 
+        # Send via WebSocket (for connected clients - foreground real-time updates)
         try:
             channel_layer = get_channel_layer()
             notification_data = NotificationSerializer(notification).data
@@ -107,11 +110,31 @@ def create_booking_notification(user, notification_type, booking_id, message):
                     "unread_count": Notification.objects.filter(user=user, is_read=False).count()
                 }
             )
-            
-            return notification
         except Exception as e:
-            return str(e)
+            logger.error(f"WebSocket send failed: {str(e)}")
+
+        # Send via Firebase (for FCM push - background/terminated apps)
+        try:
+            firebase_service.send_user_notification(
+                user_id=user.id,
+                notification_data={
+                    'type': clean_type,
+                    'booking_id': booking_id,
+                    'message': message,
+                    'title': f'Booking Update - {clean_type.replace("_", " ").title()}',
+                    'data': {
+                        'booking_id': booking_id,
+                        'notification_type': clean_type,
+                        'screen': f'/(screens)/booking/{booking_id}',
+                    }
+                }
+            )
+        except Exception as e:
+            logger.error(f"FCM push send failed: {str(e)}")
+
+        return notification
     except Exception as e:
+        logger.error(f"Failed to create booking notification: {str(e)}")
         return None
 
 # Create your views here.
@@ -625,7 +648,8 @@ def google_auth(request):
         
         if not email or not username:
             return Response({
-                "error": "Failed to authenticate with Google"
+                "error": "Failed to authenticate with Google. Please try again or contact support.",
+                "details": "Could not retrieve user information from Google"
             }, status=status.HTTP_401_UNAUTHORIZED)
         
         user_exists = CustomUsers.objects.filter(email=email).exists()
@@ -984,7 +1008,6 @@ def upload_valid_id(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def get_notifications(request):
     try:
         limit = int(request.query_params.get('limit', 10))
@@ -1005,7 +1028,6 @@ def get_notifications(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated])
 def mark_notification_read(request, id):
     notification = get_object_or_404(Notification, id=id, user=request.user)
     notification.is_read = True
@@ -1025,7 +1047,6 @@ def mark_notification_read(request, id):
     }, status=status.HTTP_200_OK)
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated])
 def mark_all_notifications_read(request):
     try:
         Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)

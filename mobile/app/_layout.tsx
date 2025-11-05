@@ -19,6 +19,27 @@ import messaging, {
 	subscribeToTopic
 } from '@react-native-firebase/messaging';
 
+// Background message handler for FCM (works when app is terminated/backgrounded)
+messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+	console.log('Background FCM message received:', remoteMessage);
+	
+	// Display local notification when app is in background/terminated
+	try {
+		if (remoteMessage.notification) {
+			await Notifications.scheduleNotificationAsync({
+				content: {
+					title: remoteMessage.notification.title || 'Notification',
+					body: remoteMessage.notification.body || '',
+					data: remoteMessage.data || {},
+				},
+				trigger: null, // Show immediately
+			});
+		}
+	} catch (error) {
+		console.warn('Error showing background notification:', error);
+	}
+});
+
 import {
 	useFonts as usePlayfairDisplay,
 	PlayfairDisplay_400Regular,
@@ -62,12 +83,10 @@ function AuthInitializer() {
 				try {
 					await authenticateFirebase();
 					try {
-						// Pass the messaging instance to modular helpers
 						const messagingInstance = messaging();
 						await registerDeviceForRemoteMessages(messagingInstance);
 
 						const fcmToken = await getToken(messagingInstance);
-						console.log('FCM Token:', fcmToken);
 
 						if (currentState.user?.id) {
 							await subscribeToTopic(
@@ -107,9 +126,36 @@ function AuthInitializer() {
 								error
 							);
 						}
+
+						// Listen for foreground FCM messages
+						const unsubscribeForeground = messagingInstance.onMessage(
+							async (remoteMessage) => {
+								console.log('Foreground FCM message received:', remoteMessage);
+								
+								// Show local notification when app is in foreground
+								try {
+									if (remoteMessage.notification) {
+										await Notifications.scheduleNotificationAsync({
+											content: {
+												title: remoteMessage.notification.title || 'Notification',
+												body: remoteMessage.notification.body || '',
+												data: remoteMessage.data || {},
+											},
+											trigger: null,
+										});
+									}
+								} catch (error) {
+									console.warn('Error showing foreground notification:', error);
+								}
+							}
+						);
+
+						// Return cleanup function
+						return () => {
+							unsubscribeForeground();
+						};
 					} catch (error) {
 						console.error(`⚠️ FCM registration failed:`, error);
-						// Fallback for Expo managed apps or when native Firebase isn't configured
 						try {
 							const expoTokenObj =
 								await Notifications.getExpoPushTokenAsync();

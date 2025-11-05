@@ -15,10 +15,7 @@ export class FirebaseAuthService {
     static async authenticateWithFirebase(): Promise<boolean> {
         try {
             const accessToken = await SecureStore.getItemAsync('access_token');
-            if (!accessToken) {
-                logger.warn('⚠️ No access token found, skipping Firebase auth');
-                return false;
-            }
+            if (!accessToken) return false;
 
             const response = await httpClient.post<{
                 firebase_token: string;
@@ -28,34 +25,17 @@ export class FirebaseAuthService {
 
             const { firebase_token } = response;
 
-            if (!firebase_token) {
-                logger.error(`❌ No Firebase token in response`);
-                logger.error(`Full response: ${JSON.stringify(response)}`);
-                return false;
-            }
-            
-            logger.debug('🔑 Received Firebase token, signing in...');
+            if (!firebase_token) return false;
             
             const userCredential = await signInWithCustomToken(
                 firebaseAuth,
                 firebase_token
             );
             
-            logger.debug(`✅ Firebase sign-in successful: ${userCredential.user.uid}`);
-
-            // Store Firebase UID for reference
             await SecureStore.setItemAsync(
                 'firebase_uid',
                 userCredential.user.uid
             );
-
-            // Verify token claims
-            try {
-                const idTokenResult = await userCredential.user.getIdTokenResult();
-                logger.debug(`🎫 Firebase ID token claims: ${JSON.stringify(idTokenResult.claims)}`);
-            } catch (tokenError) {
-                logger.warn(`⚠️ Could not get ID token claims: ${tokenError}`);
-            }
 
             return true;
         } catch (error) {
@@ -71,7 +51,6 @@ export class FirebaseAuthService {
         try {
             if (firebaseAuth.currentUser) {
                 await firebaseAuth.signOut();
-                logger.debug('✅ Firebase sign-out successful');
             }
             await SecureStore.deleteItemAsync('firebase_uid');
         } catch (error) {

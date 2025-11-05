@@ -150,6 +150,13 @@ class UserAuthService {
 			},
 		});
 	}
+
+	// Google OAuth Login / Register
+	async googleAuth(code: string) {
+		return await httpClient.post(ApiRoutes.GOOGLE_AUTH, {
+			code: code,
+		});
+	}
 }
 
 export const auth = new UserAuthService();

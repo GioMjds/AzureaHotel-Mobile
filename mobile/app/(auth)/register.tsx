@@ -35,8 +35,7 @@ interface RegisterFormData {
 
 export default function RegisterScreen() {
 	const [showPassword, setShowPassword] = useState<boolean>(false);
-	const [showConfirmPassword, setShowConfirmPassword] =
-		useState<boolean>(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
 	const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
 
 	const { handleGoogleSignIn, isLoading: isGoogleLoading } = useGoogleOAuth();
@@ -105,13 +104,7 @@ export default function RegisterScreen() {
 			email,
 			password,
 			confirmPassword,
-		}: {
-			firstName: string;
-			lastName: string;
-			email: string;
-			password: string;
-			confirmPassword: string;
-		}) =>
+		}: RegisterFormData) =>
 			auth.sendRegisterOtp(
 				firstName,
 				lastName,

@@ -47,7 +47,19 @@ export default function LoginScreen() {
     const handleGoogleSignInPress = async () => {
         setGoogleAuthError(null);
         const result = await handleGoogleSignIn();
-        if (!result.success && result.error) {
+        
+        if (result.success) {
+            router.replace('/(screens)');
+        } else if (result.requiresVerification) {
+            router.push({
+                pathname: '/(auth)/verify',
+                params: {
+                    email: result.email,
+                    password: result.password,
+                    from: 'google',
+                },
+            });
+        } else if (result.error) {
             setGoogleAuthError(result.error);
         }
     };
