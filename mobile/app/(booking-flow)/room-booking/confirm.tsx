@@ -6,7 +6,6 @@ import {
 	TouchableOpacity,
 	ScrollView,
 	ActivityIndicator,
-	Alert,
 	Image,
 	TextInput,
 	Platform,
@@ -18,7 +17,11 @@ import { format, parseISO, differenceInDays } from 'date-fns';
 import { useForm, Controller } from 'react-hook-form';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import useAuthStore from '@/store/AuthStore';
-import { calculateRoomPricing, formatPrice, getDiscountLabel } from '@/utils/pricing';
+import {
+	calculateRoomPricing,
+	formatPrice,
+	getDiscountLabel,
+} from '@/utils/pricing';
 import { booking } from '@/services/Booking';
 import ConfirmBookingModal from '@/components/bookings/ConfirmBookingModal';
 import ConfirmingBooking from '@/components/ui/ConfirmingBooking';
@@ -26,6 +29,7 @@ import { Amenities } from '@/types/Amenity.types';
 import { Room } from '@/types/Room.types';
 import { queryClient } from '@/lib/queryClient';
 import StyledText from '@/components/ui/StyledText';
+import StyledAlert from '@/components/ui/StyledAlert';
 
 interface FormData {
 	firstName: string;
@@ -42,26 +46,48 @@ export default function ConfirmRoomBookingScreen() {
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 	const [gcashProof, setGcashProof] = useState<string | null>(null);
 	const [gcashFile, setGcashFile] = useState<any>(null);
-	const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
+	const [pendingFormData, setPendingFormData] = useState<FormData | null>(
+		null
+	);
 	const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
+	const [alertConfig, setAlertConfig] = useState<{
+		visible: boolean;
+		type: 'success' | 'error' | 'warning' | 'info';
+		title: string;
+		message?: string;
+		buttons?: Array<{
+			text: string;
+			onPress?: () => void;
+			style?: 'default' | 'cancel' | 'destructive';
+		}>;
+	}>({
+		visible: false,
+		type: 'info',
+		title: '',
+		message: '',
+		buttons: [],
+	});
 
 	const getDefaultCheckInTime = () => {
 		const date = new Date();
 		date.setHours(14, 0, 0, 0);
 		return date;
 	};
-	
-	const [selectedTime, setSelectedTime] = useState<Date>(getDefaultCheckInTime());
+
+	const [selectedTime, setSelectedTime] = useState<Date>(
+		getDefaultCheckInTime()
+	);
 
 	const { user } = useAuthStore();
 	const router = useRouter();
 
-	const { roomId, checkInDate, checkOutDate, totalPrice } = useLocalSearchParams<{
-		roomId: string;
-		checkInDate: string;
-		checkOutDate: string;
-		totalPrice: string;
-	}>();
+	const { roomId, checkInDate, checkOutDate, totalPrice } =
+		useLocalSearchParams<{
+			roomId: string;
+			checkInDate: string;
+			checkOutDate: string;
+			totalPrice: string;
+		}>();
 
 	const {
 		control,
@@ -119,23 +145,30 @@ export default function ConfirmRoomBookingScreen() {
 
 	// Compute pricing result for display (keeps consistent with calendar)
 	const pricingResult = roomData
-		? (calculateRoomPricing
+		? calculateRoomPricing
 			? calculateRoomPricing({
-				roomData: roomData as any,
-				userDetails: user ? { ...user, username: user.email || `user_${user.id}` } : null,
-				nights,
-			})
-		: null)
+					roomData: roomData as any,
+					userDetails: user
+						? { ...user, username: user.email || `user_${user.id}` }
+						: null,
+					nights,
+				})
+			: null
 		: null;
 
 	const handlePickImage = async () => {
-		const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+		const { status } =
+			await ImagePicker.requestMediaLibraryPermissionsAsync();
 
 		if (status !== 'granted') {
-			Alert.alert(
-				'Permission Required',
-				'Sorry, we need camera roll permissions to upload payment proof.'
-			);
+			setAlertConfig({
+				visible: true,
+				type: 'warning',
+				title: 'Permission Required',
+				message:
+					'Sorry, we need camera roll permissions to upload payment proof.',
+				buttons: [{ text: 'OK', style: 'default' }],
+			});
 			return;
 		}
 
@@ -168,36 +201,36 @@ export default function ConfirmRoomBookingScreen() {
 		try {
 			const [time, modifier] = time12h.split(' ');
 			let [hours, minutes] = time.split(':');
-			
+
 			let hoursNum = parseInt(hours, 10);
-			
+
 			if (modifier === 'PM' && hoursNum !== 12) {
 				hoursNum += 12;
 			} else if (modifier === 'AM' && hoursNum === 12) {
 				hoursNum = 0;
 			}
-			
+
 			return `${hoursNum.toString().padStart(2, '0')}:${minutes}`;
 		} catch (error) {
 			console.error('Error converting time format:', error);
 			return time12h;
 		}
 	};
-	
+
 	const validateCheckInTime = (timeString: string) => {
 		if (!timeString) return false;
-		
+
 		try {
 			const [time, period] = timeString.split(' ');
 			const [hours] = time.split(':').map(Number);
-			
+
 			let hour24 = hours;
 			if (period === 'PM' && hours !== 12) {
 				hour24 = hours + 12;
 			} else if (period === 'AM' && hours === 12) {
 				hour24 = 0;
 			}
-			
+
 			return hour24 >= 14 && hour24 <= 23;
 		} catch {
 			return false;
@@ -206,27 +239,36 @@ export default function ConfirmRoomBookingScreen() {
 
 	const onSubmit = (data: FormData) => {
 		if (!data.arrivalTime) {
-			Alert.alert(
-				'Arrival Time Required',
-				'Please select your expected arrival time'
-			);
+			setAlertConfig({
+				visible: true,
+				type: 'warning',
+				title: 'Arrival Time Required',
+				message: 'Please select your expected arrival time',
+				buttons: [{ text: 'OK', style: 'default' }],
+			});
 			return;
 		}
-		
+
 		// Validate check-in time is between 2:00 PM and 11:00 PM
 		if (!validateCheckInTime(data.arrivalTime)) {
-			Alert.alert(
-				'Invalid Check-in Time',
-				'Check-in time must be between 2:00 PM and 11:00 PM'
-			);
+			setAlertConfig({
+				visible: true,
+				type: 'error',
+				title: 'Invalid Check-in Time',
+				message: 'Check-in time must be between 2:00 PM and 11:00 PM',
+				buttons: [{ text: 'OK', style: 'default' }],
+			});
 			return;
 		}
 
 		if (data.paymentMethod === 'gcash' && !gcashFile) {
-			Alert.alert(
-				'Payment Proof Required',
-				'Please upload GCash payment proof'
-			);
+			setAlertConfig({
+				visible: true,
+				type: 'warning',
+				title: 'Payment Proof Required',
+				message: 'Please upload GCash payment proof',
+				buttons: [{ text: 'OK', style: 'default' }],
+			});
 			return;
 		}
 
@@ -234,27 +276,37 @@ export default function ConfirmRoomBookingScreen() {
 		const cleanedValue = data.phoneNumber.replace(/[^\d+]/g, '');
 		const phPattern = /^(\+639\d{9}|09\d{9})$/;
 		if (!phPattern.test(cleanedValue)) {
-			Alert.alert(
-				'Invalid Phone Number',
-				'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)'
-			);
+			setAlertConfig({
+				visible: true,
+				type: 'error',
+				title: 'Invalid Phone Number',
+				message:
+					'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
+				buttons: [{ text: 'OK', style: 'default' }],
+			});
 			return;
 		}
 
 		// Validate number of guests
 		if (roomData?.max_guests && data.numberOfGuests > roomData.max_guests) {
-			Alert.alert(
-				'Exceeds Capacity',
-				`Maximum capacity is ${roomData.max_guests} guests`
-			);
+			setAlertConfig({
+				visible: true,
+				type: 'error',
+				title: 'Exceeds Capacity',
+				message: `Maximum capacity is ${roomData.max_guests} guests`,
+				buttons: [{ text: 'OK', style: 'default' }],
+			});
 			return;
 		}
 
 		if (!roomId || !checkInDate || !checkOutDate || !totalPrice) {
-			Alert.alert(
-				'Error',
-				'Missing booking information. Please try again.'
-			);
+			setAlertConfig({
+				visible: true,
+				type: 'error',
+				title: 'Error',
+				message: 'Missing booking information. Please try again.',
+				buttons: [{ text: 'OK', style: 'default' }],
+			});
 			return;
 		}
 
@@ -263,7 +315,13 @@ export default function ConfirmRoomBookingScreen() {
 	};
 
 	const handleConfirmBooking = async () => {
-		if (!roomId || !checkInDate || !checkOutDate || !totalPrice || !pendingFormData) {
+		if (
+			!roomId ||
+			!checkInDate ||
+			!checkOutDate ||
+			!totalPrice ||
+			!pendingFormData
+		) {
 			return;
 		}
 
@@ -274,9 +332,18 @@ export default function ConfirmRoomBookingScreen() {
 			const formData = new FormData();
 			formData.append('firstName', pendingFormData.firstName);
 			formData.append('lastName', pendingFormData.lastName);
-			formData.append('phoneNumber', pendingFormData.phoneNumber.replace(/\s+/g, ''));
-			formData.append('numberOfGuests', pendingFormData.numberOfGuests.toString());
-			formData.append('specialRequests', pendingFormData.specialRequests || '');
+			formData.append(
+				'phoneNumber',
+				pendingFormData.phoneNumber.replace(/\s+/g, '')
+			);
+			formData.append(
+				'numberOfGuests',
+				pendingFormData.numberOfGuests.toString()
+			);
+			formData.append(
+				'specialRequests',
+				pendingFormData.specialRequests || ''
+			);
 			formData.append('roomId', roomId!);
 			formData.append('checkIn', checkInDate!);
 			formData.append('checkOut', checkOutDate!);
@@ -286,7 +353,9 @@ export default function ConfirmRoomBookingScreen() {
 			formData.append('paymentMethod', pendingFormData.paymentMethod);
 
 			if (pendingFormData.arrivalTime) {
-				const arrivalTime24h = convertTo24Hour(pendingFormData.arrivalTime);
+				const arrivalTime24h = convertTo24Hour(
+					pendingFormData.arrivalTime
+				);
 				formData.append('arrivalTime', arrivalTime24h);
 			}
 
@@ -298,16 +367,20 @@ export default function ConfirmRoomBookingScreen() {
 
 			setTimeout(() => {
 				setIsSubmitting(false);
-				Alert.alert(
-					'Booking Successful!',
-					'Your room booking has been submitted. You will receive a confirmation shortly.',
-					[
+				setAlertConfig({
+					visible: true,
+					type: 'success',
+					title: 'Booking Successful!',
+					message:
+						'Your room booking has been submitted. You will receive a confirmation shortly.',
+					buttons: [
 						{
 							text: 'OK',
+							style: 'default',
 							onPress: () => router.replace('/(screens)'),
 						},
-					]
-				);
+					],
+				});
 			}, 1500);
 
 			queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
@@ -315,15 +388,17 @@ export default function ConfirmRoomBookingScreen() {
 			console.error('❌ Booking error:', error);
 			setIsSubmitting(false);
 
-			const errorMessage = error.response?.data?.error 
+			const errorMessage = error.response?.data?.error
 				? JSON.stringify(error.response.data.error, null, 2)
 				: error.message || 'An unknown error occurred';
-			
-			Alert.alert(
-				'Booking Failed',
-				`Error: ${errorMessage}`,
-				[{ text: 'OK' }]
-			);
+
+			setAlertConfig({
+				visible: true,
+				type: 'error',
+				title: 'Booking Failed',
+				message: `Error: ${errorMessage}`,
+				buttons: [{ text: 'OK', style: 'default' }],
+			});
 		}
 	};
 
@@ -362,7 +437,9 @@ export default function ConfirmRoomBookingScreen() {
 					{roomData && (
 						<View className="bg-surface-default rounded-2xl shadow-lg mb-6 overflow-hidden border border-border-focus">
 							<Image
-								source={{ uri: roomData.images?.[0].room_image }}
+								source={{
+									uri: roomData.images?.[0].room_image,
+								}}
 								className="w-full h-48"
 								resizeMode="cover"
 							/>
@@ -387,30 +464,36 @@ export default function ConfirmRoomBookingScreen() {
 										color="#6F00FF"
 									/>
 									<StyledText className="text-text-primary font-montserrat ml-2">
-										{nights} {nights === 1 ? 'Night' : 'Nights'}
+										{nights}{' '}
+										{nights === 1 ? 'Night' : 'Nights'}
 									</StyledText>
 								</View>
-								
+
 								{/* Amenities */}
-								{roomData.amenities && roomData.amenities.length > 0 && (
-									<View className="mt-2">
-										<StyledText className="text-text-primary font-montserrat-bold text-sm mb-2">
-											Amenities:
-										</StyledText>
-										<View className="flex-row flex-wrap gap-2">
-											{roomData.amenities.map((amenity: Amenities) => (
-												<View
-													key={amenity.id}
-													className="bg-brand-primary rounded-full px-3 py-1.5 flex-row items-center"
-												>
-													<StyledText className="text-text-inverse font-montserrat text-md ml-1">
-														{amenity.description}
-													</StyledText>
-												</View>
-											))}
+								{roomData.amenities &&
+									roomData.amenities.length > 0 && (
+										<View className="mt-2">
+											<StyledText className="text-text-primary font-montserrat-bold text-sm mb-2">
+												Amenities:
+											</StyledText>
+											<View className="flex-row flex-wrap gap-2">
+												{roomData.amenities.map(
+													(amenity: Amenities) => (
+														<View
+															key={amenity.id}
+															className="bg-brand-primary rounded-full px-3 py-1.5 flex-row items-center"
+														>
+															<StyledText className="text-text-inverse font-montserrat text-md ml-1">
+																{
+																	amenity.description
+																}
+															</StyledText>
+														</View>
+													)
+												)}
+											</View>
 										</View>
-									</View>
-								)}
+									)}
 							</View>
 						</View>
 					)}
@@ -434,10 +517,13 @@ export default function ConfirmRoomBookingScreen() {
 										required: 'First name is required',
 										pattern: {
 											value: /^[A-Za-z\s]+$/,
-											message: 'Name should contain only letters and spaces',
+											message:
+												'Name should contain only letters and spaces',
 										},
 									}}
-									render={({ field: { onChange, onBlur, value } }) => (
+									render={({
+										field: { onChange, onBlur, value },
+									}) => (
 										<TextInput
 											value={value}
 											onChangeText={onChange}
@@ -470,10 +556,13 @@ export default function ConfirmRoomBookingScreen() {
 										required: 'Last name is required',
 										pattern: {
 											value: /^[A-Za-z\s]+$/,
-											message: 'Name should contain only letters and spaces',
+											message:
+												'Name should contain only letters and spaces',
 										},
 									}}
-									render={({ field: { onChange, onBlur, value } }) => (
+									render={({
+										field: { onChange, onBlur, value },
+									}) => (
 										<TextInput
 											value={value}
 											onChangeText={onChange}
@@ -508,7 +597,9 @@ export default function ConfirmRoomBookingScreen() {
 								rules={{
 									required: 'Phone number is required',
 								}}
-								render={({ field: { onChange, onBlur, value } }) => (
+								render={({
+									field: { onChange, onBlur, value },
+								}) => (
 									<TextInput
 										value={value}
 										onChangeText={onChange}
@@ -541,18 +632,31 @@ export default function ConfirmRoomBookingScreen() {
 								rules={{
 									required: 'Number of guests is required',
 									validate: (value) => {
-										const numValue = parseInt(value.toString()) || 0;
+										const numValue =
+											parseInt(value.toString()) || 0;
 										if (numValue < 1) {
 											return 'At least 1 guest is required';
 										}
 										return true;
 									},
 								}}
-								render={({ field: { onChange, onBlur, value } }) => (
+								render={({
+									field: { onChange, onBlur, value },
+								}) => (
 									<TextInput
-										value={value > 0 ? value.toString() : ''}
+										value={
+											value > 0 ? value.toString() : ''
+										}
 										onChangeText={(text) => {
-											const numValue = text === '' ? 0 : parseInt(text.replace(/[^0-9]/g, '')) || 0;
+											const numValue =
+												text === ''
+													? 0
+													: parseInt(
+															text.replace(
+																/[^0-9]/g,
+																''
+															)
+														) || 0;
 											onChange(numValue);
 										}}
 										onBlur={onBlur}
@@ -573,7 +677,8 @@ export default function ConfirmRoomBookingScreen() {
 							)}
 							{roomData?.max_guests && (
 								<StyledText className="text-text-muted font-montserrat text-sm mt-1">
-									Maximum capacity: {roomData.max_guests} guests
+									Maximum capacity: {roomData.max_guests}{' '}
+									guests
 								</StyledText>
 							)}
 						</View>
@@ -592,51 +697,79 @@ export default function ConfirmRoomBookingScreen() {
 								render={({ field: { onChange, value } }) => (
 									<>
 										<TouchableOpacity
-											onPress={() => setShowTimePicker(true)}
+											onPress={() =>
+												setShowTimePicker(true)
+											}
 											className={`border rounded-xl p-3 flex-row items-center justify-between ${
 												errors.arrivalTime
 													? 'border-feedback-error-DEFAULT'
 													: 'border-border-focus'
 											}`}
 										>
-											<StyledText className={`font-montserrat ${value ? 'text-text-primary' : 'text-text-muted'}`}>
+											<StyledText
+												className={`font-montserrat ${value ? 'text-text-primary' : 'text-text-muted'}`}
+											>
 												{formatTimeDisplay(value)}
 											</StyledText>
-											<Ionicons name="time-outline" size={20} color="#6F00FF" />
+											<Ionicons
+												name="time-outline"
+												size={20}
+												color="#6F00FF"
+											/>
 										</TouchableOpacity>
 										{showTimePicker && (
 											<DateTimePicker
 												value={selectedTime}
 												mode="time"
 												is24Hour={false}
-												display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+												display={
+													Platform.OS === 'ios'
+														? 'spinner'
+														: 'default'
+												}
 												onChange={(event, date) => {
-													if (Platform.OS === 'android') {
-														setShowTimePicker(false);
+													if (
+														Platform.OS ===
+														'android'
+													) {
+														setShowTimePicker(
+															false
+														);
 													}
 													if (date) {
 														setSelectedTime(date);
-														const formattedTime = format(date, 'hh:mm a');
+														const formattedTime =
+															format(
+																date,
+																'hh:mm a'
+															);
 														onChange(formattedTime);
 													}
 												}}
 											/>
 										)}
-										{Platform.OS === 'ios' && showTimePicker && (
-											<TouchableOpacity
-												onPress={() => setShowTimePicker(false)}
-												className="bg-interactive-primary rounded-xl py-2 px-4 mt-2"
-											>
-												<StyledText className="text-interactive-primary-foreground font-montserrat-bold text-center">
-													Done
-												</StyledText>
-											</TouchableOpacity>
-										)}
+										{Platform.OS === 'ios' &&
+											showTimePicker && (
+												<TouchableOpacity
+													onPress={() =>
+														setShowTimePicker(false)
+													}
+													className="bg-interactive-primary rounded-xl py-2 px-4 mt-2"
+												>
+													<StyledText className="text-interactive-primary-foreground font-montserrat-bold text-center">
+														Done
+													</StyledText>
+												</TouchableOpacity>
+											)}
 									</>
 								)}
 							/>
-							<StyledText variant='montserrat-regular' className='text-sm mt-1'>
-								Expected arrival time between 2:00 PM and 11:00 PM.
+							<StyledText
+								variant="montserrat-regular"
+								className="text-sm mt-1"
+							>
+								Expected arrival time between 2:00 PM and 11:00
+								PM.
 							</StyledText>
 							{errors.arrivalTime && (
 								<StyledText className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
@@ -697,7 +830,9 @@ export default function ConfirmRoomBookingScreen() {
 							<Controller
 								control={control}
 								name="specialRequests"
-								render={({ field: { onChange, onBlur, value } }) => (
+								render={({
+									field: { onChange, onBlur, value },
+								}) => (
 									<TextInput
 										value={value}
 										onChangeText={onChange}
@@ -748,7 +883,8 @@ export default function ConfirmRoomBookingScreen() {
 									No. of Guest(s):
 								</StyledText>
 								<StyledText className="text-text-secondary font-montserrat-bold text-lg">
-									{pendingFormData?.numberOfGuests || control._formValues.numberOfGuests}
+									{pendingFormData?.numberOfGuests ||
+										control._formValues.numberOfGuests}
 								</StyledText>
 							</View>
 							<View className="flex-row justify-between pt-2 border-t border-border-subtle">
@@ -757,21 +893,34 @@ export default function ConfirmRoomBookingScreen() {
 								</StyledText>
 								<StyledText className="text-text-secondary font-montserrat-bold text-2xl">
 									₱{' '}
-									{parseFloat(totalPrice || '0').toLocaleString()}
+									{parseFloat(
+										totalPrice || '0'
+									).toLocaleString()}
 								</StyledText>
 							</View>
 
 							{/* Discount breakdown */}
-							{pricingResult && pricingResult.discountType !== 'none' && (
-								<View className="mt-3 p-3 bg-brand-primary rounded-lg">
-									<StyledText className="text-text-inverse font-montserrat mb-1">
-										{getDiscountLabel(pricingResult.discountType, pricingResult.discountPercent)}
-									</StyledText>
-									<StyledText className="text-text-inverse font-montserrat text-sm">
-										Price/night: {formatPrice(pricingResult.finalPrice)} • Original/night: {formatPrice(pricingResult.originalPrice)}
-									</StyledText>
-								</View>
-							)}
+							{pricingResult &&
+								pricingResult.discountType !== 'none' && (
+									<View className="mt-3 p-3 bg-brand-primary rounded-lg">
+										<StyledText className="text-text-inverse font-montserrat mb-1">
+											{getDiscountLabel(
+												pricingResult.discountType,
+												pricingResult.discountPercent
+											)}
+										</StyledText>
+										<StyledText className="text-text-inverse font-montserrat text-sm">
+											Price/night:{' '}
+											{formatPrice(
+												pricingResult.finalPrice
+											)}{' '}
+											• Original/night:{' '}
+											{formatPrice(
+												pricingResult.originalPrice
+											)}
+										</StyledText>
+									</View>
+								)}
 						</View>
 					</View>
 
@@ -805,6 +954,18 @@ export default function ConfirmRoomBookingScreen() {
 			<ConfirmingBooking
 				isVisible={isSubmitting}
 				message="Securing your reservation and processing payment..."
+			/>
+
+			{/* Styled Alert */}
+			<StyledAlert
+				visible={alertConfig.visible}
+				type={alertConfig.type}
+				title={alertConfig.title}
+				message={alertConfig.message}
+				buttons={alertConfig.buttons}
+				onDismiss={() =>
+					setAlertConfig({ ...alertConfig, visible: false })
+				}
 			/>
 		</SafeAreaView>
 	);

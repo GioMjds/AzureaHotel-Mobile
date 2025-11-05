@@ -10,7 +10,7 @@ import { useEffect } from 'react';
 import useAuthStore from '@/store/AuthStore';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import { useFirebaseNotifications } from '@/hooks/useFirebaseNotifications';
 
 import messaging, {
@@ -19,11 +19,7 @@ import messaging, {
 	subscribeToTopic
 } from '@react-native-firebase/messaging';
 
-// Background message handler for FCM (works when app is terminated/backgrounded)
 messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-	console.log('Background FCM message received:', remoteMessage);
-	
-	// Display local notification when app is in background/terminated
 	try {
 		if (remoteMessage.notification) {
 			await Notifications.scheduleNotificationAsync({
@@ -59,6 +55,7 @@ import {
 	Raleway_400Regular,
 	Raleway_700Bold,
 } from '@expo-google-fonts/raleway';
+import { auth } from '@/services/UserAuth';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -98,21 +95,14 @@ function AuthInitializer() {
 						try {
 							if (fcmToken) {
 								try {
-									const backendUrl = `${process.env.EXPO_PUBLIC_DJANGO_URL}/api/register_fcm_token`;
 									const accessToken = await (
 										await import('expo-secure-store')
 									).getItemAsync('access_token');
-									await fetch(backendUrl, {
-										method: 'POST',
-										headers: {
-											'Content-Type': 'application/json',
-											Authorization: `Bearer ${accessToken}`,
-										},
-										body: JSON.stringify({
-											token: fcmToken,
-											platform: Platform.OS,
-										}),
-									});
+									await auth.firebaseAuthToken(
+										fcmToken,
+										Platform.OS,
+										accessToken!
+									);
 								} catch (e) {
 									console.warn(
 										'Failed to register FCM token with backend',
@@ -130,9 +120,6 @@ function AuthInitializer() {
 						// Listen for foreground FCM messages
 						const unsubscribeForeground = messagingInstance.onMessage(
 							async (remoteMessage) => {
-								console.log('Foreground FCM message received:', remoteMessage);
-								
-								// Show local notification when app is in foreground
 								try {
 									if (remoteMessage.notification) {
 										await Notifications.scheduleNotificationAsync({
@@ -178,11 +165,7 @@ function AuthInitializer() {
 									platform: Platform.OS,
 									provider: 'expo',
 								}),
-							});
-							console.log(
-								'Registered Expo push token as fallback:',
-								expoToken
-							);
+							})
 						} catch (e) {
 							console.warn(
 								'Failed to register Expo push token as fallback',
@@ -242,34 +225,8 @@ function NotificationsInitializer() {
 		const receivedSub = Notifications.addNotificationReceivedListener(
 			(notification) => {
 				try {
-					const { title, body } = notification.request.content;
-					if (title || body) {
-						// Show a simple alert for immediate feedback while in foreground
-						Alert.alert(title ?? 'Notification', body ?? undefined);
-					}
-
-					// Increment badge count so the app icon reflects the new item
 					Notifications.getBadgeCountAsync()
-						.then((count) => Notifications.setBadgeCountAsync(count + 1))
-						.catch(() => {});
-
-					// Try to route based on payload regardless of platform
-					const data = notification.request.content.data as any;
-					if (data?.screen) {
-						router.push(data.screen);
-						return;
-					}
-
-					// Accept both camelCase and snake_case booking id keys
-					const bookingId = data?.bookingId ?? data?.booking_id ?? data?.booking;
-					if (bookingId) {
-						router.push(`/booking/${bookingId}`);
-						return;
-					}
-
-					if (data?.path) {
-						router.push(data.path);
-					}
+						.then((count) => Notifications.setBadgeCountAsync(count + 1));
 				} catch (e) {
 					console.warn('Error handling received notification:', e);
 				}
@@ -281,7 +238,6 @@ function NotificationsInitializer() {
 				(response) => {
 					try {
 						const data = response.notification.request.content.data as any;
-						// Prefer an explicit `screen` key, otherwise try common ids (bookingId / booking_id)
 						if (data?.screen) {
 							router.push(data.screen);
 							return;

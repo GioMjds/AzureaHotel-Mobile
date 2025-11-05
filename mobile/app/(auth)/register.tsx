@@ -287,7 +287,7 @@ export default function RegisterScreen() {
 												},
 											}) => (
 												<TextInput
-													className={`bg-input-background border-2 ${errors.firstName ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 text-input-text font-montserrat text-lg`}
+													className={`bg-input-background border-2 ${errors.firstName ? 'border-input-border-error' : 'border-input-border-focus'} rounded-2xl p-4 text-input-text font-montserrat text-lg`}
 													placeholder="First name"
 													placeholderTextColor="#E9B3FB"
 													value={value}
@@ -332,7 +332,7 @@ export default function RegisterScreen() {
 												},
 											}) => (
 												<TextInput
-													className={`bg-input-background border-2 ${errors.lastName ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 text-input-text font-montserrat text-lg`}
+													className={`bg-input-background border-2 ${errors.lastName ? 'border-input-border-error' : 'border-input-border-focus'} rounded-2xl p-4 text-input-text font-montserrat text-lg`}
 													placeholder="Last name"
 													placeholderTextColor="#E9B3FB"
 													value={value}
@@ -381,7 +381,7 @@ export default function RegisterScreen() {
 									}) => (
 										<View className="relative">
 											<TextInput
-												className={`bg-input-background border-2 ${errors.email ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 pl-12 text-input-text font-montserrat text-lg`}
+												className={`bg-input-background border-2 ${errors.email ? 'border-input-border-error' : 'border-input-border-focus'} rounded-2xl p-4 pl-12 text-input-text font-montserrat text-lg`}
 												placeholder="Enter your email"
 												placeholderTextColor="#E9B3FB"
 												value={value}
@@ -435,7 +435,7 @@ export default function RegisterScreen() {
 											field: { onChange, onBlur, value },
 										}) => (
 											<TextInput
-												className={`bg-input-background border-2 ${errors.password ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 pl-12 pr-14 text-input-text font-montserrat text-lg`}
+												className={`bg-input-background border-2 ${errors.password ? 'border-input-border-error' : 'border-input-border-focus'} rounded-2xl p-4 pl-12 pr-14 text-input-text font-montserrat text-lg`}
 												placeholder="Enter your password"
 												placeholderTextColor="#E9B3FB"
 												value={value}
@@ -507,7 +507,7 @@ export default function RegisterScreen() {
 											field: { onChange, onBlur, value },
 										}) => (
 											<TextInput
-												className={`bg-input-background border-2 ${errors.confirmPassword ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 pl-12 pr-14 text-input-text font-montserrat text-lg`}
+												className={`bg-input-background border-2 ${errors.confirmPassword ? 'border-input-border-error' : 'border-input-border-focus'} rounded-2xl p-4 pl-12 pr-14 text-input-text font-montserrat text-lg`}
 												placeholder="Confirm your password"
 												placeholderTextColor="#E9B3FB"
 												value={value}

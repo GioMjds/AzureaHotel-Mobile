@@ -57,7 +57,7 @@ def notify_user_for_verification(user, notification_type, message):
             }
         )
     except Exception as e:
-        print(f"Error sending notification: {e}")
+        logger.exception(f"Failed to send notification to user {user.id}: {str(e)}")
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -884,8 +884,8 @@ def update_booking_status(request, booking_id):
                     message=notification_message
                 )
         except Exception as e:
-            print(f"Error creating notification or sending email: {str(e)}")
-    
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     if booking.status not in ['reserved', 'checked_in'] and (status_value == 'cancelled' or status_value == 'rejected'):
         if booking.is_venue_booking and booking.area:
             area = booking.area
@@ -909,7 +909,7 @@ def update_booking_status(request, booking_id):
             }
         )
     except Exception as e:
-        print(f"WebSocket notification error: {str(e)}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     return Response({
         "message": f"Booking status updated to {status_value}",

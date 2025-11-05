@@ -51,15 +51,25 @@ def save_google_profile_image_to_cloudinary(image_url):
         return None
 
 def create_notification(user, booking, notification_type):
-    try:        
+    try:
+        # Get property name dynamically from booking
+        property_name = "your reservation"
+        try:
+            if booking.is_venue_booking and booking.area:
+                property_name = booking.area.area_name
+            elif booking.room:
+                property_name = booking.room.room_name if hasattr(booking.room, 'room_name') else booking.room.room_number
+        except Exception:
+            pass
+        
         messages = {
-            'reserved': f"Your booking for {booking.property_name} has been confirmed!",
-            'no_show': f"You did not show up for your booking at {booking.property_name}.",
-            'rejected': f"Your booking for {booking.property_name} has been rejected. Click to see booking details.",
-            'checkin_reminder': f"Reminder: You have a booking at {booking.property_name} today. Click to see booking details.",
-            'checked_in': f"You have been checked in to {booking.property_name}",
-            'checked_out': f"You have been checked out from {booking.property_name}. Thank you for staying with us!",
-            'cancelled': f"Your booking for {booking.property_name} has been cancelled. Click to see details."
+            'reserved': f"Your booking for {property_name} has been confirmed!",
+            'no_show': f"You did not show up for your booking at {property_name}.",
+            'rejected': f"Your booking for {property_name} has been rejected. Click to see booking details.",
+            'checkin_reminder': f"Reminder: You have a booking at {property_name} today. Click to see booking details.",
+            'checked_in': f"You have been checked in to {property_name}",
+            'checked_out': f"You have been checked out from {property_name}. Thank you for staying with us!",
+            'cancelled': f"Your booking for {property_name} has been cancelled. Click to see details."
         }
         
         message = messages.get(notification_type)
@@ -78,7 +88,8 @@ def create_notification(user, booking, notification_type):
         return None
 
 def create_booking_notification(user, notification_type, booking_id, message):
-    """Create a notification for a booking status change and send via WebSocket + FCM."""
+    """Create a notification for a booking status change and send via WebSocket + FCM.
+    Uses message templates from create_notification() to avoid duplication."""
     try:
         booking = Bookings.objects.get(id=booking_id)
         
@@ -90,9 +101,33 @@ def create_booking_notification(user, notification_type, booking_id, message):
         if clean_type not in valid_types:
             clean_type = 'reserved'
         
+        # Get property name dynamically from booking
+        property_name = "your reservation"
+        try:
+            if booking.is_venue_booking and booking.area:
+                property_name = booking.area.area_name
+            elif booking.room:
+                property_name = booking.room.room_name if hasattr(booking.room, 'room_name') else booking.room.room_number
+        except Exception:
+            pass
+        
+        # Use the standardized message templates from create_notification
+        messages = {
+            'reserved': f"Your booking for {property_name} has been confirmed!",
+            'no_show': f"You did not show up for your booking at {property_name}.",
+            'rejected': f"Your booking for {property_name} has been rejected. Click to see booking details.",
+            'checkin_reminder': f"Reminder: You have a booking at {property_name} today. Click to see booking details.",
+            'checked_in': f"You have been checked in to {property_name}",
+            'checked_out': f"You have been checked out from {property_name}. Thank you for staying with us!",
+            'cancelled': f"Your booking for {property_name} has been cancelled. Click to see details."
+        }
+        
+        # Use the standard message, ignore the passed message parameter
+        standard_message = messages.get(clean_type, message)
+        
         notification = Notification.objects.create(
             user=user,
-            message=message,
+            message=standard_message,
             notification_type=clean_type,
             booking=booking
         )
@@ -120,7 +155,7 @@ def create_booking_notification(user, notification_type, booking_id, message):
                 notification_data={
                     'type': clean_type,
                     'booking_id': booking_id,
-                    'message': message,
+                    'message': standard_message,
                     'title': f'Booking Update - {clean_type.replace("_", " ").title()}',
                     'data': {
                         'booking_id': booking_id,

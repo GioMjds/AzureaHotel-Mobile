@@ -111,11 +111,35 @@ def booking_post_save(sender, instance: Bookings, created: bool, **kwargs):
 
                 # user-notifications path expected by mobile client
                 user_notifications_ref = root_ref.child('user-notifications').child(str(user_id)).push()
+                
+                # Get property name for standardized message
+                property_name = "your reservation"
+                try:
+                    if instance.is_venue_booking and instance.area:
+                        property_name = instance.area.area_name
+                    elif instance.room:
+                        property_name = instance.room.room_name if hasattr(instance.room, 'room_name') else instance.room.room_number
+                except Exception:
+                    pass
+                
+                # Use standardized message templates from create_booking_notification
+                messages = {
+                    'reserved': f"Your booking for {property_name} has been confirmed!",
+                    'no_show': f"You did not show up for your booking at {property_name}.",
+                    'rejected': f"Your booking for {property_name} has been rejected. Click to see booking details.",
+                    'checkin_reminder': f"Reminder: You have a booking at {property_name} today. Click to see booking details.",
+                    'checked_in': f"You have been checked in to {property_name}",
+                    'checked_out': f"You have been checked out from {property_name}. Thank you for staying with us!",
+                    'cancelled': f"Your booking for {property_name} has been cancelled. Click to see details."
+                }
+                
+                standard_message = messages.get(curr_status.lower(), f'Booking #{booking_id} status: {curr_status}')
+                
                 notif_payload = {
                     'type': 'booking_update',
                     'booking_id': booking_id,
                     'status': curr_status,
-                    'message': f'Booking #{booking_id} status: {curr_status}',
+                    'message': standard_message,
                     'timestamp': int(datetime.now().timestamp() * 1000),
                     'read': False,
                     'data': additional_data,
@@ -127,10 +151,33 @@ def booking_post_save(sender, instance: Bookings, created: bool, **kwargs):
 
         try:
             if user is not None:
-                notif_type = 'booking_update'
+                # Get property name for standardized message
+                property_name = "your reservation"
+                try:
+                    if instance.is_venue_booking and instance.area:
+                        property_name = instance.area.area_name
+                    elif instance.room:
+                        property_name = instance.room.room_name if hasattr(instance.room, 'room_name') else instance.room.room_number
+                except Exception:
+                    pass
+                
+                # Use standardized message templates
+                messages = {
+                    'reserved': f"Your booking for {property_name} has been confirmed!",
+                    'no_show': f"You did not show up for your booking at {property_name}.",
+                    'rejected': f"Your booking for {property_name} has been rejected. Click to see booking details.",
+                    'checkin_reminder': f"Reminder: You have a booking at {property_name} today. Click to see booking details.",
+                    'checked_in': f"You have been checked in to {property_name}",
+                    'checked_out': f"You have been checked out from {property_name}. Thank you for staying with us!",
+                    'cancelled': f"Your booking for {property_name} has been cancelled. Click to see details."
+                }
+                
+                standard_message = messages.get(curr_status.lower(), f'Booking #{booking_id} status updated to {curr_status}')
+                
+                notif_type = curr_status.lower() if curr_status.lower() in messages else 'booking_update'
                 UserNotification.objects.create(
                     user=user,
-                    message=f'Booking #{booking_id} status updated to {curr_status}',
+                    message=standard_message,
                     notification_type=notif_type,
                     booking=instance,
                 )

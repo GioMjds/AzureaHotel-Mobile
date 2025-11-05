@@ -157,6 +157,17 @@ class UserAuthService {
 			code: code,
 		});
 	}
+
+	async firebaseAuthToken(idToken: string, platform: string, accessToken?: string) {
+		return await httpClient.post(ApiRoutes.FIREBASE_TOKEN, {
+			token: idToken,
+			platform: platform,
+		}, {
+			headers: {
+				'Authorization': `Bearer ${accessToken}`
+			}
+		});
+	}
 }
 
 export const auth = new UserAuthService();
