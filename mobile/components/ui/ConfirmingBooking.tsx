@@ -220,27 +220,27 @@ const ConfirmingBooking: FC<ConfirmingBookingProps> = ({
 		>
 			<Animated.View
 				style={overlayStyle}
-				className="absolute inset-0 bg-white justify-center items-center"
+				className="absolute inset-0 bg-background justify-center items-center"
 			>
 				<Animated.View style={containerStyle} className="items-center px-6">
 					{/* Animated Spinner with Icon */}
 					<View className="mb-8 items-center justify-center">
 						<Animated.View
 							style={spinnerStyle}
-							className="w-24 h-24 rounded-full border-4 border-transparent border-t-blue-600 border-r-blue-600 absolute"
+							className="w-24 h-24 rounded-full border-4 border-transparent border-t-brand-primary border-r-brand-primary absolute"
 						/>
 						<Animated.View
 							style={iconScaleStyle}
-							className="w-20 h-20 rounded-full bg-blue-600 items-center justify-center"
+							className="w-20 h-20 rounded-full bg-brand-primary items-center justify-center shadow-lg"
 						>
-							<Ionicons name="calendar-outline" size={36} color="#FFFFFF" />
+							<Ionicons name="calendar-outline" size={36} color="#FFF1F1" />
 						</Animated.View>
 					</View>
 
 					{/* Main Heading */}
 					<StyledText
 						variant="playfair-bold"
-						className="text-2xl text-gray-900 text-center mb-3"
+						className="text-2xl text-text-primary text-center mb-3"
 					>
 						Confirming Your Booking
 					</StyledText>
@@ -248,47 +248,47 @@ const ConfirmingBooking: FC<ConfirmingBookingProps> = ({
 					{/* Message */}
 					<StyledText
 						variant="montserrat-regular"
-						className="text-base text-gray-600 text-center mb-8 leading-6"
+						className="text-base text-text-secondary text-center mb-8 leading-6 px-4"
 					>
 						{message}
 					</StyledText>
 
 					{/* Animated Progress Dots */}
-					<View className="flex-row items-center mb-10 gap-2">
+					<View className="flex-row items-center mb-10 gap-3">
 						<Animated.View
 							style={dot1Style}
-							className="w-2.5 h-2.5 rounded-full bg-blue-600"
+							className="w-3 h-3 rounded-full bg-brand-primary"
 						/>
 						<Animated.View
 							style={dot2Style}
-							className="w-2.5 h-2.5 rounded-full bg-blue-600"
+							className="w-3 h-3 rounded-full bg-brand-primary"
 						/>
 						<Animated.View
 							style={dot3Style}
-							className="w-2.5 h-2.5 rounded-full bg-blue-600"
+							className="w-3 h-3 rounded-full bg-brand-primary"
 						/>
 					</View>
 
 					{/* Processing Steps */}
-					<View className="w-full max-w-sm gap-3">
+					<View className="w-full max-w-sm gap-4">
 						{/* Step 1 */}
 						<Animated.View
 							style={step1Style}
-							className="flex-row items-center bg-blue-50 rounded-xl p-4"
+							className="flex-row items-center bg-background-elevated rounded-2xl p-4 border border-border-subtle shadow-sm"
 						>
-							<View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center mr-3">
-								<Ionicons name="checkmark-circle" size={24} color="#1E40AF" />
+							<View className="w-10 h-10 rounded-full bg-brand-accent items-center justify-center mr-3">
+								<Ionicons name="checkmark-circle" size={20} color="#6F00FF" />
 							</View>
 							<View className="flex-1">
 								<StyledText
-									variant="raleway-bold"
-									className="text-sm text-gray-900 mb-0.5"
+									variant="montserrat-bold"
+									className="text-sm text-text-primary mb-0.5"
 								>
 									Verifying Availability
 								</StyledText>
 								<StyledText
 									variant="raleway-regular"
-									className="text-xs text-gray-600"
+									className="text-xs text-text-muted"
 								>
 									Checking room status
 								</StyledText>
@@ -298,21 +298,21 @@ const ConfirmingBooking: FC<ConfirmingBookingProps> = ({
 						{/* Step 2 */}
 						<Animated.View
 							style={step2Style}
-							className="flex-row items-center bg-blue-50 rounded-xl p-4"
+							className="flex-row items-center bg-background-elevated rounded-2xl p-4 border border-border-subtle shadow-sm"
 						>
-							<View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center mr-3">
-								<Ionicons name="shield-checkmark" size={24} color="#1E40AF" />
+							<View className="w-10 h-10 rounded-full bg-brand-accent items-center justify-center mr-3">
+								<Ionicons name="shield-checkmark" size={20} color="#6F00FF" />
 							</View>
 							<View className="flex-1">
 								<StyledText
-									variant="raleway-bold"
-									className="text-sm text-gray-900 mb-0.5"
+									variant="montserrat-bold"
+									className="text-sm text-text-primary mb-0.5"
 								>
 									Securing Reservation
 								</StyledText>
 								<StyledText
 									variant="raleway-regular"
-									className="text-xs text-gray-600"
+									className="text-xs text-text-muted"
 								>
 									Processing payment securely
 								</StyledText>
@@ -322,21 +322,21 @@ const ConfirmingBooking: FC<ConfirmingBookingProps> = ({
 						{/* Step 3 */}
 						<Animated.View
 							style={step3Style}
-							className="flex-row items-center bg-blue-50 rounded-xl p-4"
+							className="flex-row items-center bg-background-elevated rounded-2xl p-4 border border-border-subtle shadow-sm"
 						>
-							<View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center mr-3">
-								<Ionicons name="document-text" size={24} color="#1E40AF" />
+							<View className="w-10 h-10 rounded-full bg-brand-accent items-center justify-center mr-3">
+								<Ionicons name="document-text" size={20} color="#6F00FF" />
 							</View>
 							<View className="flex-1">
 								<StyledText
-									variant="raleway-bold"
-									className="text-sm text-gray-900 mb-0.5"
+									variant="montserrat-bold"
+									className="text-sm text-text-primary mb-0.5"
 								>
 									Preparing Confirmation
 								</StyledText>
 								<StyledText
 									variant="raleway-regular"
-									className="text-xs text-gray-600"
+									className="text-xs text-text-muted"
 								>
 									Generating booking details
 								</StyledText>
@@ -347,19 +347,19 @@ const ConfirmingBooking: FC<ConfirmingBookingProps> = ({
 					{/* Bottom Info */}
 					<View className="mt-12 items-center">
 						<View className="flex-row items-center gap-2 mb-3">
-							<Ionicons name="time-outline" size={16} color="#6B7280" />
+							<Ionicons name="time-outline" size={16} color="#6F00FF" />
 							<StyledText
 								variant="montserrat-regular"
-								className="text-xs text-gray-500"
+								className="text-xs text-text-muted"
 							>
 								This usually takes just a few seconds
 							</StyledText>
 						</View>
 						<View className="flex-row items-center gap-2">
-							<Ionicons name="lock-closed" size={14} color="#6B7280" />
+							<Ionicons name="lock-closed" size={14} color="#6F00FF" />
 							<StyledText
 								variant="montserrat-regular"
-								className="text-xs text-gray-500"
+								className="text-xs text-text-muted"
 							>
 								Your information is encrypted and secure
 							</StyledText>

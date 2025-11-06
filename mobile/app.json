@@ -21,7 +21,11 @@
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "INTERNET",
-        "ACCESS_NETWORK_STATE"
+        "ACCESS_NETWORK_STATE",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "ACCESS_MEDIA_LOCATION"
       ]
     },
     "web": {
@@ -34,9 +38,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/logo.png",
           "imageWidth": 200,
-          "resizeMode": "contain"
+          "resizeMode": "cover"
         }
       ],
       "expo-font",
@@ -49,6 +53,14 @@
       ],
       [
         "@react-native-google-signin/google-signin"
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Azurea Hotel to access your photos to save QR codes and payment receipts.",
+          "savePhotosPermission": "Allow Azurea Hotel to save GCash QR codes to your photo library.",
+          "isAccessMediaLocationEnabled": true
+        }
       ]
     ],
     "experiments": {
