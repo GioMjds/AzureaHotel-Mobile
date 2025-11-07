@@ -328,7 +328,7 @@ export default function LoginScreen() {
                         {/* Divider */}
                         <View className="flex-row items-center my-2">
                             <View className="flex-1 h-px bg-border-subtle" />
-                            <Text className="text-text-muted font-montserrat text-sm px-3">Or</Text>
+                            <Text className="text-text-muted font-montserrat text-sm px-3">OR</Text>
                             <View className="flex-1 h-px bg-border-subtle" />
                         </View>
 
@@ -382,14 +382,6 @@ export default function LoginScreen() {
                                 </TouchableOpacity>
                             </View>
                         </View>
-                    </View>
-
-                    {/* Footer */}
-                    <View className="mt-8 items-center">
-                        <Text className="text-text-inverse/80 font-montserrat text-sm text-center">
-                            By signing in, you agree to our Terms of Service
-                            {'\n'}and Privacy Policy
-                        </Text>
                     </View>
                 </ScrollView>
             </SafeAreaView>

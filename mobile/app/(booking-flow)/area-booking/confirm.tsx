@@ -9,13 +9,7 @@ import {
 	Image,
 	TextInput,
 	Modal,
-	Alert,
-	Dimensions,
 } from 'react-native';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
-import { queryClient } from '@/lib/queryClient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -39,7 +33,6 @@ interface FormData {
 	paymentMethod: 'gcash' | 'physical';
 }
 
-// Alert state interface
 interface AlertState {
 	visible: boolean;
 	type: 'success' | 'error' | 'warning' | 'info';
@@ -178,70 +171,6 @@ export default function ConfirmAreaBookingScreen() {
 	const handleViewQrCode = (qrNumber: number) => {
 		setSelectedQrImage(qrNumber);
 		setQrModalVisible(true);
-	};
-
-	const handleDownloadQrCode = async () => {
-		try {
-			// Request media library permissions
-			const { status } = await MediaLibrary.requestPermissionsAsync();
-			if (status !== 'granted') {
-				showAlert(
-					'warning',
-					'Permission Required',
-					'Please grant media library permissions to save the QR code.',
-					[{ text: 'OK', style: 'default' }]
-				);
-				return;
-			}
-
-			// Determine which QR code to save
-			const qrImageName = selectedQrImage === 1 ? 'GCash_MOP1.jpg' : 'GCash_MOP2.jpg';
-			const qrImageUri = selectedQrImage === 1
-				? require('@/assets/images/GCash_MOP1.jpg')
-				: require('@/assets/images/GCash_MOP2.jpg');
-
-			// Get the asset module URI
-			const assetUri = Image.resolveAssetSource(qrImageUri).uri;
-			
-			// Create a temporary file in cache directory
-			const cacheFile = new FileSystem.File(FileSystem.Paths.cache, qrImageName);
-			
-			// Download the asset to cache
-			await FileSystem.downloadAsync(assetUri, cacheFile.uri);
-
-			// Save to media library
-			const asset = await MediaLibrary.createAssetAsync(cacheFile.uri);
-			
-			// Optionally create an album
-			try {
-				const album = await MediaLibrary.getAlbumAsync('Azurea Hotel');
-				if (album == null) {
-					await MediaLibrary.createAlbumAsync('Azurea Hotel', asset, false);
-				} else {
-					await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-				}
-			} catch (albumError) {
-				console.log('Album creation skipped:', albumError);
-			}
-
-			// Clean up cache file
-			await cacheFile.delete();
-
-			showAlert(
-				'success',
-				'Success',
-				'QR code saved to your gallery successfully!',
-				[{ text: 'OK', style: 'default' }]
-			);
-		} catch (error) {
-			console.error('Error downloading QR code:', error);
-			showAlert(
-				'error',
-				'Error',
-				'Failed to save QR code. Please try taking a screenshot instead.',
-				[{ text: 'OK', style: 'default' }]
-			);
-		}
 	};
 
 	const onSubmit = (data: FormData) => {
@@ -859,16 +788,6 @@ export default function ConfirmAreaBookingScreen() {
 
 						{/* Action Buttons */}
 						<View className="flex-row gap-3">
-							<TouchableOpacity
-								onPress={handleDownloadQrCode}
-								className="flex-1 bg-brand-primary rounded-xl py-3 px-4 flex-row items-center justify-center"
-								activeOpacity={0.8}
-							>
-								<Ionicons name="download-outline" size={20} color="#FFF1F1" />
-								<StyledText className="text-text-inverse font-montserrat-bold ml-2">
-									Save QR
-								</StyledText>
-							</TouchableOpacity>
 							<TouchableOpacity
 								onPress={() => setQrModalVisible(false)}
 								className="flex-1 rounded-xl py-3 px-4 flex-row items-center justify-center border border-border-default"

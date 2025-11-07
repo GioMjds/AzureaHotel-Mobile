@@ -7,7 +7,6 @@ import {
 	Image,
 	ScrollView,
 	ActivityIndicator,
-	ToastAndroid,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +17,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { auth } from '@/services/UserAuth';
 import * as SecureStore from 'expo-secure-store';
 import StyledAlert from '@/components/ui/StyledAlert';
+import TermsModal from '@/components/TermsModal';
 import { useGoogleOAuth } from '@/hooks/useGoogleOAuth';
 
 const REGISTRATION_EMAIL_KEY = 'registration_email';
@@ -37,6 +37,8 @@ export default function RegisterScreen() {
 	const [showPassword, setShowPassword] = useState<boolean>(false);
 	const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
 	const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
+	const [showTermsModal, setShowTermsModal] = useState<boolean>(false);
+	const [hasAgreedToTerms, setHasAgreedToTerms] = useState<boolean>(false);
 
 	const { handleGoogleSignIn, isLoading: isGoogleLoading } = useGoogleOAuth();
 
@@ -82,7 +84,7 @@ export default function RegisterScreen() {
 	const {
 		control,
 		handleSubmit,
-		formState: { errors },
+		formState: { errors, isValid },
 		watch,
 	} = useForm<RegisterFormData>({
 		defaultValues: {
@@ -92,10 +94,11 @@ export default function RegisterScreen() {
 			password: '',
 			confirmPassword: '',
 		},
-		mode: 'onSubmit',
+		mode: 'onChange',
 	});
 
 	const watchPassword = watch('password');
+	const watchAllFields = watch();
 
 	const sendRegisterOTPMutation = useMutation({
 		mutationFn: ({
@@ -135,8 +138,17 @@ export default function RegisterScreen() {
 				);
 			}
 
-			ToastAndroid.show('OTP sent to your email.', ToastAndroid.SHORT);
-			router.push('/(auth)/verify');
+			showStyledAlert({
+				title: 'Success!',
+				message: 'OTP sent to your email. Please check your inbox.',
+				type: 'success',
+				buttons: [
+					{
+						text: 'OK',
+						onPress: () => router.push('/(auth)/verify'),
+					},
+				],
+			});
 		},
 		onError: (error: any) => {
 			const errorMessage = error?.message;
@@ -148,7 +160,33 @@ export default function RegisterScreen() {
 		},
 	});
 
+	// Check if all fields are filled
+	const areAllFieldsFilled = 
+		watchAllFields.firstName?.trim() !== '' &&
+		watchAllFields.lastName?.trim() !== '' &&
+		watchAllFields.email?.trim() !== '' &&
+		watchAllFields.password?.trim() !== '' &&
+		watchAllFields.confirmPassword?.trim() !== '';
+
+	// Check if button should be disabled
+	const isButtonDisabled = 
+		!areAllFieldsFilled || 
+		!hasAgreedToTerms || 
+		!isValid ||
+		sendRegisterOTPMutation.isPending || 
+		isGoogleLoading;
+
 	const onSubmit: SubmitHandler<RegisterFormData> = async (data) => {
+		// Check if user has agreed to terms
+		if (!hasAgreedToTerms) {
+			showStyledAlert({
+				title: 'Terms Required',
+				message: 'Please read and agree to the Terms and Conditions before registering.',
+				type: 'warning',
+			});
+			return;
+		}
+
 		await sendRegisterOTPMutation.mutateAsync({
 			firstName: data.firstName,
 			lastName: data.lastName,
@@ -159,8 +197,7 @@ export default function RegisterScreen() {
 	};
 
 	const togglePasswordVisibility = () => setShowPassword(!showPassword);
-	const toggleConfirmPasswordVisibility = () =>
-		setShowConfirmPassword(!showConfirmPassword);
+	const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
 	return (
 		<>
@@ -187,7 +224,7 @@ export default function RegisterScreen() {
 						showsVerticalScrollIndicator={false}
 					>
 						{/* Main Registration Card */}
-						<View className="w-full max-w-md bg-surface-default/95 backdrop-blur-xl rounded-3xl p-8 self-center shadow-2xl border border-border-subtle">
+						<View className="w-full max-w-md bg-surface-default/95 backdrop-blur-xl rounded-3xl p-8 self-center">
 							{/* Logo and Branding Section */}
 							<View className="items-center mb-2">
 								<View className="bg-brand-primary/10 rounded-full p-4 mb-4">
@@ -259,10 +296,10 @@ export default function RegisterScreen() {
 							</TouchableOpacity>
 
 							{/* Divider */}
-							<View className="flex-row items-center mb-6">
+							<View className="flex-row items-center mb-4">
 								<View className="flex-1 h-px bg-border-subtle" />
 								<Text className="text-text-muted font-montserrat text-sm px-3">
-									Or continue with email
+									OR
 								</Text>
 								<View className="flex-1 h-px bg-border-subtle" />
 							</View>
@@ -563,14 +600,51 @@ export default function RegisterScreen() {
 								)}
 							</View>
 
+							{/* Terms and Conditions Agreement */}
+							<View className="mb-6">
+								<TouchableOpacity
+									onPress={() => setShowTermsModal(true)}
+									className="flex-row items-start"
+									activeOpacity={0.7}
+								>
+									<View
+										className={`w-6 h-6 rounded-md border-2 items-center justify-center mr-3 mt-0.5 ${
+											hasAgreedToTerms
+												? 'bg-brand-primary border-brand-primary'
+												: 'border-border-focus bg-input-background'
+										}`}
+									>
+										{hasAgreedToTerms && (
+											<FontAwesome
+												name="check"
+												size={14}
+												color="#FFF1F1"
+											/>
+										)}
+									</View>
+									<View className="flex-1">
+										<Text className="text-sm font-montserrat text-text-primary leading-5">
+											I agree to the{' '}
+											<Text className="text-interactive-primary font-montserrat-bold underline">
+												Terms and Conditions
+											</Text>
+										</Text>
+										<Text className="text-xs font-montserrat text-text-muted mt-1">
+											Tap to read the full terms
+										</Text>
+									</View>
+								</TouchableOpacity>
+							</View>
+
 							{/* Register Button */}
 							<TouchableOpacity
-								className={`bg-interactive-primary rounded-2xl p-4 mb-4 shadow-lg ${sendRegisterOTPMutation.isPending || isGoogleLoading ? 'opacity-70' : ''}`}
+								className={`rounded-2xl p-4 mb-4 shadow-lg ${
+									isButtonDisabled 
+										? 'bg-interactive-primary-disabled opacity-50' 
+										: 'bg-interactive-primary'
+								}`}
 								onPress={handleSubmit(onSubmit)}
-								disabled={
-									sendRegisterOTPMutation.isPending ||
-									isGoogleLoading
-								}
+								disabled={isButtonDisabled}
 								activeOpacity={0.8}
 							>
 								{sendRegisterOTPMutation.isPending ? (
@@ -584,7 +658,11 @@ export default function RegisterScreen() {
 										</Text>
 									</View>
 								) : (
-									<Text className="text-interactive-primary-foreground text-lg font-montserrat-bold text-center">
+									<Text className={`text-lg font-montserrat-bold text-center ${
+										isButtonDisabled 
+											? 'text-text-disabled' 
+											: 'text-interactive-primary-foreground'
+									}`}>
 										Create Account
 									</Text>
 								)}
@@ -604,14 +682,6 @@ export default function RegisterScreen() {
 								</TouchableOpacity>
 							</View>
 						</View>
-
-						{/* Footer */}
-						<View className="mt-8 items-center">
-							<Text className="text-text-inverse/80 font-montserrat text-sm text-center">
-								By creating an account, you agree to our Terms
-								of Service{'\n'}and Privacy Policy
-							</Text>
-						</View>
 					</ScrollView>
 				</SafeAreaView>
 			</View>
@@ -626,6 +696,16 @@ export default function RegisterScreen() {
 				onDismiss={() =>
 					setAlertState((s) => ({ ...s, visible: false }))
 				}
+			/>
+
+			{/* Terms Modal */}
+			<TermsModal
+				isOpen={showTermsModal}
+				onClose={() => setShowTermsModal(false)}
+				onAgree={() => {
+					setHasAgreedToTerms(true);
+					setShowTermsModal(false);
+				}}
 			/>
 		</>
 	);

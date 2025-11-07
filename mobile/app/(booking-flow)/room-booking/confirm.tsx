@@ -10,15 +10,10 @@ import {
 	TextInput,
 	Platform,
 	Modal,
-	Alert,
-	Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as Sharing from 'expo-sharing';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { useForm, Controller } from 'react-hook-form';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -203,67 +198,6 @@ export default function ConfirmRoomBookingScreen() {
 	const handleViewQrCode = (qrNumber: number) => {
 		setSelectedQrImage(qrNumber);
 		setQrModalVisible(true);
-	};
-
-	const handleDownloadQrCode = async () => {
-		try {
-			// Request media library permissions
-			const { status } = await MediaLibrary.requestPermissionsAsync();
-			if (status !== 'granted') {
-				Alert.alert(
-					'Permission Required',
-					'Please grant media library permissions to save the QR code.',
-					[{ text: 'OK', style: 'default' }]
-				);
-				return;
-			}
-
-			// Determine which QR code to save
-			const qrImageName = selectedQrImage === 1 ? 'GCash_MOP1.jpg' : 'GCash_MOP2.jpg';
-			const qrImageUri = selectedQrImage === 1
-				? require('@/assets/images/GCash_MOP1.jpg')
-				: require('@/assets/images/GCash_MOP2.jpg');
-
-			// Get the asset module URI
-			const assetUri = Image.resolveAssetSource(qrImageUri).uri;
-			
-			// Create a temporary file in cache directory
-			const cacheFile = new FileSystem.File(FileSystem.Paths.cache, qrImageName);
-			
-			// Download the asset to cache
-			await FileSystem.downloadAsync(assetUri, cacheFile.uri);
-
-			// Save to media library
-			const asset = await MediaLibrary.createAssetAsync(cacheFile.uri);
-			
-			// Optionally create an album
-			try {
-				const album = await MediaLibrary.getAlbumAsync('Azurea Hotel');
-				if (album == null) {
-					await MediaLibrary.createAlbumAsync('Azurea Hotel', asset, false);
-				} else {
-					await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-				}
-			} catch (albumError) {
-				console.log('Album creation skipped:', albumError);
-			}
-
-			// Clean up cache file
-			await cacheFile.delete();
-
-			Alert.alert(
-				'Success',
-				'QR code saved to your gallery successfully!',
-				[{ text: 'OK', style: 'default' }]
-			);
-		} catch (error) {
-			console.error('Error downloading QR code:', error);
-			Alert.alert(
-				'Error',
-				'Failed to save QR code. Please try taking a screenshot instead.',
-				[{ text: 'OK', style: 'default' }]
-			);
-		}
 	};
 
 	const formatTimeDisplay = (timeString: string) => {
@@ -706,18 +640,31 @@ export default function ConfirmRoomBookingScreen() {
 								rules={{
 									required: 'Number of guests is required',
 									validate: (value) => {
-										const numValue = parseInt(value.toString()) || 0;
+										const numValue =
+											parseInt(value.toString()) || 0;
 										if (numValue < 1) {
 											return 'At least 1 guest is required';
 										}
 										return true;
 									},
 								}}
-								render={({ field: { onChange, onBlur, value } }) => (
+								render={({
+									field: { onChange, onBlur, value },
+								}) => (
 									<TextInput
-										value={value > 0 ? value.toString() : ''}
+										value={
+											value > 0 ? value.toString() : ''
+										}
 										onChangeText={(text) => {
-											const numValue = text === '' ? 0 : parseInt(text.replace(/[^0-9]/g,'')) || 0;
+											const numValue =
+												text === ''
+													? 0
+													: parseInt(
+															text.replace(
+																/[^0-9]/g,
+																''
+															)
+														) || 0;
 											onChange(numValue);
 										}}
 										onBlur={onBlur}
@@ -844,20 +791,25 @@ export default function ConfirmRoomBookingScreen() {
 							<StyledText className="text-text-primary font-montserrat-bold text-lg mb-3">
 								GCash Payment Proof *
 							</StyledText>
-							
+
 							{/* GCash QR Codes */}
 							<View className="mb-4 bg-background-elevated rounded-2xl p-4 border border-border-subtle">
 								<View className="flex-row items-center mb-3">
-									<Ionicons name="qr-code" size={20} color="#6F00FF" />
+									<Ionicons
+										name="qr-code"
+										size={20}
+										color="#6F00FF"
+									/>
 									<StyledText className="text-text-primary font-montserrat-bold ml-2">
 										Scan to Pay with GCash
 									</StyledText>
 								</View>
 								<StyledText className="text-text-muted font-raleway-regular text-xs mb-3">
-									Scan either QR code below to complete your payment. Tap to view larger.
+									Scan either QR code below to complete your
+									payment. Tap to view larger.
 								</StyledText>
 								<View className="flex-row justify-around gap-3">
-									<TouchableOpacity 
+									<TouchableOpacity
 										className="flex-1 items-center bg-background-subtle rounded-xl p-3"
 										onPress={() => handleViewQrCode(1)}
 										activeOpacity={0.7}
@@ -871,10 +823,15 @@ export default function ConfirmRoomBookingScreen() {
 											<StyledText className="text-text-primary font-montserrat-bold text-xs">
 												GCash QR 1
 											</StyledText>
-											<Ionicons name="expand-outline" size={12} color="#6F00FF" style={{ marginLeft: 4 }} />
+											<Ionicons
+												name="expand-outline"
+												size={12}
+												color="#6F00FF"
+												style={{ marginLeft: 4 }}
+											/>
 										</View>
 									</TouchableOpacity>
-									<TouchableOpacity 
+									<TouchableOpacity
 										className="flex-1 items-center bg-background-subtle rounded-xl p-3"
 										onPress={() => handleViewQrCode(2)}
 										activeOpacity={0.7}
@@ -888,7 +845,12 @@ export default function ConfirmRoomBookingScreen() {
 											<StyledText className="text-text-primary font-montserrat-bold text-xs">
 												GCash QR 2
 											</StyledText>
-											<Ionicons name="expand-outline" size={12} color="#6F00FF" style={{ marginLeft: 4 }} />
+											<Ionicons
+												name="expand-outline"
+												size={12}
+												color="#6F00FF"
+												style={{ marginLeft: 4 }}
+											/>
 										</View>
 									</TouchableOpacity>
 								</View>
@@ -1082,7 +1044,11 @@ export default function ConfirmRoomBookingScreen() {
 						{/* Header */}
 						<View className="flex-row justify-between items-center mb-4">
 							<View className="flex-row items-center">
-								<Ionicons name="qr-code" size={24} color="#6F00FF" />
+								<Ionicons
+									name="qr-code"
+									size={24}
+									color="#6F00FF"
+								/>
 								<StyledText className="text-text-primary font-playfair-bold text-xl ml-2">
 									GCash QR Code {selectedQrImage}
 								</StyledText>
@@ -1091,7 +1057,11 @@ export default function ConfirmRoomBookingScreen() {
 								onPress={() => setQrModalVisible(false)}
 								className="w-8 h-8 rounded-full bg-background-subtle items-center justify-center"
 							>
-								<Ionicons name="close" size={20} color="#3B0270" />
+								<Ionicons
+									name="close"
+									size={20}
+									color="#3B0270"
+								/>
 							</TouchableOpacity>
 						</View>
 
@@ -1111,14 +1081,20 @@ export default function ConfirmRoomBookingScreen() {
 						{/* Instructions */}
 						<View className="bg-feedback-info-light rounded-xl p-3 mb-4">
 							<View className="flex-row items-start">
-								<Ionicons name="information-circle" size={20} color="#3B82F6" style={{ marginRight: 8, marginTop: 2 }} />
+								<Ionicons
+									name="information-circle"
+									size={20}
+									color="#3B82F6"
+									style={{ marginRight: 8, marginTop: 2 }}
+								/>
 								<View className="flex-1">
 									<StyledText className="text-feedback-info-dark font-montserrat-bold text-sm mb-1">
 										How to Pay
 									</StyledText>
 									<StyledText className="text-feedback-info-dark font-raleway-regular text-xs">
 										1. Open your GCash app{'\n'}
-										2. Tap "Scan QR" on the home screen{'\n'}
+										2. Tap "Scan QR" on the home screen
+										{'\n'}
 										3. Scan this QR code{'\n'}
 										4. Complete the payment{'\n'}
 										5. Take a screenshot of the receipt
@@ -1129,16 +1105,6 @@ export default function ConfirmRoomBookingScreen() {
 
 						{/* Action Buttons */}
 						<View className="flex-row gap-3">
-							<TouchableOpacity
-								onPress={handleDownloadQrCode}
-								className="flex-1 bg-brand-primary rounded-xl py-3 px-4 flex-row items-center justify-center"
-								activeOpacity={0.8}
-							>
-								<Ionicons name="download-outline" size={20} color="#FFF1F1" />
-								<StyledText className="text-text-inverse font-montserrat-bold ml-2">
-									Save QR
-								</StyledText>
-							</TouchableOpacity>
 							<TouchableOpacity
 								onPress={() => setQrModalVisible(false)}
 								className="flex-1 bg-background-subtle rounded-xl py-3 px-4 flex-row items-center justify-center border border-border-default"

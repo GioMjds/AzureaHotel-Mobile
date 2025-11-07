@@ -269,15 +269,11 @@ class FirebaseRealtimeService {
 			if (!FirebaseAuthService.isFirebaseAuthenticated()) {
 				if (attempts < 5) {
 					const backoff = 300 * (attempts + 1);
-					// small delay then retry
 					setTimeout(() => {
 						void this.updateUserPresence(userId, isOnline, attempts + 1);
 					}, backoff);
 					return;
 				} else {
-					console.warn(
-						`Skipping presence update for user ${userId} after ${attempts} attempts because Firebase auth is not ready`
-					);
 					return;
 				}
 			}
