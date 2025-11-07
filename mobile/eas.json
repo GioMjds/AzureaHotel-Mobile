@@ -10,16 +10,25 @@
       "android": {
         "gradleCommand": ":app:assembleDebug",
         "buildType": "apk"
+      },
+      "env": {
+        "GOOGLE_SERVICES_JSON": "./google-services.json"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "GOOGLE_SERVICES_JSON": "./google-services.json"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "GOOGLE_SERVICES_JSON": "./google-services.json"
+      }
     }
   },
   "submit": {
