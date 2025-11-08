@@ -4,9 +4,9 @@ services:
     runtime: python
     region: singapore
     plan: free
-    rootDir: server
-    buildCommand: pip install -r requirements.txt && cd hotel_backend && python manage.py collectstatic --noinput && python manage.py migrate
-    startCommand: cd hotel_backend && daphne -b 0.0.0.0 -p $PORT hotel_backend.asgi:application
+    rootDir: server/hotel_backend  # Point directly to Django project
+    buildCommand: pip install -r ../requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+    startCommand: daphne -b 0.0.0.0 -p $PORT hotel_backend.asgi:application
     
     # Most variables come from Environment Group (evg-d47j1qchg0os73fnlfe0)
     # Link it in Render Dashboard: Service → Environment → Link Environment Group
