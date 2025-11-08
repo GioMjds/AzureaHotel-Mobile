@@ -1,0 +1,111 @@
+services:
+  - type: web
+    name: azurea-hotel-backend
+    runtime: python
+    region: singapore
+    plan: free
+    rootDir: server
+    buildCommand: pip install -r requirements.txt && cd hotel_backend && python manage.py collectstatic --noinput && python manage.py migrate
+    startCommand: cd hotel_backend && daphne -b 0.0.0.0 -p $PORT hotel_backend.asgi:application
+    
+    # Django Core Settings - Override these with Environment Group values
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      
+      # Django Core Settings
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,azurea-hotel-backend.onrender.com"
+      
+      # Database Configuration (Add your MySQL connection details)
+      # Option 1: Use external MySQL (recommended - keep your existing DB)
+      - key: DB_HOST
+        sync: false  # Set in Render dashboard
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: "hotel_management"
+      - key: DB_PORT
+        value: "3306"
+      
+      # CraveOn Database (Optional - if using external integration)
+      - key: CRAVEON_DB_HOST
+        sync: false
+      - key: CRAVEON_DB_USER
+        sync: false
+      - key: CRAVEON_DB_PASSWORD
+        sync: false
+      - key: CRAVEON_DB_NAME
+        value: "SystemInteg"
+      - key: CRAVEON_DB_PORT
+        value: "3306"
+      
+      # Client URL (will be your Render backend URL)
+      - key: CLIENT_URL
+        value: "https://azurea-hotel-backend.onrender.com"
+      - key: REDIRECT_URI
+        value: "azurea-hotel://"
+      
+      # Email Configuration (Gmail SMTP)
+      - key: EMAIL_HOST_USER
+        sync: false  # Add in dashboard: azureahotelmanagement@gmail.com
+      - key: EMAIL_HOST_PASSWORD
+        sync: false  # Add in dashboard: punbrmpvfjojbvfj
+      
+      # Admin Credentials
+      - key: ADMIN_EMAIL
+        value: "admin@gmail.com"
+      - key: ADMIN_PASS
+        value: "admin"
+      - key: ADMIN_USER_EMAIL
+        value: "azureahotelmanagement@gmail.com"
+      - key: ADMIN_USER_NAME
+        value: "Admin user"
+      
+      # Cloudinary Configuration
+      - key: CLOUD_NAME
+        sync: false  # Add in dashboard: ddjp3phzz
+      - key: API_KEY
+        sync: false  # Add in dashboard: 925253141123137
+      - key: API_SECRET
+        sync: false  # Add in dashboard
+      
+      # Firebase Configuration
+      - key: FIREBASE_PROJECT_ID
+        value: "azureahotel-mobile"
+      - key: FIREBASE_DATABASE_URL
+        value: "https://azureahotel-mobile-default-rtdb.firebaseio.com"
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false  # Add in dashboard
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false  # Add in dashboard (multiline)
+      - key: FIREBASE_PRIVATE_KEY_ID
+        sync: false
+      - key: FIREBASE_CLIENT_ID
+        sync: false
+      
+      # Google OAuth Configuration
+      - key: GOOGLE_CLIENT_ID
+        value: "2518147103-s1qnp57imvjeipjpeajrv8b2vbr00sjs.apps.googleusercontent.com"
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false  # Add in dashboard: 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
+      - key: GOOGLE_USERINFO_URL
+        value: "https://www.googleapis.com/oauth2/v2/userinfo"
+      - key: GOOGLE_TOKEN_URL
+        value: "https://oauth2.googleapis.com/token"
+      
+      # PayMongo Configuration (Test Keys)
+      - key: PAYMONGO_TEST_PUBLIC_KEY
+        value: "pk_test_gXrBEm3pur9yiMzND1gJ7aDN"
+      - key: PAYMONGO_TEST_SECRET_KEY
+        sync: false  # Add in dashboard: sk_test_Js2RuJYGYX6beHy4Jr5Fn5zj
+      - key: PAYMONGO_WEBHOOK_KEY
+        value: "whsk_RBtzPNeh79c9NbYaaymBvSWp"
+      - key: PAYMONGO_WEBHOOK_ENDPOINT_URL
+        value: "https://azurea-hotel-backend.onrender.com/booking/paymongo/webhook"
