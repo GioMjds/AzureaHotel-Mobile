@@ -315,7 +315,7 @@ export default function ConfirmAreaBookingScreen() {
 	return (
 		<SafeAreaView className="flex-1 bg-surface-default">
 			{/* Header */}
-			<View className="bg-surface-default px-6 py-4 border-b border-border-focus">
+			<View className="bg-surface-default px-4 py-2 border-b border-border-focus">
 				<View className="flex-row items-center justify-between">
 					<TouchableOpacity
 						onPress={() => router.back()}
@@ -538,7 +538,7 @@ export default function ConfirmAreaBookingScreen() {
 							</StyledText>
 							
 							{/* GCash QR Codes */}
-							<View className="mb-4 bg-background-elevated rounded-2xl p-4 border border-border-subtle">
+							<View className="mb-4 bg-background-elevated rounded-2xl p-2">
 								<View className="flex-row items-center mb-3">
 									<Ionicons name="qr-code" size={20} color="#6F00FF" />
 									<StyledText variant='montserrat-bold' className="text-text-primary ml-2">

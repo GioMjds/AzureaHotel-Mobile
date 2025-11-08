@@ -23,3 +23,13 @@ export interface Guest {
 export interface GuestResponse {
     data: Guest;
 }
+
+export type VerificationStatus = {
+	isVerified: boolean;
+	isPending: boolean;
+	isRejected: boolean;
+	rejectionReason: string | null;
+	submittedIdType: string | null;
+	frontImageUri: string | null;
+	backImageUri: string | null;
+};

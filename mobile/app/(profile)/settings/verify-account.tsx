@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
 	View,
 	TouchableOpacity,
@@ -6,7 +6,6 @@ import {
 	Modal,
 	FlatList,
 	Pressable,
-	Alert,
 	Image,
 	StatusBar,
 } from 'react-native';
@@ -18,8 +17,9 @@ import { useUploadImage } from '@/hooks/useUploadImage';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import StyledText from '@/components/ui/StyledText';
+import StyledAlert from '@/components/ui/StyledAlert';
 import useAuthStore from '@/store/AuthStore';
-import { IsVerified } from '@/types/GuestUser.types';
+import { IsVerified, VerificationStatus } from '@/types/GuestUser.types';
 
 const ID_TYPES = [
 	'Passport',
@@ -34,17 +34,6 @@ const ID_TYPES = [
 	'Other Government-Issued ID',
 ];
 
-
-type VerificationStatus = {
-	isVerified: boolean;
-	isPending: boolean;
-	isRejected: boolean;
-	rejectionReason: string | null;
-	submittedIdType: string | null;
-	frontImageUri: string | null;
-	backImageUri: string | null;
-};
-
 export default function VerifyAccountScreen() {
 	const [frontImageUri, setFrontImageUri] = useState<string | null>(null);
 	const [backImageUri, setBackImageUri] = useState<string | null>(null);
@@ -55,10 +44,29 @@ export default function VerifyAccountScreen() {
 	const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
 	const [isPreviewModalOpen, setIsPreviewModalOpen] = useState<boolean>(false);
 	const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
+	const [alertState, setAlertState] = useState<{
+		visible: boolean;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		title: string;
+		message?: string;
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}>({ visible: false, title: '' });
 
 	const router = useRouter();
 	const { uploadValidIdMutation } = useUploadImage();
 	const authUser = useAuthStore((s) => s.user);
+
+	const showStyledAlert = (opts: {
+		title: string;
+		message?: string;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}) => {
+		setAlertState({
+			visible: true,
+			...opts,
+		});
+	};
 
 	useEffect(() => {
 		if (authUser) {
@@ -84,10 +92,12 @@ export default function VerifyAccountScreen() {
 				await ImagePicker.requestCameraPermissionsAsync();
 			
 			if (libraryStatus !== 'granted' || cameraStatus !== 'granted') {
-				Alert.alert(
-					'Permission required',
-					'Please allow access to camera and photos to upload ID images.'
-				);
+				showStyledAlert({
+					title: 'Permission Required',
+					message: 'Please allow access to camera and photos to upload ID images.',
+					type: 'warning',
+					buttons: [{ text: 'OK', style: 'default' }]
+				});
 			}
 		})();
 	}, []);
@@ -119,29 +129,45 @@ export default function VerifyAccountScreen() {
 			}
 		} catch (err) {
 			console.warn('Image pick error', err);
-			Alert.alert('Error', 'Failed to capture image. Please try again.');
+			showStyledAlert({
+				title: 'Error',
+				message: 'Failed to capture image. Please try again.',
+				type: 'error',
+				buttons: [{ text: 'OK', style: 'default' }]
+			});
 		} finally {
 			setIsImageSourceModalOpen(false);
 		}
 	};
 
 	const handleUpload = () => {
-		if (!idType)
-			return Alert.alert('Missing ID Type', 'Please select an ID type.');
-		if (!frontImageUri || !backImageUri)
-			return Alert.alert(
-				'Missing images',
-				'Please pick both front and back images.'
-			);
+		if (!idType) {
+			return showStyledAlert({
+				title: 'Missing ID Type',
+				message: 'Please select an ID type.',
+				type: 'warning',
+				buttons: [{ text: 'OK', style: 'default' }]
+			});
+		}
+		if (!frontImageUri || !backImageUri) {
+			return showStyledAlert({
+				title: 'Missing Images',
+				message: 'Please pick both front and back images.',
+				type: 'warning',
+				buttons: [{ text: 'OK', style: 'default' }]
+			});
+		}
 
 		uploadValidIdMutation.mutate(
 			{ frontUri: frontImageUri, backUri: backImageUri, idType },
 			{
 				onSuccess: () => {
-					Alert.alert(
-						'Success',
-						'Your ID was uploaded. Verification pending.'
-					);
+					showStyledAlert({
+						title: 'Success',
+						message: 'Your ID was uploaded. Verification pending.',
+						type: 'success',
+						buttons: [{ text: 'OK', style: 'default' }]
+					});
 					setVerificationStatus({
 						isVerified: false,
 						isPending: true,
@@ -159,7 +185,12 @@ export default function VerifyAccountScreen() {
 				onError: (error: any) => {
 					const msg =
 						error?.message || 'Upload failed. Please try again.';
-					Alert.alert('Upload failed', msg);
+					showStyledAlert({
+						title: 'Upload Failed',
+						message: msg,
+						type: 'error',
+						buttons: [{ text: 'OK', style: 'default' }]
+					});
 				},
 			}
 		);
@@ -830,6 +861,16 @@ export default function VerifyAccountScreen() {
 					</Pressable>
 				</Pressable>
 			</Modal>
+			
+			{/* Styled Alert */}
+			<StyledAlert
+				visible={alertState.visible}
+				type={alertState.type}
+				title={alertState.title}
+				message={alertState.message}
+				buttons={alertState.buttons}
+				onDismiss={() => setAlertState({ visible: false, title: '' })}
+			/>
 		</SafeAreaView>
 	);
 }

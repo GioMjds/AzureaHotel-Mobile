@@ -4,9 +4,10 @@ import {
     RefreshControl,
     Text,
     TouchableOpacity,
-    View
+    View,
+    BackHandler
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { auth } from '@/services/UserAuth';
 import BookingCard from '@/components/bookings/BookingCard';
@@ -14,12 +15,15 @@ import StatusFilter from '@/components/bookings/StatusFilter';
 import { Ionicons } from '@expo/vector-icons';
 import { useBookingUpdates } from '@/hooks/useBookingUpdates';
 import FeedbackModal from '@/components/bookings/FeedbackModal';
+import StyledAlert from '@/components/ui/StyledAlert';
 import { StatusBar } from 'expo-status-bar';
+import { useFocusEffect } from 'expo-router';
 
 export default function BookingsScreen() {
     const [selectedStatus, setSelectedStatus] = useState<string>('');
     const [feedbackModalVisible, setFeedbackModalVisible] = useState<boolean>(false);
     const [selectedBookingForFeedback, setSelectedBookingForFeedback] = useState<any>(null);
+    const [exitAlertVisible, setExitAlertVisible] = useState<boolean>(false);
 
     const { 
         data,  
@@ -54,6 +58,30 @@ export default function BookingsScreen() {
     const allBookings = data?.pages?.flatMap(page => page.data) || [];
     const bookingIds = allBookings.map((booking: any) => booking.id) || [];
     const firstBookingId = bookingIds.length > 0 ? bookingIds[0] : undefined;
+
+    useFocusEffect(
+        useCallback(() => {
+            const backAction = () => {
+                setExitAlertVisible(true);
+                return true;
+            };
+
+            const backHandler = BackHandler.addEventListener(
+                'hardwareBackPress',
+                backAction
+            );
+
+            // Cleanup when screen loses focus
+            return () => backHandler.remove();
+        }, [])
+    );
+
+    const handleExitApp = () => {
+        setExitAlertVisible(false);
+        setTimeout(() => {
+            BackHandler.exitApp();
+        }, 100);
+    };
 
     useBookingUpdates(firstBookingId);
 
@@ -190,6 +218,26 @@ export default function BookingsScreen() {
                     bookingItem={selectedBookingForFeedback}
                 />
             )}
+
+            <StyledAlert
+                visible={exitAlertVisible}
+                type="warning"
+                title="Exit App"
+                message="Are you sure you want to exit Azurea Hotel?"
+                buttons={[
+                    {
+                        text: 'Cancel',
+                        style: 'cancel',
+                        onPress: () => setExitAlertVisible(false)
+                    },
+                    {
+                        text: 'Exit',
+                        style: 'destructive',
+                        onPress: handleExitApp
+                    }
+                ]}
+                onDismiss={() => setExitAlertVisible(false)}
+            />
         </View>
     );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
     Text,
     TextInput,
@@ -7,6 +7,7 @@ import {
     Image,
     ScrollView,
     ActivityIndicator,
+    BackHandler
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +16,8 @@ import { router } from 'expo-router';
 import { useAuthMutations } from '@/hooks/useAuthMutations';
 import { useGoogleOAuth } from '@/hooks/useGoogleOAuth';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useFocusEffect } from 'expo-router';
+import StyledAlert from '@/components/ui/StyledAlert';
 
 interface LoginFormData {
     email: string;
@@ -24,6 +27,7 @@ interface LoginFormData {
 export default function LoginScreen() {
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
+    const [exitAlertVisible, setExitAlertVisible] = useState<boolean>(false);
 
     const { loginMutation } = useAuthMutations();
     const { handleGoogleSignIn, isLoading: isGoogleLoading } = useGoogleOAuth();
@@ -78,6 +82,29 @@ export default function LoginScreen() {
     };
 
     const errorMessage = getErrorMessage();
+
+    useFocusEffect(
+        useCallback(() => {
+            const backAction = () => {
+                setExitAlertVisible(true);
+                return true;
+            }
+
+            const backHandler = BackHandler.addEventListener(
+                "hardwareBackPress",
+                backAction
+            );
+
+            return () => backHandler.remove();
+        }, [])
+    );
+
+    const handleExitApp = () => {
+        setExitAlertVisible(false);
+        setTimeout(() => {
+            BackHandler.exitApp();
+        }, 100);
+    };
 
     return (
         <View className="flex-1">
@@ -385,6 +412,25 @@ export default function LoginScreen() {
                     </View>
                 </ScrollView>
             </SafeAreaView>
+            <StyledAlert
+                            visible={exitAlertVisible}
+                            type="warning"
+                            title="Exit App"
+                            message="Are you sure you want to exit Azurea Hotel?"
+                            buttons={[
+                                {
+                                    text: 'Cancel',
+                                    style: 'cancel',
+                                    onPress: () => setExitAlertVisible(false)
+                                },
+                                {
+                                    text: 'Exit',
+                                    style: 'destructive',
+                                    onPress: handleExitApp
+                                }
+                            ]}
+                            onDismiss={() => setExitAlertVisible(false)}
+                        />
         </View>
     );
 }

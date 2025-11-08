@@ -424,7 +424,7 @@ export default function ConfirmRoomBookingScreen() {
 	return (
 		<SafeAreaView className="flex-1 bg-surface-default">
 			{/* Header */}
-			<View className="bg-surface-default px-6 py-4 border-b border-border-focus">
+			<View className="bg-surface-default px-4 py-2 border-b border-border-focus">
 				<View className="flex-row items-center justify-between">
 					<TouchableOpacity
 						onPress={() => router.back()}
@@ -793,7 +793,7 @@ export default function ConfirmRoomBookingScreen() {
 							</StyledText>
 
 							{/* GCash QR Codes */}
-							<View className="mb-4 bg-background-elevated rounded-2xl p-4 border border-border-subtle">
+							<View className="mb-4 bg-background-elevated rounded-2xl p-2">
 								<View className="flex-row items-center mb-3">
 									<Ionicons
 										name="qr-code"
@@ -804,13 +804,13 @@ export default function ConfirmRoomBookingScreen() {
 										Scan to Pay with GCash
 									</StyledText>
 								</View>
-								<StyledText className="text-text-muted font-raleway-regular text-xs mb-3">
+								<StyledText variant='raleway-regular' className="text-text-muted text-xs mb-3">
 									Scan either QR code below to complete your
 									payment. Tap to view larger.
 								</StyledText>
 								<View className="flex-row justify-around gap-3">
 									<TouchableOpacity
-										className="flex-1 items-center bg-background-subtle rounded-xl p-3"
+										className="flex-1 items-center rounded-xl border border-border-focus p-3"
 										onPress={() => handleViewQrCode(1)}
 										activeOpacity={0.7}
 									>
@@ -823,16 +823,10 @@ export default function ConfirmRoomBookingScreen() {
 											<StyledText className="text-text-primary font-montserrat-bold text-xs">
 												GCash QR 1
 											</StyledText>
-											<Ionicons
-												name="expand-outline"
-												size={12}
-												color="#6F00FF"
-												style={{ marginLeft: 4 }}
-											/>
 										</View>
 									</TouchableOpacity>
 									<TouchableOpacity
-										className="flex-1 items-center bg-background-subtle rounded-xl p-3"
+										className="flex-1 items-center rounded-xl border border-border-focus p-3"
 										onPress={() => handleViewQrCode(2)}
 										activeOpacity={0.7}
 									>
@@ -845,12 +839,6 @@ export default function ConfirmRoomBookingScreen() {
 											<StyledText className="text-text-primary font-montserrat-bold text-xs">
 												GCash QR 2
 											</StyledText>
-											<Ionicons
-												name="expand-outline"
-												size={12}
-												color="#6F00FF"
-												style={{ marginLeft: 4 }}
-											/>
 										</View>
 									</TouchableOpacity>
 								</View>
@@ -1039,7 +1027,10 @@ export default function ConfirmRoomBookingScreen() {
 				animationType="fade"
 				onRequestClose={() => setQrModalVisible(false)}
 			>
-				<View className="flex-1 bg-background-overlay justify-center items-center">
+				<View 
+					className="flex-1 justify-center items-center"
+					style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+				>
 					<View className="bg-background-elevated rounded-3xl p-6 mx-4 w-11/12 max-w-md">
 						{/* Header */}
 						<View className="flex-row justify-between items-center mb-4">
@@ -1055,7 +1046,7 @@ export default function ConfirmRoomBookingScreen() {
 							</View>
 							<TouchableOpacity
 								onPress={() => setQrModalVisible(false)}
-								className="w-8 h-8 rounded-full bg-background-subtle items-center justify-center"
+								className="w-8 h-8 rounded-full items-center justify-center"
 							>
 								<Ionicons
 									name="close"
@@ -1066,7 +1057,7 @@ export default function ConfirmRoomBookingScreen() {
 						</View>
 
 						{/* QR Code Image */}
-						<View className="bg-background-subtle rounded-2xl p-4 mb-4">
+						<View className="rounded-2xl p-4 mb-4">
 							<Image
 								source={
 									selectedQrImage === 1

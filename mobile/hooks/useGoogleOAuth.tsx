@@ -16,27 +16,12 @@ GoogleSignin.configure({
 	scopes: ['profile', 'email'],
 	offlineAccess: true,
 	forceCodeForRefreshToken: true,
+	accountName: '', // Prevents auto-selection of cached account
 });
 
 export function useGoogleOAuth() {
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
-	const [isInitialized, setIsInitialized] = useState<boolean>(false);
-
-	useEffect(() => {
-		const checkPreviousSignIn = async () => {
-			try {
-				const hasPreviousSignIn = GoogleSignin.hasPreviousSignIn();
-				setIsInitialized(true);
-
-				if (hasPreviousSignIn) await GoogleSignin.signInSilently();
-			} catch {
-				setIsInitialized(true);
-			}
-		};
-
-		checkPreviousSignIn();
-	}, []);
 
 	const handleGoogleSignIn = useCallback(async () => {
 		try {
@@ -47,6 +32,13 @@ export function useGoogleOAuth() {
 			await GoogleSignin.hasPlayServices({
 				showPlayServicesUpdateDialog: true,
 			});
+
+			// Sign out silently to force account selection picker
+			try {
+				await GoogleSignin.signOut();
+			} catch (signOutError) {
+				console.log('No previous Google sign-in to clear');
+			}
 
 			const response = await GoogleSignin.signIn();
 
@@ -170,7 +162,6 @@ export function useGoogleOAuth() {
 		handleGoogleSignOut,
 		isLoading,
 		error,
-		isReady: isInitialized,
 		GoogleSignin
 	};
 }
