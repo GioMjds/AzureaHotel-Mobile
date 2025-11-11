@@ -20,6 +20,7 @@ import StyledModal from '@/components/ui/StyledModal';
 import StyledAlert from '@/components/ui/StyledAlert';
 import * as ImagePicker from 'expo-image-picker';
 import OfflineBanner from '@/components/ui/OfflineBanner';
+import { useNetwork } from '@/components/NetworkProvider';
 
 interface HeaderProps {
 	headerLabel: string;
@@ -31,6 +32,7 @@ const Header = ({ headerLabel }: HeaderProps) => {
 	const [isLogoutAlertOpen, setLogoutAlertOpen] = useState<boolean>(false);
 
 	const { user, logout } = useAuth();
+	const { isOffline } = useNetwork();
 
 	const router = useRouter();
 	const pathname = usePathname();
@@ -237,19 +239,22 @@ const Header = ({ headerLabel }: HeaderProps) => {
 					</View>
 
 					{/* Profile Image on Right */}
-					<TouchableOpacity
-						hitSlop={20}
-						onPress={handleProfilePress}
-						activeOpacity={0.7}
-						disabled={isOnProfileRoute}
-						accessibilityState={{ disabled: isOnProfileRoute }}
-					>
-						<Image
-							source={{ uri: guest.profile_image, cache: 'default' }}
-							className="w-14 h-14 rounded-full border-2 border-brand-primary"
-							resizeMode="cover"
-						/>
-					</TouchableOpacity>
+					<View style={isOffline ? { opacity: 0.4 } : undefined}>
+						<TouchableOpacity
+							hitSlop={20}
+							onPress={handleProfilePress}
+							activeOpacity={0.7}
+							disabled={isOnProfileRoute || !!isOffline}
+							accessibilityState={{ disabled: isOnProfileRoute || !!isOffline }}
+						>
+							<Image
+								source={{ uri: guest.profile_image, cache: 'default' }}
+								className="w-14 h-14 rounded-full border-2 border-gray-400"
+								style={isOffline ? { backgroundColor: 'rgba(0, 0, 0, 0.3)', borderColor: '#9ca3af' } : { borderColor: '#16a34a' }}
+								resizeMode="cover"
+							/>
+						</TouchableOpacity>
+					</View>
 
 				{/* Dropdown Modal for profile actions */}
 				<Modal

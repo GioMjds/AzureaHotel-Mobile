@@ -24,7 +24,7 @@ const OfflineSuspense = ({ isOffline, onRetry }: OfflineSuspenseProps) => {
 			className="absolute inset-0 z-50"
 		>
 			{/* Overlay */}
-			<View className="absolute inset-0 bg-background-overlay" />
+			<View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }} />
 
 			{/* Content */}
 			<View className="flex-1 items-center justify-center px-6">
@@ -79,7 +79,7 @@ const OfflineSuspense = ({ isOffline, onRetry }: OfflineSuspenseProps) => {
 					)}
 
 					{/* Tips */}
-					<View className="mt-8 bg-background-elevated rounded-xl p-4 max-w-sm">
+					<View className="mt-8 bg-background-elevated rounded-xl p-4 max-w-xl">
 						<StyledText className="font-raleway-bold text-sm text-text-primary mb-2">
 							Tips:
 						</StyledText>

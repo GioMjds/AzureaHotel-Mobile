@@ -76,7 +76,41 @@ export default function RegisterScreen() {
 	const handleGoogleSignUpPress = async () => {
 		setGoogleAuthError(null);
 		const result = await handleGoogleSignIn();
-		if (!result.success && result.error) {
+		
+		// Handle new Google users requiring OTP verification
+		if (result.requiresVerification && result.email && result.password) {
+			try {
+				// Store registration data for OTP verification
+				await SecureStore.setItemAsync(REGISTRATION_EMAIL_KEY, result.email);
+				await SecureStore.setItemAsync(REGISTRATION_PASSWORD_KEY, result.password);
+				
+				// Navigate to verify screen
+				showStyledAlert({
+					title: 'Verification Required',
+					message: result.message || 'Please verify your email with the OTP sent to your inbox.',
+					type: 'info',
+					buttons: [
+						{
+							text: 'OK',
+							onPress: () => router.push('/(auth)/verify'),
+						},
+					],
+				});
+			} catch (error) {
+				console.error('Failed to store Google auth data:', error);
+				setGoogleAuthError('Failed to process Google sign-up. Please try again.');
+			}
+			return;
+		}
+		
+		// Handle existing Google users (successful authentication)
+		if (result.success) {
+			router.replace('/(screens)');
+			return;
+		}
+		
+		// Handle errors (but not cancellation)
+		if (!result.success && result.error && !result.cancelled) {
 			setGoogleAuthError(result.error);
 		}
 	};

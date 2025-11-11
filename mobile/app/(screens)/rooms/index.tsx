@@ -3,8 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { room } from '@/services/Room';
 import RoomCard from '@/components/rooms/RoomCard';
 import { Room } from '@/types/Room.types';
+import { useNetwork } from '@/components/NetworkProvider';
 
 export default function RoomsScreen() {
+	const { isOffline } = useNetwork();
+	
 	const { data, isLoading, error } = useQuery({
 		queryKey: ['rooms'],
 		queryFn: async () => {
@@ -41,7 +44,7 @@ export default function RoomsScreen() {
 	}
 
 	return (
-		<View className="flex-1 bg-neutral-50">
+		<View className={`flex-1 ${isOffline ? 'bg-neutral-200' : 'bg-neutral-50'}`}>
 			{/* Rooms List */}
 			<FlatList
 				data={data?.data || []}
@@ -49,8 +52,9 @@ export default function RoomsScreen() {
 				keyExtractor={(item: Room) => item.id.toString()}
 				contentContainerStyle={{ paddingTop: 16, paddingBottom: 120 }}
 				showsVerticalScrollIndicator={false}
+				style={isOffline ? { opacity: 0.6 } : undefined}
 				ListEmptyComponent={
-					<View className="flex-1 justify-center items-center py-20">
+					<View className="flex-1 justify-center items-center mt-10">
 						<Text className="text-neutral-500 font-montserrat text-center">
 							No rooms available at the moment
 						</Text>

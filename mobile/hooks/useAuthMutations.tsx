@@ -60,9 +60,7 @@ export function useAuthMutations() {
     });
 
     const logoutMutation = useMutation({
-        mutationFn: async () => {
-            return await auth.logout();
-        },
+        mutationFn: () => auth.logout(),
         onMutate: () => {
             setIsLoading(true);
         },

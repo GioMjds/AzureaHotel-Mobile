@@ -27,7 +27,7 @@ interface NetworkProviderProps {
 
 export const NetworkProvider = ({ 
 	children, 
-	showOfflineUI = true 
+	showOfflineUI = false 
 }: NetworkProviderProps) => {
 	const networkStatus = useNetworkStatus();
 

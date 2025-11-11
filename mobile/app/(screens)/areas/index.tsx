@@ -3,8 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { area } from '@/services/Area';
 import AreaCard from '@/components/areas/AreaCard';
 import { Area } from '@/types/Area.types';
+import { useNetwork } from '@/components/NetworkProvider';
 
 export default function AreasScreen() {
+	const { isOffline } = useNetwork();
+	
 	const { data, isLoading, error } = useQuery({
 		queryKey: ['areas'],
 		queryFn: async () => {
@@ -41,7 +44,7 @@ export default function AreasScreen() {
 	}
 
 	return (
-		<View className="flex-1 bg-neutral-50">
+		<View className={`flex-1 ${isOffline ? 'bg-neutral-200' : 'bg-neutral-50'}`}>
 			{/* Areas List */}
 			<FlatList
 				data={data?.data as Area[]}
@@ -49,9 +52,10 @@ export default function AreasScreen() {
 				keyExtractor={(item) => item.id.toString()}
 				contentContainerStyle={{ paddingTop: 16, paddingBottom: 120 }}
 				showsVerticalScrollIndicator={false}
+				style={isOffline ? { opacity: 0.6 } : undefined}
 				ListEmptyComponent={
 					<View className="flex-1 justify-center items-center mt-10">
-						<Text className="text-neutral-600 font-montserrat">
+						<Text className="text-neutral-600 font-montserrat text-center">
 							No areas available.
 						</Text>
 					</View>

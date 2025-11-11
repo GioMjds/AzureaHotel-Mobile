@@ -10,10 +10,8 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import * as SecureStore from 'expo-secure-store';
 import { httpClient } from '@/configs/axios';
 import { auth } from '@/services/UserAuth';
@@ -24,10 +22,6 @@ import StyledAlert from '@/components/ui/StyledAlert';
 const REGISTRATION_EMAIL_KEY = 'registration_email';
 const REGISTRATION_PASSWORD_KEY = 'registration_password';
 
-interface VerifyFormData {
-    otp: string;
-}
-
 export default function VerifyRegisterOTPScreen() {
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
@@ -35,6 +29,8 @@ export default function VerifyRegisterOTPScreen() {
     const [lastName, setLastName] = useState<string>('');
     const [countdown, setCountdown] = useState<number>(120);
     const [canResend, setCanResend] = useState<boolean>(false);
+    const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
+    const [otpInputRefs, setOtpInputRefs] = useState<(TextInput | null)[]>([]);
     const [alertState, setAlertState] = useState<{
         visible: boolean;
         type?: 'success' | 'error' | 'warning' | 'info';
@@ -57,19 +53,8 @@ export default function VerifyRegisterOTPScreen() {
             buttons: opts.buttons || [{ text: 'OK' }],
         });
     };
-    
-    const { login } = useAuth();
 
-    const {
-        control,
-        handleSubmit,
-        formState: { errors },
-    } = useForm<VerifyFormData>({
-        defaultValues: {
-            otp: '',
-        },
-        mode: 'onSubmit',
-    });
+    const { login } = useAuth();
 
     useEffect(() => {
         const loadStoredData = async () => {
@@ -108,8 +93,9 @@ export default function VerifyRegisterOTPScreen() {
     }, [countdown]);
 
     const verifyOTPMutation = useMutation({
-        mutationFn: async ({ otp }: { otp: string }) => {
-            return await auth.verifyOtp(email, password, otp, firstName, lastName);
+        mutationFn: async () => {
+            const otpCode = otp.join('');
+            return await auth.verifyOtp(email, password, otpCode, firstName, lastName);
         },
         onSuccess: async () => {
             await SecureStore.deleteItemAsync(REGISTRATION_EMAIL_KEY);
@@ -137,8 +123,38 @@ export default function VerifyRegisterOTPScreen() {
         },
     });
 
-    const onSubmit: SubmitHandler<VerifyFormData> = async (data) => {
-        await verifyOTPMutation.mutateAsync({ otp: data.otp });
+    const onSubmit = async () => {
+        const otpCode = otp.join('');
+        if (otpCode.length !== 6) {
+            showStyledAlert({ 
+                title: 'Invalid Code', 
+                message: 'Please enter all 6 digits', 
+                type: 'error' 
+            });
+            return;
+        }
+        await verifyOTPMutation.mutateAsync();
+    };
+
+    const handleOtpChange = (text: string, index: number) => {
+        // Only allow numbers
+        if (text && !/^\d+$/.test(text)) return;
+
+        const newOtp = [...otp];
+        newOtp[index] = text;
+        setOtp(newOtp);
+
+        // Auto-focus next input
+        if (text && index < 5) {
+            otpInputRefs[index + 1]?.focus();
+        }
+    };
+
+    const handleOtpKeyPress = (e: any, index: number) => {
+        // Handle backspace
+        if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
+            otpInputRefs[index - 1]?.focus();
+        }
     };
 
     const handleResendOTP = async () => {
@@ -207,56 +223,37 @@ export default function VerifyRegisterOTPScreen() {
                             </Text>
                         </View>
 
-                        {/* OTP Input */}
+                        {/* OTP Input - 6 Boxes */}
                         <View className="mb-6">
-                            <Text className="text-text-primary font-montserrat-bold text-sm mb-2 ml-1">
-                                Verification Code
+                            <Text className="text-text-primary font-montserrat-bold text-sm mb-4 text-center">
+                                Enter Verification Code
                             </Text>
-                            <Controller
-                                control={control}
-                                name="otp"
-                                rules={{
-                                    required: 'Verification code is required',
-                                    pattern: {
-                                        value: /^\d{6}$/,
-                                        message: 'Code must be 6 digits',
-                                    },
-                                }}
-                                render={({
-                                    field: { onChange, onBlur, value },
-                                }) => (
-                                    <View className="relative">
-                                        <TextInput
-                                            className={`bg-input-background border-2 ${errors.otp ? 'border-input-border-error' : 'border-input-border'} focus:border-input-border-focus rounded-2xl p-4 pl-12 text-input-text font-montserrat text-lg text-center tracking-widest`}
-                                            placeholder="Enter 6-digit code"
-                                            placeholderTextColor="#E9B3FB"
-                                            value={value}
-                                            onChangeText={onChange}
-                                            onBlur={onBlur}
-                                            keyboardType="numeric"
-                                            maxLength={6}
-                                        />
-                                        <View className="absolute left-4 top-1/2 transform -translate-y-1/2">
-                                            <FontAwesome name="shield" size={20} color="#6F00FF" />
-                                        </View>
-                                    </View>
-                                )}
-                            />
-                            {errors.otp && (
-                                <View className="flex-row items-center mt-2 ml-1">
-                                    <FontAwesome name="exclamation-circle" size={16} color="#EF4444" />
-                                    <Text className="text-feedback-error-DEFAULT text-sm ml-2 font-montserrat">
-                                        {errors.otp.message}
-                                    </Text>
-                                </View>
-                            )}
+                            <View className="flex-row justify-between px-2">
+                                {[0, 1, 2, 3, 4, 5].map((index) => (
+                                    <TextInput
+                                        key={index}
+                                        ref={(ref) => {
+                                            const newRefs = [...otpInputRefs];
+                                            newRefs[index] = ref;
+                                            if (index === 5) setOtpInputRefs(newRefs);
+                                        }}
+                                        className="bg-input-background border-2 border-input-border focus:border-input-border-focus rounded-2xl w-12 h-14 text-center text-text-primary font-montserrat-bold text-2xl"
+                                        value={otp[index]}
+                                        onChangeText={(text) => handleOtpChange(text, index)}
+                                        onKeyPress={(e) => handleOtpKeyPress(e, index)}
+                                        keyboardType="numeric"
+                                        maxLength={1}
+                                        selectTextOnFocus
+                                    />
+                                ))}
+                            </View>
                         </View>
 
                         {/* Verify Button */}
                         <TouchableOpacity
-                            className={`bg-interactive-primary rounded-2xl p-4 mb-6 shadow-lg ${verifyOTPMutation.isPending ? 'opacity-70' : ''}`}
-                            onPress={handleSubmit(onSubmit)}
-                            disabled={verifyOTPMutation.isPending}
+                            className={`bg-interactive-primary rounded-2xl p-4 mb-6 shadow-lg ${verifyOTPMutation.isPending || otp.join('').length !== 6 ? 'opacity-50' : ''}`}
+                            onPress={onSubmit}
+                            disabled={verifyOTPMutation.isPending || otp.join('').length !== 6}
                             activeOpacity={0.8}
                         >
                             {verifyOTPMutation.isPending ? (

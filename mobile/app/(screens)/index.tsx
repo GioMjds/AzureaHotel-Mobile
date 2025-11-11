@@ -36,8 +36,8 @@ export default function BookingsScreen() {
         isFetchingNextPage
     } = useInfiniteQuery({
         queryKey: ['guest-bookings', selectedStatus],
-        queryFn: async ({ pageParam = 1 }) => {
-            return await auth.getGuestBookings({
+        queryFn: ({ pageParam = 1 }) => {
+            return auth.getGuestBookings({
                 status: selectedStatus,
                 page: pageParam,
                 page_size: 5,
@@ -50,9 +50,6 @@ export default function BookingsScreen() {
             return currentPage < totalPages ? currentPage + 1 : undefined;
         },
         initialPageParam: 1,
-        refetchIntervalInBackground: false,
-        refetchOnMount: true,
-        refetchOnWindowFocus: false,
     });
 
     const allBookings = data?.pages?.flatMap(page => page.data) || [];

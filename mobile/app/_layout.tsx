@@ -17,7 +17,7 @@ import { NetworkProvider } from '@/components/NetworkProvider';
 import messaging, {
 	registerDeviceForRemoteMessages,
 	getToken,
-	subscribeToTopic
+	subscribeToTopic,
 } from '@react-native-firebase/messaging';
 
 messaging().setBackgroundMessageHandler(async (remoteMessage) => {
@@ -82,7 +82,9 @@ function AuthInitializer() {
 					await authenticateFirebase();
 					try {
 						const messagingInstance = messaging();
-						await registerDeviceForRemoteMessages(messagingInstance);
+						await registerDeviceForRemoteMessages(
+							messagingInstance
+						);
 
 						const fcmToken = await getToken(messagingInstance);
 
@@ -119,24 +121,39 @@ function AuthInitializer() {
 						}
 
 						// Listen for foreground FCM messages
-						const unsubscribeForeground = messagingInstance.onMessage(
-							async (remoteMessage) => {
-								try {
-									if (remoteMessage.notification) {
-										await Notifications.scheduleNotificationAsync({
-											content: {
-												title: remoteMessage.notification.title || 'Notification',
-												body: remoteMessage.notification.body || '',
-												data: remoteMessage.data || {},
-											},
-											trigger: null,
-										});
+						const unsubscribeForeground =
+							messagingInstance.onMessage(
+								async (remoteMessage) => {
+									try {
+										if (remoteMessage.notification) {
+											await Notifications.scheduleNotificationAsync(
+												{
+													content: {
+														title:
+															remoteMessage
+																.notification
+																.title ||
+															'Notification',
+														body:
+															remoteMessage
+																.notification
+																.body || '',
+														data:
+															remoteMessage.data ||
+															{},
+													},
+													trigger: null,
+												}
+											);
+										}
+									} catch (error) {
+										console.warn(
+											'Error showing foreground notification:',
+											error
+										);
 									}
-								} catch (error) {
-									console.warn('Error showing foreground notification:', error);
 								}
-							}
-						);
+							);
 
 						// Return cleanup function
 						return () => {
@@ -166,7 +183,7 @@ function AuthInitializer() {
 									platform: Platform.OS,
 									provider: 'expo',
 								}),
-							})
+							});
 						} catch (e) {
 							console.warn(
 								'Failed to register Expo push token as fallback',
@@ -226,8 +243,9 @@ function NotificationsInitializer() {
 		const receivedSub = Notifications.addNotificationReceivedListener(
 			(notification) => {
 				try {
-					Notifications.getBadgeCountAsync()
-						.then((count) => Notifications.setBadgeCountAsync(count + 1));
+					Notifications.getBadgeCountAsync().then((count) =>
+						Notifications.setBadgeCountAsync(count + 1)
+					);
 				} catch (e) {
 					console.warn('Error handling received notification:', e);
 				}
@@ -238,13 +256,17 @@ function NotificationsInitializer() {
 			Notifications.addNotificationResponseReceivedListener(
 				(response) => {
 					try {
-						const data = response.notification.request.content.data as any;
+						const data = response.notification.request.content
+							.data as any;
 						if (data?.screen) {
 							router.push(data.screen);
 							return;
 						}
 
-						const bookingIdResp = data?.bookingId ?? data?.booking_id ?? data?.booking;
+						const bookingIdResp =
+							data?.bookingId ??
+							data?.booking_id ??
+							data?.booking;
 						if (bookingIdResp) {
 							router.push(`/booking/${bookingIdResp}`);
 							return;
@@ -304,8 +326,8 @@ export default function RootLayout() {
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
 			<SafeAreaProvider>
-					<NetworkProvider>
-				<QueryClientProvider client={queryClient}>
+				<NetworkProvider>
+					<QueryClientProvider client={queryClient}>
 						<AuthInitializer />
 						<NotificationsInitializer />
 						<StatusBar style="dark" />
@@ -315,8 +337,8 @@ export default function RootLayout() {
 								animation: 'fade',
 							}}
 						/>
-				</QueryClientProvider>
-					</NetworkProvider>
+					</QueryClientProvider>
+				</NetworkProvider>
 			</SafeAreaProvider>
 		</GestureHandlerRootView>
 	);

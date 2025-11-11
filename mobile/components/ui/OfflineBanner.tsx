@@ -1,10 +1,7 @@
 import { View } from 'react-native';
 import StyledText from './StyledText';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, {
-	FadeInDown,
-	FadeOutUp,
-} from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 import { useNetwork } from '@/components/NetworkProvider';
 
 interface OfflineBannerProps {
@@ -21,17 +18,22 @@ const OfflineBanner = ({ show }: OfflineBannerProps) => {
 		<Animated.View
 			entering={FadeInDown.springify()}
 			exiting={FadeOutUp.springify()}
-			className="bg-feedback-warning-DEFAULT px-4 py-3 flex-row items-center border-b border-feedback-warning-light"
+			className="bg-feedback-warning-DEFAULT px-2 py-1 flex-row items-center justify-center border-b border-feedback-warning-light"
 		>
-			<Ionicons
-				name="cloud-offline"
-				size={20}
-				color="#78350F"
-				style={{ marginRight: 8 }}
-			/>
-			<StyledText className="font-raleway text-sm text-feedback-warning-dark flex-1">
-				No internet connection
-			</StyledText>
+			<View className="flex-row items-center justify-center flex-1">
+				<Ionicons
+					name="cloud-offline-outline"
+					size={20}
+					color="#92400e"
+					className="mr-2"
+				/>
+				<StyledText
+					variant="raleway-regular"
+					className="text-sm text-black"
+				>
+					No internet connection
+				</StyledText>
+			</View>
 		</Animated.View>
 	);
 };
