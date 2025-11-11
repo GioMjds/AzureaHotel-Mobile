@@ -19,6 +19,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import StyledModal from '@/components/ui/StyledModal';
 import StyledAlert from '@/components/ui/StyledAlert';
 import * as ImagePicker from 'expo-image-picker';
+import OfflineBanner from '@/components/ui/OfflineBanner';
 
 interface HeaderProps {
 	headerLabel: string;
@@ -215,39 +216,40 @@ const Header = ({ headerLabel }: HeaderProps) => {
 	const guest = data.data;
 
 	return (
-		<SafeAreaView
-			edges={['top']}
-			className="bg-background-elevated border-b border-border-subtle"
-		>
-			<View className="flex-row items-center justify-between px-6 py-4">
-				<View className="flex-row items-center">
-					<NotificationBell />
-				</View>
+		<>
+			<SafeAreaView
+				edges={['top']}
+				className="bg-background-elevated border-b border-border-subtle"
+			>
+				<View className="flex-row items-center justify-between px-6 py-4">
+					<View className="flex-row items-center">
+						<NotificationBell />
+					</View>
 
-				{/* Centered Header Label */}
-				<View className="flex-1 items-center justify-center">
-					<StyledText
-						variant="playfair-bold"
-						className="text-3xl text-text-primary"
+					{/* Centered Header Label */}
+					<View className="flex-1 items-center justify-center">
+						<StyledText
+							variant="playfair-bold"
+							className="text-3xl text-text-primary"
+						>
+							{headerLabel}
+						</StyledText>
+					</View>
+
+					{/* Profile Image on Right */}
+					<TouchableOpacity
+						hitSlop={20}
+						onPress={handleProfilePress}
+						activeOpacity={0.7}
+						disabled={isOnProfileRoute}
+						accessibilityState={{ disabled: isOnProfileRoute }}
 					>
-						{headerLabel}
-					</StyledText>
-				</View>
-
-				{/* Profile Image on Right */}
-				<TouchableOpacity
-					hitSlop={20}
-					onPress={handleProfilePress}
-					activeOpacity={0.7}
-					disabled={isOnProfileRoute}
-					accessibilityState={{ disabled: isOnProfileRoute }}
-				>
-					<Image
-						source={{ uri: guest.profile_image, cache: 'default' }}
-						className="w-14 h-14 rounded-full border-2 border-brand-primary"
-						resizeMode="cover"
-					/>
-				</TouchableOpacity>
+						<Image
+							source={{ uri: guest.profile_image, cache: 'default' }}
+							className="w-14 h-14 rounded-full border-2 border-brand-primary"
+							resizeMode="cover"
+						/>
+					</TouchableOpacity>
 
 				{/* Dropdown Modal for profile actions */}
 				<Modal
@@ -417,7 +419,11 @@ const Header = ({ headerLabel }: HeaderProps) => {
 					onClose={closeLogoutAlert}
 				/>
 			</View>
-		</SafeAreaView>
+			</SafeAreaView>
+
+			{/* Offline Banner */}
+			<OfflineBanner />
+		</>
 	);
 };
 

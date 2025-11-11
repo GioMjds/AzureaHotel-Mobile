@@ -12,6 +12,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { useFirebaseNotifications } from '@/hooks/useFirebaseNotifications';
+import { NetworkProvider } from '@/components/NetworkProvider';
 
 import messaging, {
 	registerDeviceForRemoteMessages,
@@ -303,17 +304,19 @@ export default function RootLayout() {
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
 			<SafeAreaProvider>
+					<NetworkProvider>
 				<QueryClientProvider client={queryClient}>
-					<AuthInitializer />
-					<NotificationsInitializer />
-					<StatusBar style="dark" />
-					<Stack
-						screenOptions={{
-							headerShown: false,
-							animation: 'fade',
-						}}
-					/>
+						<AuthInitializer />
+						<NotificationsInitializer />
+						<StatusBar style="dark" />
+						<Stack
+							screenOptions={{
+								headerShown: false,
+								animation: 'fade',
+							}}
+						/>
 				</QueryClientProvider>
+					</NetworkProvider>
 			</SafeAreaProvider>
 		</GestureHandlerRootView>
 	);

@@ -1,5 +1,32 @@
 import { QueryClient } from '@tanstack/react-query';
 import { firebaseRealtimeService } from '@/services/firebase/index';
+import * as Network from 'expo-network';
+import { onlineManager } from '@tanstack/react-query';
+
+// Configure React Query's online manager with Expo Network
+onlineManager.setEventListener((setOnline) => {
+    let interval: ReturnType<typeof setInterval>;
+
+    const checkNetwork = async () => {
+        try {
+            const state = await Network.getNetworkStateAsync();
+            setOnline(!!state.isConnected);
+        } catch (error) {
+            console.warn('Failed to check network:', error);
+            setOnline(false);
+        }
+    };
+
+    // Initial check
+    checkNetwork();
+
+    // Poll every 3 seconds
+    interval = setInterval(checkNetwork, 3000);
+
+    return () => {
+        clearInterval(interval);
+    };
+});
 
 export const queryClient = new QueryClient({
 	defaultOptions: {
