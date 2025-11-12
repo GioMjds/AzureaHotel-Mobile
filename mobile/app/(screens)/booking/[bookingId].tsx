@@ -204,6 +204,11 @@ export default function BookingDetailsScreen() {
 				text: 'text-feedback-info-dark',
 				label: 'Checked Out',
 			},
+			'no_show': {
+				color: 'bg-feedback-info-dark',
+				text: 'text-feedback-info-light',
+				label: 'No Show'
+			}
 		};
 		return config[status as keyof typeof config] || config.pending;
 	};

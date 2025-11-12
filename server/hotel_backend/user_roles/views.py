@@ -851,6 +851,45 @@ def user_login(request):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@api_view(['POST'])
+def admin_login(request):
+    try:
+        email = request.data.get('email')
+        password = request.data.get('password')
+        
+        if not email or not password:
+            return Response({'error': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = CustomUsers.objects.filter(email=email, role='admin').first()
+        
+        if user is None:
+            return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if not user.check_password(password):
+            return Response({'error': 'Your password is incorrect.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        auth_user = authenticate(request, username=email, password=password)
+        
+        if auth_user is None:
+            return Response({'error': 'Your password is incorrect.'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token = RefreshToken.for_user(auth_user)
+        
+        return Response({
+            'message': f"{auth_user.first_name} {auth_user.last_name} successfully logged in.",
+            'user': {
+                'id': auth_user.id,
+                'email': auth_user.email,
+                'role': auth_user.role,
+            },
+            'access_token': str(token.access_token),
+            'refresh_token': str(token),
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @api_view(['GET'])
 def user_auth(request):
     try:
