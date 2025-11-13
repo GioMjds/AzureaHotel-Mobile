@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
 	GoogleSignin,
 	statusCodes,
@@ -61,7 +61,7 @@ export function useGoogleOAuth() {
 				const backendData = await auth.googleAuth(serverAuthCode);
 
 				// Check if user requires OTP verification (new Google user)
-				if (backendData.requires_verification) {
+				if ('requires_verification' in backendData && backendData.requires_verification) {
 					return {
 						success: false,
 						requiresVerification: true,
@@ -72,8 +72,9 @@ export function useGoogleOAuth() {
 					};
 				}
 
-				// Handle successful authentication for existing users
+				// Handle successful authentication for existing users (type guard)
 				if (
+					'user' in backendData &&
 					backendData.user &&
 					backendData.access_token &&
 					backendData.refresh_token
@@ -99,14 +100,28 @@ export function useGoogleOAuth() {
 						const {
 							setUser,
 							setIsAuthenticated,
-							authenticateFirebase,
 						} = AuthStore.getState();
 
 						// Set user and authentication state
 						setUser(backendData.user);
 						setIsAuthenticated(true);
 
-						authenticateFirebase();
+						// Authenticate with Firebase using token from Google OAuth response
+						if (backendData.firebase_token) {
+							try {
+								const { FirebaseAuthService } = await import('@/services/firebase/FirebaseAuth');
+								await FirebaseAuthService.authenticateWithToken(backendData.firebase_token);
+							} catch (error) {
+								console.error('⚠️ Firebase authentication failed:', error);
+							}
+						} else {
+							try {
+								const { authenticateFirebase } = AuthStore.getState();
+								await authenticateFirebase();
+							} catch (error) {
+								console.error('⚠️ Firebase authentication fallback failed:', error);
+							}
+						}
 					} catch {
 						console.error('❌ Failed to update AuthStore:');
 					}

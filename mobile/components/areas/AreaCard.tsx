@@ -4,12 +4,15 @@ import { pesoFormatter } from '@/utils/formatters';
 import { Link } from 'expo-router';
 import StyledText from '@/components/ui/StyledText';
 import { Ionicons } from '@expo/vector-icons';
+import { useNetwork } from '../NetworkProvider';
 
 interface AreaCardProps {
 	item: Area;
 }
 
 const AreaCard = ({ item }: AreaCardProps) => {
+	const { isOffline } = useNetwork();
+
 	return (
 		<View className="bg-surface-default rounded-2xl shadow-lg mx-4 mb-6 overflow-hidden border border-border-subtle">
 			{/* Area Image with Overlay Gradient */}
@@ -94,15 +97,13 @@ const AreaCard = ({ item }: AreaCardProps) => {
 
 				{/* Capacity Info */}
 				<View className="flex-row items-center mb-4 bg-background-subtle/20 rounded-lg">
-					<Ionicons 
-						name="people-outline"
-						size={20}
-					/>
+					<Ionicons name="people-outline" size={20} />
 					<StyledText
 						variant="montserrat-bold"
 						className="text-brand-primary text-base ml-2"
 					>
-						{item.capacity} {item.capacity === 1 ? 'person' : 'people'}
+						{item.capacity}{' '}
+						{item.capacity === 1 ? 'person' : 'people'}
 					</StyledText>
 				</View>
 
@@ -119,14 +120,18 @@ const AreaCard = ({ item }: AreaCardProps) => {
 									variant="montserrat-regular"
 									className="text-text-muted text-xs line-through mb-1"
 								>
-									{pesoFormatter.format(item.price_per_hour_numeric)}
+									{pesoFormatter.format(
+										item.price_per_hour_numeric
+									)}
 								</StyledText>
 								<View className="flex-row items-baseline">
 									<StyledText
 										variant="playfair-bold"
 										className="text-brand-primary text-3xl"
 									>
-										{pesoFormatter.format(item.discounted_price_numeric)}
+										{pesoFormatter.format(
+											item.discounted_price_numeric
+										)}
 									</StyledText>
 								</View>
 							</View>
@@ -136,16 +141,24 @@ const AreaCard = ({ item }: AreaCardProps) => {
 									variant="playfair-bold"
 									className="text-brand-primary text-3xl"
 								>
-									{pesoFormatter.format(item.price_per_hour_numeric)}
+									{pesoFormatter.format(
+										item.price_per_hour_numeric
+									)}
 								</StyledText>
 							</View>
 						)}
 					</View>
 
 					{/* View Details Button */}
-					<Link href={`/(screens)/areas/${item.id}` as any} asChild>
-						<TouchableOpacity 
-							className="bg-interactive-primary rounded-xl px-4 py-2 shadow-md active:bg-interactive-primary-pressed"
+					<Link
+						href={`/(screens)/areas/${item.id}` as any}
+						asChild
+						disabled={!!isOffline}
+					>
+						<TouchableOpacity
+							className={`bg-interactive-primary rounded-xl px-4 py-2 shadow-md active:bg-interactive-primary-pressed ${
+								isOffline ? 'opacity-50' : ''
+							}`}
 							activeOpacity={0.8}
 						>
 							<StyledText

@@ -250,7 +250,9 @@ const Header = ({ headerLabel }: HeaderProps) => {
 							<Image
 								source={{ uri: guest.profile_image, cache: 'default' }}
 								className="w-14 h-14 rounded-full border-2 border-gray-400"
-								style={isOffline ? { backgroundColor: 'rgba(0, 0, 0, 0.3)', borderColor: '#9ca3af' } : { borderColor: '#16a34a' }}
+								style={isOffline 
+									? { backgroundColor: 'rgba(0, 0, 0, 0.3)', borderColor: '#9ca3af' } 
+									: { borderColor: '#16a34a' }}
 								resizeMode="cover"
 							/>
 						</TouchableOpacity>

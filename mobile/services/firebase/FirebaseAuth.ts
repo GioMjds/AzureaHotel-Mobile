@@ -9,13 +9,45 @@ const logger = Logger.getInstance({ context: 'FirebaseAuth' });
 
 export class FirebaseAuthService {
     /**
+     * Authenticate with Firebase using a custom token directly
+     * Used when token is provided from login response
+     */
+    static async authenticateWithToken(firebaseToken: string): Promise<boolean> {
+        try {
+            if (!firebaseToken) {
+                logger.warn('⚠️ No Firebase token provided');
+                return false;
+            }
+            
+            const userCredential = await signInWithCustomToken(
+                firebaseAuth,
+                firebaseToken
+            );
+            
+            await SecureStore.setItemAsync(
+                'firebase_uid',
+                userCredential.user.uid
+            );
+
+            return true;
+        } catch (error) {
+            logger.error(`❌ Firebase authentication with token failed: ${error}`);
+            return false;
+        }
+    }
+
+    /**
      * Get Firebase custom token from Django backend and sign in
      * This bridges Django JWT authentication with Firebase
+     * Used as fallback or when re-authenticating
      */
     static async authenticateWithFirebase(): Promise<boolean> {
         try {
             const accessToken = await SecureStore.getItemAsync('access_token');
-            if (!accessToken) return false;
+            if (!accessToken) {
+                logger.warn('⚠️ No access token found for Firebase authentication');
+                return false;
+            }
 
             const response = await httpClient.post<{
                 firebase_token: string;
@@ -25,19 +57,12 @@ export class FirebaseAuthService {
 
             const { firebase_token } = response;
 
-            if (!firebase_token) return false;
+            if (!firebase_token) {
+                logger.warn('⚠️ No Firebase token received from backend');
+                return false;
+            }
             
-            const userCredential = await signInWithCustomToken(
-                firebaseAuth,
-                firebase_token
-            );
-            
-            await SecureStore.setItemAsync(
-                'firebase_uid',
-                userCredential.user.uid
-            );
-
-            return true;
+            return await this.authenticateWithToken(firebase_token);
         } catch (error) {
             logger.error(`❌ Firebase authentication failed: ${error}`);
             return false;

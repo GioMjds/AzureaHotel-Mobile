@@ -1,9 +1,10 @@
 import { httpClient } from '@/configs/axios';
 import { ApiRoutes } from '@/configs/axios.routes';
 import { UserBookingResponse } from '@/types/Bookings.types';
+import { LoginResponse, GoogleAuthResponse, GoogleAuthVerificationResponse } from '@/types/GuestUser.types';
 
 class UserAuthService {
-	async login(email: string, password: string) {
+	async login(email: string, password: string): Promise<LoginResponse> {
 		return await httpClient.post(ApiRoutes.LOGIN, { email, password });
 	}
 
@@ -151,8 +152,8 @@ class UserAuthService {
 		});
 	}
 
-	// Google OAuth Login / Register
-	async googleAuth(code: string) {
+	// Google OAuth Login / Register - Returns either auth response or verification required
+	async googleAuth(code: string): Promise<GoogleAuthResponse | GoogleAuthVerificationResponse> {
 		return await httpClient.post(ApiRoutes.GOOGLE_AUTH, {
 			code: code,
 		});

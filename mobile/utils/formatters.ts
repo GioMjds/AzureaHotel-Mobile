@@ -135,6 +135,7 @@ export const statusStyles: Record<string, object> = {
 	completed: { backgroundColor: '#3B0270' }, // text-primary
 	cancelled: { backgroundColor: '#EF4444' }, // feedback-error-DEFAULT
 	rejected: { backgroundColor: '#EF4444' }, // feedback-error-DEFAULT
+	'no_show': { backgroundColor: '#D97706' } // feedback-warning-dark
 };
 
 export const getStatusStyle = (status: string) => {

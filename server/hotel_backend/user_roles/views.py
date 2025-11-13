@@ -712,14 +712,37 @@ def google_auth(request):
                 'profile_image': user.profile_image.url if user.profile_image and hasattr(user.profile_image, 'url') else "",
             }
             
-            response = Response({
+            # Generate Firebase custom token for Google OAuth login
+            firebase_token = None
+            if firebase_service.is_available():
+                try:
+                    firebase_token = firebase_service.create_custom_token(
+                        user_id=str(user.id),
+                        additional_claims={
+                            'email': user.email,
+                            'username': user.username,
+                            'is_verified': user.is_verified,
+                            'role': 'guest',
+                            'django_user_id': user.id
+                        }
+                    )
+                except Exception as firebase_error:
+                    logger.warning(f"Failed to generate Firebase token for Google auth: {firebase_error}")
+            
+            response_data = {
                 'success': True,
                 'message': f'Welcome back, {user.first_name}!',
                 'user': user_data,
                 'access_token': access_token,
                 'refresh_token': refresh_token,
                 'exists': True
-            }, status=status.HTTP_200_OK)
+            }
+            
+            # Add Firebase token if available
+            if firebase_token:
+                response_data['firebase_token'] = firebase_token
+            
+            response = Response(response_data, status=status.HTTP_200_OK)
             
             response.set_cookie(
                 key="access_token",
@@ -823,12 +846,36 @@ def user_login(request):
             'is_senior_or_pwd': user.is_senior_or_pwd,
         }
         
-        response = Response({
+        # Generate Firebase custom token during login
+        firebase_token = None
+        if firebase_service.is_available():
+            try:
+                firebase_token = firebase_service.create_custom_token(
+                    user_id=str(auth_user.id),
+                    additional_claims={
+                        'email': auth_user.email,
+                        'username': auth_user.username,
+                        'is_verified': user.is_verified,
+                        'role': 'guest',
+                        'django_user_id': auth_user.id
+                    }
+                )
+            except Exception as firebase_error:
+                logger.warning(f"Failed to generate Firebase token during login: {firebase_error}")
+                # Don't fail login if Firebase token generation fails
+        
+        response_data = {
             'message': f"{auth_user.first_name} {auth_user.last_name} successfully logged in.",
             'user': user_data,
             'access_token': str(token.access_token),
             'refresh_token': str(token),
-        }, status=status.HTTP_200_OK)
+        }
+        
+        # Add Firebase token if available
+        if firebase_token:
+            response_data['firebase_token'] = firebase_token
+        
+        response = Response(response_data, status=status.HTTP_200_OK)
         
         response.set_cookie(
             key="access_token",

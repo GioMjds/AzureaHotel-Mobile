@@ -4,12 +4,15 @@ import { pesoFormatter } from '@/utils/formatters';
 import { Link } from 'expo-router';
 import StyledText from '@/components/ui/StyledText';
 import { Ionicons } from '@expo/vector-icons';
+import { useNetwork } from '../NetworkProvider';
 
 interface RoomCardProps {
 	item: Room;
 }
 
 const RoomCard = ({ item }: RoomCardProps) => {
+	const { isOffline } = useNetwork();
+
 	const roomType = (roomType: string) => {
 		switch (roomType) {
 			case 'premium':
@@ -173,21 +176,37 @@ const RoomCard = ({ item }: RoomCardProps) => {
 					return (
 						<View className="flex-row items-center mb-3 space-x-3">
 							{/* Room Type Badge */}
-							<View className={`${rt.badgeClass} rounded-xl px-4 py-2 flex-row items-center mr-1`}>
-								<StyledText variant="montserrat-bold" className={`${rt.textClass} text-lg mr-2`}>
+							<View
+								className={`${rt.badgeClass} rounded-xl px-4 py-2 flex-row items-center mr-1`}
+							>
+								<StyledText
+									variant="montserrat-bold"
+									className={`${rt.textClass} text-lg mr-2`}
+								>
 									{rt.icon}
 								</StyledText>
-								<StyledText variant="montserrat-bold" className={`${rt.textClass} text-sm`}>
+								<StyledText
+									variant="montserrat-bold"
+									className={`${rt.textClass} text-sm`}
+								>
 									{rt.label}
 								</StyledText>
 							</View>
 
 							{/* Bed Type Badge */}
-							<View className={`${bt.badgeClass} rounded-xl px-4 py-2 flex-row items-center ml-1`}>
-								<StyledText variant="montserrat-bold" className={`${bt.textClass} text-lg mr-2`}>
+							<View
+								className={`${bt.badgeClass} rounded-xl px-4 py-2 flex-row items-center ml-1`}
+							>
+								<StyledText
+									variant="montserrat-bold"
+									className={`${bt.textClass} text-lg mr-2`}
+								>
 									{bt.icon}
 								</StyledText>
-								<StyledText variant="montserrat-bold" className={`${bt.textClass} text-sm`}>
+								<StyledText
+									variant="montserrat-bold"
+									className={`${bt.textClass} text-sm`}
+								>
 									{bt.label}
 								</StyledText>
 							</View>
@@ -197,15 +216,13 @@ const RoomCard = ({ item }: RoomCardProps) => {
 
 				{/* Max Guests Info */}
 				<View className="flex-row items-center mb-4 bg-background-subtle/20 rounded-lg">
-					<Ionicons
-						name="people-outline"
-						size={20}
-					/>
+					<Ionicons name="people-outline" size={20} />
 					<StyledText
 						variant="montserrat-bold"
 						className="text-brand-primary text-base ml-2"
 					>
-						{item.max_guests} {item.max_guests === 1 ? 'person' : 'people'}
+						{item.max_guests}{' '}
+						{item.max_guests === 1 ? 'person' : 'people'}
 					</StyledText>
 				</View>
 
@@ -229,7 +246,9 @@ const RoomCard = ({ item }: RoomCardProps) => {
 										variant="playfair-bold"
 										className="text-brand-primary text-3xl"
 									>
-										{pesoFormatter.format(item.discounted_price_numeric)}
+										{pesoFormatter.format(
+											item.discounted_price_numeric
+										)}
 									</StyledText>
 								</View>
 							</View>
@@ -246,9 +265,15 @@ const RoomCard = ({ item }: RoomCardProps) => {
 					</View>
 
 					{/* View Details Button */}
-					<Link href={`/(screens)/rooms/${item.id}` as any} asChild>
-						<TouchableOpacity 
-							className="bg-interactive-primary rounded-xl px-4 py-2 shadow-md active:bg-interactive-primary-pressed"
+					<Link
+						href={`/(screens)/rooms/${item.id}` as any}
+						asChild
+						disabled={!!isOffline}
+					>
+						<TouchableOpacity
+							className={`bg-interactive-primary rounded-xl px-4 py-2 shadow-md active:bg-interactive-primary-pressed ${
+								isOffline ? 'opacity-50' : ''
+							}`}
 							activeOpacity={0.8}
 						>
 							<StyledText

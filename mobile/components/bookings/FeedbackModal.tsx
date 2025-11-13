@@ -63,14 +63,13 @@ const FeedbackModal = ({
 				buttons: [{ text: 'OK', onPress: () => handleClose() }],
 			});
 		},
-		onError: (error) => {
+		onError: () => {
 			showStyledAlert({
 				type: 'error',
 				title: 'Error',
 				message: 'Failed to submit review. Please try again.',
 				buttons: [{ text: 'OK' }],
 			});
-			console.error('Review submission error:', error);
 		},
 		onSettled: () => {
 			setIsSubmitting(false);
@@ -278,7 +277,7 @@ const FeedbackModal = ({
 									<View className="items-center">
 										<StyledText
 											variant="playfair-semibold"
-											className="text-lg"
+											className="text-2xl"
 											style={{ color: '#FDB022' }}
 										>
 											{getRatingLabel(rating)}!

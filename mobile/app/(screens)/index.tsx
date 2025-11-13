@@ -18,12 +18,15 @@ import FeedbackModal from '@/components/bookings/FeedbackModal';
 import StyledAlert from '@/components/ui/StyledAlert';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from 'expo-router';
+import { useNetwork } from '@/components/NetworkProvider';
 
 export default function BookingsScreen() {
     const [selectedStatus, setSelectedStatus] = useState<string>('');
     const [feedbackModalVisible, setFeedbackModalVisible] = useState<boolean>(false);
     const [selectedBookingForFeedback, setSelectedBookingForFeedback] = useState<any>(null);
     const [exitAlertVisible, setExitAlertVisible] = useState<boolean>(false);
+
+    const { isOffline } = useNetwork();
 
     const { 
         data,  
@@ -36,24 +39,34 @@ export default function BookingsScreen() {
         isFetchingNextPage
     } = useInfiniteQuery({
         queryKey: ['guest-bookings', selectedStatus],
-        queryFn: ({ pageParam = 1 }) => {
-            return auth.getGuestBookings({
+        queryFn: async ({ pageParam }) => {
+            return await auth.getGuestBookings({
                 status: selectedStatus,
                 page: pageParam,
                 page_size: 5,
             });
         },
-        getNextPageParam: (lastPage, allPages) => {
-            const currentPage = lastPage?.pagination?.current_page || allPages.length;
-            const totalPages = lastPage?.pagination?.total_pages || 0;
+        getNextPageParam: (lastPage) => {
+            const currentPage = lastPage?.pagination?.current_page;
+            const totalPages = lastPage?.pagination?.total_pages;
             
-            return currentPage < totalPages ? currentPage + 1 : undefined;
+            // Only return next page number if there are more pages
+            if (currentPage && totalPages && currentPage < totalPages) {
+                return currentPage + 1;
+            }
+            return undefined;
         },
         initialPageParam: 1,
+        staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh
+        gcTime: 10 * 60 * 1000, // 10 minutes - cache time
+        refetchOnMount: false, // Don't refetch on component mount
+        refetchOnWindowFocus: false, // Don't refetch when window gains focus
+        refetchOnReconnect: true, // Only refetch when reconnecting to network
+        enabled: true
     });
 
     const allBookings = data?.pages?.flatMap(page => page.data) || [];
-    const bookingIds = allBookings.map((booking: any) => booking.id) || [];
+    const bookingIds = allBookings.map((booking: any) => booking.id);
     const firstBookingId = bookingIds.length > 0 ? bookingIds[0] : undefined;
 
     useFocusEffect(
@@ -68,7 +81,6 @@ export default function BookingsScreen() {
                 backAction
             );
 
-            // Cleanup when screen loses focus
             return () => backHandler.remove();
         }, [])
     );
@@ -82,11 +94,13 @@ export default function BookingsScreen() {
 
     useBookingUpdates(firstBookingId);
 
-    const handleLoadMore = () => {
-        if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-    };
+    const handleLoadMore = useCallback(() => {
+        if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+        }
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    const renderFooter = () => {
+    const renderFooter = useCallback(() => {
         if (!isFetchingNextPage) return null;
         
         return (
@@ -97,7 +111,23 @@ export default function BookingsScreen() {
                 </Text>
             </View>
         );
-    };
+    }, [isFetchingNextPage]);
+
+    const renderItem = useCallback(({ item }: { item: any }) => (
+        <BookingCard item={item} onLeaveFeedback={handleLeaveFeedback} />
+    ), []);
+
+    const handleLeaveFeedback = useCallback((booking: any) => {
+        setSelectedBookingForFeedback(booking);
+        setFeedbackModalVisible(true);
+    }, []);
+
+    const handleCloseFeedbackModal = useCallback(() => {
+        setFeedbackModalVisible(false);
+        setSelectedBookingForFeedback(null);
+    }, []);
+
+    const keyExtractor = useCallback((item: any, index: number) => `${item.id}-${index}`, []);
 
     if (isLoading) {
         return (
@@ -117,21 +147,28 @@ export default function BookingsScreen() {
         );
     }
 
-    if (error) {
+    if (error || isOffline) {
         return (
             <View className="flex-1 bg-background">
                 <View className="flex-1 justify-center items-center px-6">
                     <View className="bg-background-elevated rounded-2xl p-8 items-center shadow-sm border border-border-subtle">
-                        <Ionicons name="alert-circle" size={48} color="#dc2626" />
-                        <Text className="text-feedback-error-DEFAULT font-montserrat-bold text-lg mt-4 text-center">
-                            Failed to load bookings
+                        <Ionicons 
+                            name={isOffline ? "cloud-offline" : "alert-circle"} 
+                            size={48} 
+                            color={isOffline ? "#F59E0B" : "#dc2626"} 
+                        />
+                        <Text className={`font-montserrat-bold text-lg mt-4 text-center ${isOffline ? 'text-feedback-warning-DEFAULT' : 'text-feedback-error-DEFAULT'}`}>
+                            {isOffline ? 'No internet connection' : 'Failed to load bookings'}
                         </Text>
                         <Text className="text-text-muted font-montserrat text-sm mt-2 text-center">
-                            {error instanceof Error ? error.message : 'Something went wrong while fetching your bookings'}
+                            {isOffline 
+                                ? 'Please check your connection and try again' 
+                                : (error instanceof Error ? error.message : 'Something went wrong while fetching your bookings')
+                            }
                         </Text>
                         <TouchableOpacity
                             onPress={() => refetch()}
-                            className="bg-feedback-error-DEFAULT px-8 py-4 rounded-xl mt-6 shadow-sm active:bg-red-600"
+                            className={`px-8 py-4 rounded-xl mt-6 shadow-sm ${isOffline ? 'bg-feedback-warning-DEFAULT active:bg-yellow-600' : 'bg-feedback-error-DEFAULT active:bg-red-600'}`}
                         >
                             <View className="flex-row items-center">
                                 <Ionicons
@@ -151,33 +188,19 @@ export default function BookingsScreen() {
         );
     }
 
-    const handleLeaveFeedback = (booking: any) => {
-        setSelectedBookingForFeedback(booking);
-        setFeedbackModalVisible(true);
-    };
-
-    const handleCloseFeedbackModal = () => {
-        setFeedbackModalVisible(false);
-        setSelectedBookingForFeedback(null);
-    };
-
     return (
         <View className="flex-1 bg-background">
             <StatusBar style="dark" animated backgroundColor={feedbackModalVisible ? 'rgba(0, 0, 0, 0.4)' : 'transparent'} />
 
-            {/* Status Filter */}
             <StatusFilter 
                 selectedStatus={selectedStatus} 
                 onStatusChange={setSelectedStatus} 
             />
 
-            {/* Bookings List */}
             <FlatList
                 data={allBookings}
-                keyExtractor={(item, index) => `${item.id}-${index}`}
-                renderItem={({ item }) => (
-                    <BookingCard item={item} onLeaveFeedback={handleLeaveFeedback} />
-                )}
+                keyExtractor={keyExtractor}
+                renderItem={renderItem}
                 refreshControl={
                     <RefreshControl 
                         refreshing={isFetching && !isFetchingNextPage} 
@@ -205,9 +228,12 @@ export default function BookingsScreen() {
                     </View>
                 )}
                 showsVerticalScrollIndicator={false}
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={5}
+                windowSize={10}
+                initialNumToRender={5}
             />
 
-            {/* Feedback Modal (global) */}
             {selectedBookingForFeedback && (
                 <FeedbackModal
                     visible={feedbackModalVisible}

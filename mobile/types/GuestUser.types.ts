@@ -24,6 +24,33 @@ export interface GuestResponse {
     data: Guest;
 }
 
+export interface LoginResponse {
+    message: string;
+    user: Guest;
+    access_token: string;
+    refresh_token: string;
+    firebase_token?: string; // Optional Firebase custom token
+}
+
+export interface GoogleAuthResponse {
+    success: boolean;
+    message: string;
+    user: Guest;
+    access_token: string;
+    refresh_token: string;
+    firebase_token?: string; // Optional Firebase custom token
+    exists: boolean;
+}
+
+export interface GoogleAuthVerificationResponse {
+    success: boolean;
+    message: string;
+    email: string;
+    password: string;
+    otp?: string;
+    requires_verification: boolean;
+}
+
 export type VerificationStatus = {
 	isVerified: boolean;
 	isPending: boolean;

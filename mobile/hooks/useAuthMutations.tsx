@@ -41,12 +41,19 @@ export function useAuthMutations() {
                 setUser(data.user);
                 setIsAuthenticated(true);
 
-                try {
+                // Authenticate with Firebase using token from login response
+                if (data.firebase_token) {
+                    try {
+                        await FirebaseAuthService.authenticateWithToken(data.firebase_token);
+                    } catch (error) {
+                        logger.error(`⚠️ Firebase authentication failed: ${error}`);
+                    }
+                } else {
+                    // Fallback: try to get Firebase token separately (for backward compatibility)
+                    logger.warn('⚠️ No Firebase token in login response, falling back to separate request');
                     await FirebaseAuthService.authenticateWithFirebase();
-                } catch (error) {
-                    console.warn('⚠️ Firebase authentication failed, but continuing...', error);
                 }
-                
+
                 queryClient.invalidateQueries({ queryKey: ['user'] });
                 queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
             } else {
