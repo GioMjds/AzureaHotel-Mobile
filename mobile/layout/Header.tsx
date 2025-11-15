@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import StyledModal from '@/components/ui/StyledModal';
 import StyledAlert from '@/components/ui/StyledAlert';
+import useAlertStore from '@/store/AlertStore';
 import * as ImagePicker from 'expo-image-picker';
 import OfflineBanner from '@/components/ui/OfflineBanner';
 import { useNetwork } from '@/components/NetworkProvider';
@@ -47,17 +48,7 @@ const Header = ({ headerLabel }: HeaderProps) => {
 
 	const queryClient = useQueryClient();
 
-	const [alertConfig, setAlertConfig] = useState<{
-		visible: boolean;
-		type?: 'success' | 'error' | 'warning' | 'info';
-		title: string;
-		message?: string;
-		buttons?: {
-			text: string;
-			onPress?: (() => void) | undefined;
-			style?: 'default' | 'cancel' | 'destructive';
-		}[];
-	}>({ visible: false, title: '' });
+	const { alertConfig, setAlertConfig } = useAlertStore();
 
 	const showAlert = useCallback((
 		type: 'success' | 'error' | 'warning' | 'info',
@@ -403,9 +394,7 @@ const Header = ({ headerLabel }: HeaderProps) => {
 					title={alertConfig.title}
 					message={alertConfig.message}
 					buttons={alertConfig.buttons}
-					onDismiss={() =>
-						setAlertConfig((s) => ({ ...s, visible: false }))
-					}
+					onDismiss={() => setAlertConfig({ ...alertConfig, visible: false })}
 				/>
 
 				{/* Logout confirmation alert */}

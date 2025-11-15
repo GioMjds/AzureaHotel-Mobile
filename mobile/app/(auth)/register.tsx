@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome } from '@expo/vector-icons';
 import { auth } from '@/services/UserAuth';
 import * as SecureStore from 'expo-secure-store';
+import useAlertStore from '@/store/AlertStore';
 import StyledAlert from '@/components/ui/StyledAlert';
 import TermsModal from '@/components/TermsModal';
 import { useGoogleOAuth } from '@/hooks/useGoogleOAuth';
@@ -41,18 +42,7 @@ export default function RegisterScreen() {
 	const [hasAgreedToTerms, setHasAgreedToTerms] = useState<boolean>(false);
 
 	const { handleGoogleSignIn, isLoading: isGoogleLoading } = useGoogleOAuth();
-
-	const [alertState, setAlertState] = useState<{
-		visible: boolean;
-		type?: 'success' | 'error' | 'warning' | 'info';
-		title: string;
-		message?: string;
-		buttons?: {
-			text: string;
-			onPress?: () => void;
-			style?: 'default' | 'cancel' | 'destructive';
-		}[];
-	}>({ visible: false, title: '' });
+	const { alertConfig, setAlertConfig } = useAlertStore();
 
 	const showStyledAlert = (opts: {
 		title: string;
@@ -64,7 +54,7 @@ export default function RegisterScreen() {
 			style?: 'default' | 'cancel' | 'destructive';
 		}[];
 	}) => {
-		setAlertState({
+		setAlertConfig({
 			visible: true,
 			type: opts.type || 'info',
 			title: opts.title,
@@ -722,14 +712,12 @@ export default function RegisterScreen() {
 
 			{/* Styled Alert */}
 			<StyledAlert
-				visible={alertState.visible}
-				type={alertState.type}
-				title={alertState.title}
-				message={alertState.message}
-				buttons={alertState.buttons}
-				onDismiss={() =>
-					setAlertState((s) => ({ ...s, visible: false }))
-				}
+				visible={alertConfig.visible}
+				type={alertConfig.type}
+				title={alertConfig.title}
+				message={alertConfig.message}
+				buttons={alertConfig.buttons}
+				onDismiss={() => setAlertConfig({ ...alertConfig, visible: false })}
 			/>
 
 			{/* Terms Modal */}

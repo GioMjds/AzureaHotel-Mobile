@@ -194,21 +194,6 @@ const ConfirmingBooking: FC<ConfirmingBookingProps> = ({
 		opacity: dot3Opacity.value,
 	}));
 
-	const step1Style = useAnimatedStyle(() => ({
-		opacity: step1Opacity.value,
-		transform: [{ scale: step1Scale.value }],
-	}));
-
-	const step2Style = useAnimatedStyle(() => ({
-		opacity: step2Opacity.value,
-		transform: [{ scale: step2Scale.value }],
-	}));
-
-	const step3Style = useAnimatedStyle(() => ({
-		opacity: step3Opacity.value,
-		transform: [{ scale: step3Scale.value }],
-	}));
-
 	if (!isVisible) return null;
 
 	return (
@@ -269,83 +254,8 @@ const ConfirmingBooking: FC<ConfirmingBookingProps> = ({
 						/>
 					</View>
 
-					{/* Processing Steps */}
-					<View className="w-full max-w-sm gap-4">
-						{/* Step 1 */}
-						<Animated.View
-							style={step1Style}
-							className="flex-row items-center bg-background-elevated rounded-2xl p-4 border border-border-subtle shadow-sm"
-						>
-							<View className="w-10 h-10 rounded-full bg-brand-accent items-center justify-center mr-3">
-								<Ionicons name="checkmark-circle" size={20} color="#6F00FF" />
-							</View>
-							<View className="flex-1">
-								<StyledText
-									variant="montserrat-bold"
-									className="text-sm text-text-primary mb-0.5"
-								>
-									Verifying Availability
-								</StyledText>
-								<StyledText
-									variant="raleway-regular"
-									className="text-xs text-text-muted"
-								>
-									Checking room status
-								</StyledText>
-							</View>
-						</Animated.View>
-
-						{/* Step 2 */}
-						<Animated.View
-							style={step2Style}
-							className="flex-row items-center bg-background-elevated rounded-2xl p-4 border border-border-subtle shadow-sm"
-						>
-							<View className="w-10 h-10 rounded-full bg-brand-accent items-center justify-center mr-3">
-								<Ionicons name="shield-checkmark" size={20} color="#6F00FF" />
-							</View>
-							<View className="flex-1">
-								<StyledText
-									variant="montserrat-bold"
-									className="text-sm text-text-primary mb-0.5"
-								>
-									Securing Reservation
-								</StyledText>
-								<StyledText
-									variant="raleway-regular"
-									className="text-xs text-text-muted"
-								>
-									Processing payment securely
-								</StyledText>
-							</View>
-						</Animated.View>
-
-						{/* Step 3 */}
-						<Animated.View
-							style={step3Style}
-							className="flex-row items-center bg-background-elevated rounded-2xl p-4 border border-border-subtle shadow-sm"
-						>
-							<View className="w-10 h-10 rounded-full bg-brand-accent items-center justify-center mr-3">
-								<Ionicons name="document-text" size={20} color="#6F00FF" />
-							</View>
-							<View className="flex-1">
-								<StyledText
-									variant="montserrat-bold"
-									className="text-sm text-text-primary mb-0.5"
-								>
-									Preparing Confirmation
-								</StyledText>
-								<StyledText
-									variant="raleway-regular"
-									className="text-xs text-text-muted"
-								>
-									Generating booking details
-								</StyledText>
-							</View>
-						</Animated.View>
-					</View>
-
 					{/* Bottom Info */}
-					<View className="mt-12 items-center">
+					<View className="mt-24 items-center">
 						<View className="flex-row items-center gap-2 mb-3">
 							<Ionicons name="time-outline" size={16} color="#6F00FF" />
 							<StyledText

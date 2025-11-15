@@ -1,6 +1,6 @@
 import { useCallback, useState, useRef } from 'react';
 import * as WebBrowser from 'expo-web-browser';
-import { paymongoService } from '@/services/paymongo';
+import { paymongoService, CreateSourcePrebookingParams } from '@/services/paymongo';
 
 type CreateResult = {
 	success: boolean;
@@ -12,7 +12,7 @@ type CreateResult = {
 type PaymentStatus = 'pending' | 'chargeable' | 'paid' | 'failed' | 'expired';
 
 export function usePaymongo() {
-	const [isProcessing, setIsProcessing] = useState(false);
+	const [isProcessing, setIsProcessing] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
 	const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
 	const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -139,8 +139,44 @@ export function usePaymongo() {
 		}
 	}, []);
 
+	const createSourcePrebookingAndRedirect = useCallback(
+		async (params: CreateSourcePrebookingParams): Promise<CreateResult> => {
+			setIsProcessing(true);
+			setError(null);
+			setPaymentStatus('pending');
+
+			try {
+				const resp: any = await paymongoService.createSourcePrebooking(params);
+				console.log('[usePaymongo] createSourcePrebooking raw response:', resp);
+				const data = resp.data || resp;
+
+				// Extract source data
+				const source = data.data || data;
+				const sourceId = source.id;
+				const redirectUrl =
+					source.attributes?.redirect?.checkout_url ||
+					source.attributes?.redirect?.success ||
+					source.attributes?.redirect?.failed ||
+					null;
+
+				if (redirectUrl) {
+					await WebBrowser.openBrowserAsync(redirectUrl);
+				}
+
+				setIsProcessing(false);
+				return { success: true, data, sourceId };
+			} catch (e: any) {
+				setIsProcessing(false);
+				setError(e?.message || String(e));
+				return { success: false, error: e };
+			}
+		},
+		[]
+	);
+
 	return {
 		createSourceAndRedirect,
+		createSourcePrebookingAndRedirect,
 		verifySource,
 		startPolling,
 		stopPolling,

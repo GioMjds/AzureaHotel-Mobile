@@ -175,42 +175,6 @@ def dashboard_stats(request):
             "error": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-@api_view(['POST'])
-def send_test_notification(request):
-    """Dev-only endpoint: push a test notification to a user using the Firebase Admin SDK.
-
-    Body (optional): { user_id: int, message: str }
-    If user_id is omitted, the authenticated user's id is used.
-    """
-    try:
-        user = request.user
-        user_id = request.data.get('user_id') or getattr(user, 'id', None)
-        if not user_id:
-            return Response({'detail': 'user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        message = request.data.get('message') or f'Dev test notification @ {timezone.now().isoformat()}'
-
-        # Write directly to the Realtime DB path mobile subscribes to: user-notifications/{userId}
-        try:
-            root_ref = firebase_db.reference('/')
-            user_notifications_ref = root_ref.child('user-notifications').child(str(user_id)).push()
-            notif_payload = {
-                'type': 'general',
-                'message': message,
-                'timestamp': int(timezone.now().timestamp() * 1000),
-                'read': False,
-                'data': {'dev': True}
-            }
-            user_notifications_ref.set(notif_payload)
-            return Response({'success': True, 'message': 'Notification sent'}, status=status.HTTP_200_OK)
-        except Exception:
-            logger.exception('Failed to write user-notifications entry')
-            return Response({'success': False, 'message': 'Failed to write to realtime DB'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    except Exception as e:
-        logger.exception('send_test_notification failed')
-        return Response({'success': False, 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 # Rooms
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

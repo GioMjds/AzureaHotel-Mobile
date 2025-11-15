@@ -25,6 +25,7 @@ import {
 	Image,
 } from 'react-native';
 import useAuthStore from '@/store/AuthStore';
+import useAlertStore from '@/store/AlertStore';
 import { GetRoomById, GetRoomBookings } from '@/types/Room.types';
 import { calculateRoomPricing, formatPrice } from '@/utils/pricing';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -250,13 +251,7 @@ export default function RoomBookingCalendar() {
 	};
 
 	// Styled alert state/helper
-	const [alertState, setAlertState] = useState<{
-		visible: boolean;
-		type?: 'success' | 'error' | 'warning' | 'info';
-		title: string;
-		message?: string;
-		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
-	}>({ visible: false, title: '' });
+	const { alertConfig, setAlertConfig } = useAlertStore();
 
 	const showStyledAlert = (opts: {
 		title: string;
@@ -264,7 +259,7 @@ export default function RoomBookingCalendar() {
 		type?: 'success' | 'error' | 'warning' | 'info';
 		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
 	}) => {
-		setAlertState({
+		setAlertConfig({
 			visible: true,
 			type: opts.type || 'info',
 			title: opts.title,
@@ -780,12 +775,12 @@ export default function RoomBookingCalendar() {
 
 			{/* Global Styled Alert */}
 			<StyledAlert
-				visible={alertState.visible}
-				type={alertState.type}
-				title={alertState.title}
-				message={alertState.message}
-				buttons={alertState.buttons}
-				onDismiss={() => setAlertState((s) => ({ ...s, visible: false }))}
+				visible={alertConfig.visible}
+				type={alertConfig.type}
+				title={alertConfig.title}
+				message={alertConfig.message}
+				buttons={alertConfig.buttons}
+				onDismiss={() => setAlertConfig({ ...alertConfig, visible: false })}
 			/>
 		</SafeAreaView>
 	);

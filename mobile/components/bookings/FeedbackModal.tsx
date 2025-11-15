@@ -16,6 +16,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { booking } from '@/services/Booking';
 import StyledText from '@/components/ui/StyledText';
 import StyledAlert from '@/components/ui/StyledAlert';
+import useAlertStore from '@/store/AlertStore';
 
 interface FeedbackModalProps {
 	visible: boolean;
@@ -35,6 +36,7 @@ const FeedbackModal = ({
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
 	const queryClient = useQueryClient();
+	const { alertConfig, setAlertConfig } = useAlertStore();
 
 	useEffect(() => {
 		if (!bookingItem) {
@@ -100,18 +102,6 @@ const FeedbackModal = ({
 		submitReview({ rating, review_text: comment });
 	};
 
-	const [alertState, setAlertState] = useState<{
-		visible: boolean;
-		type?: 'success' | 'error' | 'warning' | 'info';
-		title: string;
-		message?: string;
-		buttons?: {
-			text: string;
-			onPress?: () => void;
-			style?: 'default' | 'cancel' | 'destructive';
-		}[];
-	}>({ visible: false, title: '' });
-
 	const showStyledAlert = (opts: {
 		title: string;
 		message?: string;
@@ -122,12 +112,12 @@ const FeedbackModal = ({
 			style?: 'default' | 'cancel' | 'destructive';
 		}[];
 	}) => {
-		setAlertState({
+		setAlertConfig({
 			visible: true,
 			type: opts.type || 'info',
 			title: opts.title,
 			message: opts.message,
-			buttons: opts.buttons || [{ text: 'OK' }],
+			buttons: opts.buttons || [{ text: 'OK', style: 'default' }],
 		});
 	};
 
@@ -403,14 +393,12 @@ const FeedbackModal = ({
 
 			{/* Styled Alert */}
 			<StyledAlert
-				visible={alertState.visible}
-				type={alertState.type}
-				title={alertState.title}
-				message={alertState.message}
-				buttons={alertState.buttons}
-				onDismiss={() =>
-					setAlertState((s) => ({ ...s, visible: false }))
-				}
+				visible={alertConfig.visible}
+				type={alertConfig.type}
+				title={alertConfig.title}
+				message={alertConfig.message}
+				buttons={alertConfig.buttons}
+				onDismiss={() => setAlertConfig({ ...alertConfig, visible: false })}
 			/>
 		</>
 	);

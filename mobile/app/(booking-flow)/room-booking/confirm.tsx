@@ -18,6 +18,7 @@ import { format, parseISO, differenceInDays } from 'date-fns';
 import { useForm, Controller } from 'react-hook-form';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import useAuthStore from '@/store/AuthStore';
+import useAlertStore from '@/store/AlertStore';
 import {
 	calculateRoomPricing,
 	formatPrice,
@@ -26,10 +27,12 @@ import {
 import { booking } from '@/services/Booking';
 import ConfirmBookingModal from '@/components/bookings/ConfirmBookingModal';
 import ConfirmingBooking from '@/components/ui/ConfirmingBooking';
+import PayMongoAmountModal from '@/components/bookings/PayMongoAmountModal';
 import { Amenities } from '@/types/Amenity.types';
 import { Room } from '@/types/Room.types';
 import StyledText from '@/components/ui/StyledText';
 import StyledAlert from '@/components/ui/StyledAlert';
+import { usePaymongo } from '@/hooks/usePayMongo';
 
 interface FormData {
 	firstName: string;
@@ -38,7 +41,7 @@ interface FormData {
 	numberOfGuests: number;
 	arrivalTime: string;
 	specialRequests: string;
-	paymentMethod: 'gcash' | 'physical';
+	paymentMethod: 'gcash' | 'paymongo';
 }
 
 export default function ConfirmRoomBookingScreen() {
@@ -52,23 +55,15 @@ export default function ConfirmRoomBookingScreen() {
 	const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
 	const [qrModalVisible, setQrModalVisible] = useState<boolean>(false);
 	const [selectedQrImage, setSelectedQrImage] = useState<number | null>(null);
-	const [alertConfig, setAlertConfig] = useState<{
-		visible: boolean;
-		type: 'success' | 'error' | 'warning' | 'info';
-		title: string;
-		message?: string;
-		buttons?: Array<{
-			text: string;
-			onPress?: () => void;
-			style?: 'default' | 'cancel' | 'destructive';
-		}>;
-	}>({
-		visible: false,
-		type: 'info',
-		title: '',
-		message: '',
-		buttons: [],
-	});
+	const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+		'gcash' | 'paymongo'
+	>('gcash');
+	const [showPayMongoModal, setShowPayMongoModal] = useState<boolean>(false);
+	const [confirmedDownPayment, setConfirmedDownPayment] = useState<
+		number | null
+	>(null);
+
+	const { alertConfig, setAlertConfig } = useAlertStore();
 
 	const getDefaultCheckInTime = () => {
 		const date = new Date();
@@ -83,6 +78,10 @@ export default function ConfirmRoomBookingScreen() {
 	const { user } = useAuthStore();
 	const router = useRouter();
 	const queryClient = useQueryClient();
+	const {
+		createSourcePrebookingAndRedirect,
+		isProcessing: isPayMongoProcessing,
+	} = usePaymongo();
 
 	const { roomId, checkInDate, checkOutDate, totalPrice } =
 		useLocalSearchParams<{
@@ -146,7 +145,6 @@ export default function ConfirmRoomBookingScreen() {
 
 	const nights = calculateNights();
 
-	// Compute pricing result for display (keeps consistent with calendar)
 	const pricingResult = roomData
 		? calculateRoomPricing
 			? calculateRoomPricing({
@@ -280,7 +278,18 @@ export default function ConfirmRoomBookingScreen() {
 			return;
 		}
 
-		// Validate phone number format
+		if (data.paymentMethod === 'paymongo' && !confirmedDownPayment) {
+			setAlertConfig({
+				visible: true,
+				type: 'warning',
+				title: 'Down Payment Required',
+				message:
+					'Please select PayMongo payment method and confirm your down payment amount first.',
+				buttons: [{ text: 'OK', style: 'default' }],
+			});
+			return;
+		}
+
 		const cleanedValue = data.phoneNumber.replace(/[^\d+]/g, '');
 		const phPattern = /^(\+639\d{9}|09\d{9})$/;
 		if (!phPattern.test(cleanedValue)) {
@@ -295,7 +304,6 @@ export default function ConfirmRoomBookingScreen() {
 			return;
 		}
 
-		// Validate number of guests
 		if (roomData?.max_guests && data.numberOfGuests > roomData.max_guests) {
 			setAlertConfig({
 				visible: true,
@@ -306,6 +314,8 @@ export default function ConfirmRoomBookingScreen() {
 			});
 			return;
 		}
+
+		setPendingFormData(data);
 
 		if (!roomId || !checkInDate || !checkOutDate || !totalPrice) {
 			setAlertConfig({
@@ -318,8 +328,18 @@ export default function ConfirmRoomBookingScreen() {
 			return;
 		}
 
-		setPendingFormData(data);
 		setShowConfirmModal(true);
+	};
+	const handlePayMongoAmountConfirm = (amount: number) => {
+		setConfirmedDownPayment(amount);
+		setShowPayMongoModal(false);
+	};
+
+	const handlePayMongoModalClose = () => {
+		setShowPayMongoModal(false);
+		setConfirmedDownPayment(null);
+		setSelectedPaymentMethod('gcash');
+		control._formValues.paymentMethod = 'gcash';
 	};
 
 	const handleConfirmBooking = async () => {
@@ -334,6 +354,95 @@ export default function ConfirmRoomBookingScreen() {
 		}
 
 		setShowConfirmModal(false);
+
+		if (pendingFormData.paymentMethod === 'paymongo') {
+			if (!confirmedDownPayment) {
+				setAlertConfig({
+					visible: true,
+					type: 'error',
+					title: 'Error',
+					message: 'Please enter down payment amount first.',
+					buttons: [{ text: 'OK', style: 'default' }],
+				});
+				return;
+			}
+
+			if (!user?.id) {
+				setAlertConfig({
+					visible: true,
+					type: 'error',
+					title: 'Authentication Error',
+					message: 'Please log in to continue with booking.',
+					buttons: [{ text: 'OK', style: 'default' }],
+				});
+				return;
+			}
+
+			setIsSubmitting(true);
+
+			try {
+				const baseUrl = process.env.EXPO_PUBLIC_DJANGO_URL;
+
+				const bookingData = {
+					user_id: user.id.toString(),
+					room_id: roomId,
+					first_name: pendingFormData.firstName,
+					last_name: pendingFormData.lastName,
+					phone_number: pendingFormData.phoneNumber.replace(
+						/\s+/g,
+						''
+					),
+					check_in: checkInDate,
+					check_out: checkOutDate,
+					total_price: parseFloat(totalPrice),
+					number_of_guests: pendingFormData.numberOfGuests,
+					special_requests: pendingFormData.specialRequests || '',
+					arrival_time: pendingFormData.arrivalTime
+						? convertTo24Hour(pendingFormData.arrivalTime)
+						: '',
+				};
+
+				const result = await createSourcePrebookingAndRedirect({
+					amountPhp: confirmedDownPayment,
+					bookingData,
+					successUrl: `${baseUrl}/booking/paymongo/payment-success`,
+					failedUrl: `${baseUrl}/booking/paymongo/payment-failed`,
+				});
+
+				if (result.success) {
+					setIsSubmitting(false);
+					setAlertConfig({
+						visible: true,
+						type: 'info',
+						title: 'Opening Payment Gateway',
+						message: `You will be redirected to PayMongo to complete your ₱${confirmedDownPayment.toFixed(2)} payment. After payment, you'll be redirected back to the app automatically.`,
+						buttons: [
+							{
+								text: 'Continue',
+								style: 'default',
+								onPress: () => {
+									router.replace('/(screens)');
+								},
+							},
+						],
+					});
+				}
+			} catch (error: any) {
+				console.error('❌ PayMongo redirect error:', error);
+				setIsSubmitting(false);
+				setAlertConfig({
+					visible: true,
+					type: 'error',
+					title: 'Payment Failed',
+					message:
+						error.message ||
+						'Failed to initiate payment. Please try again.',
+					buttons: [{ text: 'OK', style: 'default' }],
+				});
+			}
+			return;
+		}
+
 		setIsSubmitting(true);
 
 		try {
@@ -371,7 +480,9 @@ export default function ConfirmRoomBookingScreen() {
 				formData.append('paymentProof', gcashFile as any);
 			}
 
-			await booking.createRoomBooking(formData);
+			const bookingResponse = await booking.createRoomBooking(formData);
+			const createdBookingId =
+				bookingResponse.data?.id || bookingResponse.id;
 
 			setTimeout(() => {
 				setIsSubmitting(false);
@@ -776,8 +887,7 @@ export default function ConfirmRoomBookingScreen() {
 								variant="montserrat-regular"
 								className="text-sm mt-1"
 							>
-								Expected arrival time between 2:00 PM and 11:00
-								PM.
+								Expected arrival time between 2:00 PM and 11:00 PM.
 							</StyledText>
 							{errors.arrivalTime && (
 								<StyledText className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
@@ -786,105 +896,223 @@ export default function ConfirmRoomBookingScreen() {
 							)}
 						</View>
 
-						{/* GCash Payment Proof */}
+						{/* Payment Method Selection */}
 						<View className="mb-4">
 							<StyledText className="text-text-primary font-montserrat-bold text-lg mb-3">
-								GCash Payment Proof *
+								Payment Method *
 							</StyledText>
+							<Controller
+								control={control}
+								name="paymentMethod"
+								render={({ field: { onChange, value } }) => (
+									<View className="space-y-3">
+										{/* GCash Screenshot Option */}
+										<TouchableOpacity
+											onPress={() => {
+												onChange('gcash');
+												setSelectedPaymentMethod(
+													'gcash'
+												);
+											}}
+											className={`border-2 rounded-xl p-4 ${
+												value === 'gcash'
+													? 'border-brand-primary bg-brand-accent'
+													: 'border-border-focus'
+											}`}
+										>
+											<View className="flex-row items-center justify-between">
+												<View className="flex-row items-center flex-1">
+													<View
+														className={`w-5 h-5 rounded-full border-2 mr-3 items-center justify-center ${
+															value === 'gcash'
+																? 'border-brand-primary bg-brand-primary'
+																: 'border-border-focus'
+														}`}
+													>
+														{value === 'gcash' && (
+															<View className="w-2.5 h-2.5 rounded-full bg-white" />
+														)}
+													</View>
+													<View className="flex-1">
+														<StyledText className="text-text-primary font-montserrat-bold text-base">
+															GCash Payment Proof
+														</StyledText>
+														<StyledText
+															variant="raleway-regular"
+															className="text-text-muted text-sm mt-1"
+														>
+															Upload screenshot of
+															GCash payment
+														</StyledText>
+													</View>
+												</View>
+												<Ionicons
+													name="image-outline"
+													size={24}
+													color="#6F00FF"
+												/>
+											</View>
+										</TouchableOpacity>
 
-							{/* GCash QR Codes */}
-							<View className="mb-4 bg-background-elevated rounded-2xl p-2">
-								<View className="flex-row items-center mb-3">
+										{/* PayMongo Option */}
+										<TouchableOpacity
+											onPress={() => {
+												onChange('paymongo');
+												setSelectedPaymentMethod(
+													'paymongo'
+												);
+												// Show amount modal immediately when PayMongo is selected
+												setShowPayMongoModal(true);
+											}}
+											className={`border-2 rounded-xl p-4 ${
+												value === 'paymongo'
+													? 'border-brand-primary bg-brand-accent'
+													: 'border-border-focus'
+											}`}
+										>
+											<View className="flex-row items-center justify-between">
+												<View className="flex-row items-center flex-1">
+													<View
+														className={`w-5 h-5 rounded-full border-2 mr-3 items-center justify-center ${
+															value === 'paymongo'
+																? 'border-brand-primary bg-brand-primary'
+																: 'border-border-focus'
+														}`}
+													>
+														{value ===
+															'paymongo' && (
+															<View className="w-2.5 h-2.5 rounded-full bg-white" />
+														)}
+													</View>
+													<View className="flex-1">
+														<StyledText className="text-text-primary font-montserrat-bold text-base">
+															PayMongo
+														</StyledText>
+														<StyledText
+															variant="raleway-regular"
+															className="text-text-muted text-sm mt-1"
+														>
+															Secure online
+															payment via PayMongo
+														</StyledText>
+													</View>
+												</View>
+												<Ionicons
+													name="card-outline"
+													size={24}
+													color="#6F00FF"
+												/>
+											</View>
+										</TouchableOpacity>
+									</View>
+								)}
+							/>
+						</View>
+
+						{/* GCash Payment Proof (only show when GCash is selected) */}
+						{selectedPaymentMethod === 'gcash' && (
+							<View className="mb-4">
+								<StyledText className="text-text-primary font-montserrat-bold text-lg mb-3">
+									GCash Payment Proof *
+								</StyledText>
+
+								{/* GCash QR Codes */}
+								<View className="mb-4 bg-background-elevated rounded-2xl p-2">
+									<View className="flex-row items-center mb-3">
+										<Ionicons
+											name="qr-code"
+											size={20}
+											color="#6F00FF"
+										/>
+										<StyledText className="text-text-primary font-montserrat-bold ml-2">
+											Scan to Pay with GCash
+										</StyledText>
+									</View>
+									<StyledText
+										variant="raleway-regular"
+										className="text-text-muted text-xs mb-3"
+									>
+										Scan either QR code below to complete
+										your payment. Tap to view larger.
+									</StyledText>
+									<View className="flex-row justify-around gap-3">
+										<TouchableOpacity
+											className="flex-1 items-center rounded-xl border border-border-focus p-3"
+											onPress={() => handleViewQrCode(1)}
+											activeOpacity={0.7}
+										>
+											<Image
+												source={require('@/assets/images/GCash_MOP1.jpg')}
+												className="w-full h-40"
+												resizeMode="contain"
+											/>
+											<View className="flex-row items-center mt-2">
+												<StyledText className="text-text-primary font-montserrat-bold text-xs">
+													GCash QR 1
+												</StyledText>
+											</View>
+										</TouchableOpacity>
+										<TouchableOpacity
+											className="flex-1 items-center rounded-xl border border-border-focus p-3"
+											onPress={() => handleViewQrCode(2)}
+											activeOpacity={0.7}
+										>
+											<Image
+												source={require('@/assets/images/GCash_MOP2.jpg')}
+												className="w-full h-40"
+												resizeMode="contain"
+											/>
+											<View className="flex-row items-center mt-2">
+												<StyledText className="text-text-primary font-montserrat-bold text-xs">
+													GCash QR 2
+												</StyledText>
+											</View>
+										</TouchableOpacity>
+									</View>
+								</View>
+
+								<StyledText className="text-text-primary font-montserrat mb-2">
+									Upload Payment Screenshot *
+								</StyledText>
+								<TouchableOpacity
+									onPress={handlePickImage}
+									className="border border-border-focus rounded-xl p-4 items-center"
+								>
 									<Ionicons
-										name="qr-code"
-										size={20}
+										name="cloud-upload-outline"
+										size={24}
 										color="#6F00FF"
 									/>
-									<StyledText className="text-text-primary font-montserrat-bold ml-2">
-										Scan to Pay with GCash
+									<StyledText className="text-text-secondary font-montserrat mt-2">
+										{gcashProof
+											? 'Payment Proof Uploaded'
+											: 'Upload Payment Proof'}
 									</StyledText>
-								</View>
-								<StyledText variant='raleway-regular' className="text-text-muted text-xs mb-3">
-									Scan either QR code below to complete your
-									payment. Tap to view larger.
-								</StyledText>
-								<View className="flex-row justify-around gap-3">
-									<TouchableOpacity
-										className="flex-1 items-center rounded-xl border border-border-focus p-3"
-										onPress={() => handleViewQrCode(1)}
-										activeOpacity={0.7}
-									>
+								</TouchableOpacity>
+								{gcashProof && (
+									<View className="mt-3">
 										<Image
-											source={require('@/assets/images/GCash_MOP1.jpg')}
-											className="w-full h-40"
+											source={{ uri: gcashProof }}
+											className="w-full h-40 rounded-xl"
 											resizeMode="contain"
 										/>
-										<View className="flex-row items-center mt-2">
-											<StyledText className="text-text-primary font-montserrat-bold text-xs">
-												GCash QR 1
-											</StyledText>
-										</View>
-									</TouchableOpacity>
-									<TouchableOpacity
-										className="flex-1 items-center rounded-xl border border-border-focus p-3"
-										onPress={() => handleViewQrCode(2)}
-										activeOpacity={0.7}
-									>
-										<Image
-											source={require('@/assets/images/GCash_MOP2.jpg')}
-											className="w-full h-40"
-											resizeMode="contain"
-										/>
-										<View className="flex-row items-center mt-2">
-											<StyledText className="text-text-primary font-montserrat-bold text-xs">
-												GCash QR 2
-											</StyledText>
-										</View>
-									</TouchableOpacity>
-								</View>
+										<TouchableOpacity
+											onPress={() => {
+												setGcashProof(null);
+												setGcashFile(null);
+											}}
+											className="absolute top-2 right-2 bg-surface-default rounded-full p-2"
+										>
+											<Ionicons
+												name="close"
+												size={16}
+												color="#EF4444"
+											/>
+										</TouchableOpacity>
+									</View>
+								)}
 							</View>
-
-							<StyledText className="text-text-primary font-montserrat mb-2">
-								Upload Payment Screenshot *
-							</StyledText>
-							<TouchableOpacity
-								onPress={handlePickImage}
-								className="border border-border-focus rounded-xl p-4 items-center"
-							>
-								<Ionicons
-									name="cloud-upload-outline"
-									size={24}
-									color="#6F00FF"
-								/>
-								<StyledText className="text-text-secondary font-montserrat mt-2">
-									{gcashProof
-										? 'Payment Proof Uploaded'
-										: 'Upload Payment Proof'}
-								</StyledText>
-							</TouchableOpacity>
-							{gcashProof && (
-								<View className="mt-3">
-									<Image
-										source={{ uri: gcashProof }}
-										className="w-full h-40 rounded-xl"
-										resizeMode="contain"
-									/>
-									<TouchableOpacity
-										onPress={() => {
-											setGcashProof(null);
-											setGcashFile(null);
-										}}
-										className="absolute top-2 right-2 bg-surface-default rounded-full p-2"
-									>
-										<Ionicons
-											name="close"
-											size={16}
-											color="#EF4444"
-										/>
-									</TouchableOpacity>
-								</View>
-							)}
-						</View>
+						)}
 
 						{/* Special Requests */}
 						<View className="mb-4">
@@ -963,6 +1191,40 @@ export default function ConfirmRoomBookingScreen() {
 								</StyledText>
 							</View>
 
+							{/* Down Payment Display - Only show for PayMongo when confirmed */}
+							{selectedPaymentMethod === 'paymongo' &&
+								confirmedDownPayment && (
+									<View className="bg-feedback-success-light rounded-xl p-3 mt-2">
+										<View className="flex-row items-center mb-2">
+											<Ionicons
+												name="checkmark-circle"
+												size={20}
+												color="#10B981"
+											/>
+											<StyledText className="text-feedback-success-dark font-montserrat-bold text-sm ml-2">
+												Down Payment Confirmed
+											</StyledText>
+										</View>
+										<View className="flex-row justify-between">
+											<StyledText className="text-feedback-success-dark font-raleway text-sm">
+												Amount to pay now:
+											</StyledText>
+											<StyledText className="text-feedback-success-dark font-montserrat-bold text-lg">
+												₱
+												{confirmedDownPayment.toLocaleString()}
+											</StyledText>
+										</View>
+										<StyledText className="text-feedback-success-dark font-raleway text-xs mt-1">
+											Remaining balance (₱
+											{(
+												parseFloat(totalPrice || '0') -
+												confirmedDownPayment
+											).toLocaleString()}
+											) to be paid upon check-in
+										</StyledText>
+									</View>
+								)}
+
 							{/* Discount breakdown */}
 							{pricingResult &&
 								pricingResult.discountType !== 'none' && (
@@ -991,13 +1253,20 @@ export default function ConfirmRoomBookingScreen() {
 					{/* Submit Button */}
 					<TouchableOpacity
 						onPress={handleSubmit(onSubmit)}
-						disabled={!gcashFile}
+						disabled={
+							selectedPaymentMethod === 'gcash' && !gcashFile
+						}
 						className={`rounded-2xl py-4 px-6 mb-8 ${
-							gcashFile ? 'bg-violet-primary' : 'bg-neutral-300'
+							selectedPaymentMethod === 'paymongo' ||
+							(selectedPaymentMethod === 'gcash' && gcashFile)
+								? 'bg-brand-primary'
+								: 'bg-neutral-300'
 						}`}
 					>
 						<StyledText className="text-center font-montserrat-bold text-lg text-text-inverse">
-							Complete Booking
+							{selectedPaymentMethod === 'paymongo'
+								? 'Proceed to Payment'
+								: 'Complete Booking'}
 						</StyledText>
 					</TouchableOpacity>
 				</View>
@@ -1027,7 +1296,7 @@ export default function ConfirmRoomBookingScreen() {
 				animationType="fade"
 				onRequestClose={() => setQrModalVisible(false)}
 			>
-				<View 
+				<View
 					className="flex-1 justify-center items-center"
 					style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
 				>
@@ -1109,6 +1378,15 @@ export default function ConfirmRoomBookingScreen() {
 					</View>
 				</View>
 			</Modal>
+
+			{/* PayMongo Amount Modal */}
+			<PayMongoAmountModal
+				visible={showPayMongoModal}
+				onClose={handlePayMongoModalClose}
+				onConfirm={handlePayMongoAmountConfirm}
+				totalAmount={parseFloat(totalPrice || '0')}
+				isProcessing={isPayMongoProcessing}
+			/>
 
 			{/* Styled Alert */}
 			<StyledAlert

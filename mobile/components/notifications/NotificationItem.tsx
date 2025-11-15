@@ -5,7 +5,6 @@ import { formatDistanceToNow } from "date-fns";
 
 interface NotificationItemProps {
     message: string;
-    type: 'booking' | 'payment' | 'general' | 'system';
     is_read: boolean;
     created_at: string;
     onPress: () => void;
@@ -14,26 +13,11 @@ interface NotificationItemProps {
 
 const NotificationItem = ({
     message,
-    type,
     is_read,
     created_at,
     onPress,
     onMarkAsRead
 }: NotificationItemProps) => {
-    const getNotificationIcon = () => {
-        switch (type) {
-            case 'booking':
-                return { name: 'calendar', color: '#6F00FF' };
-            case 'payment':
-                return { name: 'credit-card', color: '#10B981' };
-            case 'system':
-                return { name: 'cog', color: '#F59E0B' };
-            default:
-                return { name: 'bell', color: '#3B82F6' };
-        }
-    };
-
-    const icon = getNotificationIcon();
     const timeAgo = formatDistanceToNow(new Date(created_at), { addSuffix: true });
 
     return (
@@ -50,11 +34,11 @@ const NotificationItem = ({
                 <View className="flex-row items-start">
                     {/* Icon Container */}
                     <View 
-                        className={`w-12 h-12 rounded-full items-center justify-center mr-3 ${
+                        className={`w-14 h-14 rounded-full items-center justify-center mr-3 ${
                             is_read ? 'bg-neutral-100' : 'bg-brand-primary/10'
                         }`}
                     >
-                        <FontAwesome name={icon.name as any} size={20} color={icon.color} />
+                        <FontAwesome name='bell' size={20} color="#3B82F6" />
                     </View>
 
                     {/* Content */}

@@ -23,8 +23,13 @@ urlpatterns = [
     path('generate_checkout_e_receipt/<str:booking_id>', views .generate_checkout_e_receipt, name='generate_checkout_e_receipt'),
     # PayMongo integration
     path('bookings/<str:booking_id>/paymongo/create', views.create_paymongo_source, name='create_paymongo_source'),
+    path('paymongo/create-without-booking', views.create_paymongo_source_prebooking, name='create_paymongo_source_prebooking'),
+    path('paymongo/create-without-booking/', views.create_paymongo_source_prebooking, name='create_paymongo_source_prebooking_slash'),
     path('paymongo/sources/<str:source_id>/verify', views.verify_paymongo_source, name='verify_paymongo_source'),
     path('paymongo/webhook', views.paymongo_webhook, name='paymongo_webhook'),
+    # PayMongo payment redirect endpoints (deep link back to app)
+    path('paymongo/payment-success', views.payment_success, name='payment_success'),
+    path('paymongo/payment-failed', views.payment_failed, name='payment_failed'),
     # Enter amount flow for mobile deep-link + PayMongo
     path('paymongo/enter_amount', views.enter_amount, name='paymongo_enter_amount'),
     # Accept both with and without trailing slash to avoid 404 due to slash handling

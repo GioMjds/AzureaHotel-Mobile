@@ -17,6 +17,7 @@ import { httpClient } from '@/configs/axios';
 import { auth } from '@/services/UserAuth';
 import { ApiRoutes } from '@/configs/axios.routes';
 import { useAuth } from '@/hooks/useAuth';
+import useAlertStore from '@/store/AlertStore';
 import StyledAlert from '@/components/ui/StyledAlert';
 
 const REGISTRATION_EMAIL_KEY = 'registration_email';
@@ -29,32 +30,24 @@ export default function VerifyRegisterOTPScreen() {
     const [lastName, setLastName] = useState<string>('');
     const [countdown, setCountdown] = useState<number>(120);
     const [canResend, setCanResend] = useState<boolean>(false);
-    const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
-    const [otpInputRefs, setOtpInputRefs] = useState<(TextInput | null)[]>([]);
-    const [alertState, setAlertState] = useState<{
-        visible: boolean;
-        type?: 'success' | 'error' | 'warning' | 'info';
-        title: string;
-        message?: string;
-        buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
-    }>({ visible: false, title: '' });
+	const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
+	const [otpInputRefs, setOtpInputRefs] = useState<(TextInput | null)[]>([]);
+	const { alertConfig, setAlertConfig } = useAlertStore();
 
-    const showStyledAlert = (opts: {
-        title: string;
-        message?: string;
-        type?: 'success' | 'error' | 'warning' | 'info';
-        buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
-    }) => {
-        setAlertState({
-            visible: true,
-            type: opts.type || 'info',
-            title: opts.title,
-            message: opts.message,
-            buttons: opts.buttons || [{ text: 'OK' }],
-        });
-    };
-
-    const { login } = useAuth();
+	const showStyledAlert = (opts: {
+		title: string;
+		message?: string;
+		type?: 'success' | 'error' | 'warning' | 'info';
+		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
+	}) => {
+		setAlertConfig({
+			visible: true,
+			type: opts.type || 'info',
+			title: opts.title,
+			message: opts.message,
+			buttons: opts.buttons || [{ text: 'OK' }],
+		});
+	};    const { login } = useAuth();
 
     useEffect(() => {
         const loadStoredData = async () => {

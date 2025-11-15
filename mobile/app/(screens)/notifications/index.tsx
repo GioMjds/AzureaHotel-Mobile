@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import {
 	View,
 	FlatList,
@@ -12,21 +11,10 @@ import { FontAwesome } from '@expo/vector-icons';
 import StyledText from '@/components/ui/StyledText';
 import { useUserNotifications } from '@/hooks/useUserNotifications';
 import NotificationItem from '@/components/notifications/NotificationItem';
-import StyledAlert from '@/components/ui/StyledAlert';
+import { useAlertActions } from '@/store/AlertStore';
 
 export default function NotificationScreen() {
-    const [alertState, setAlertState] = useState<{
-		visible: boolean;
-		type?: 'success' | 'error' | 'warning' | 'info';
-		title: string;
-		message?: string;
-		buttons?: {
-			text: string;
-			onPress?: () => void;
-			style?: 'default' | 'cancel' | 'destructive';
-		}[];
-	}>({ visible: false, title: '' });
-
+	const { alert } = useAlertActions();
 	const router = useRouter();
 
 	const {
@@ -56,18 +44,17 @@ export default function NotificationScreen() {
 
 	const handleMarkAllAsRead = () => {
 		if (unreadCount === 0) {
-			showStyledAlert({
-				title: 'No Unread Notifications',
-				message: 'All notifications are already marked as read.',
-			});
+			alert(
+				'No Unread Notifications',
+				'All notifications are already marked as read.'
+			);
 			return;
 		}
 
-		showStyledAlert({
-			title: 'Mark All as Read',
-			message: 'Are you sure you want to mark all notifications as read?',
-			type: 'warning',
-			buttons: [
+		alert(
+			'Mark All as Read',
+			'Are you sure you want to mark all notifications as read?',
+			[
 				{ text: 'Cancel', style: 'cancel' },
 				{
 					text: 'Mark All',
@@ -75,26 +62,8 @@ export default function NotificationScreen() {
 					style: 'default',
 				},
 			],
-		});
-	};
-
-	const showStyledAlert = (opts: {
-		title: string;
-		message?: string;
-		type?: 'success' | 'error' | 'warning' | 'info';
-		buttons?: {
-			text: string;
-			onPress?: () => void;
-			style?: 'default' | 'cancel' | 'destructive';
-		}[];
-	}) => {
-		setAlertState({
-			visible: true,
-			type: opts.type || 'info',
-			title: opts.title,
-			message: opts.message,
-			buttons: opts.buttons || [{ text: 'OK' }],
-		});
+			{ type: 'warning' }
+		);
 	};
 
 	if (isLoading) {
@@ -260,17 +229,6 @@ export default function NotificationScreen() {
 					}}
 				/>
 			)}
-
-			<StyledAlert
-				visible={alertState.visible}
-				type={alertState.type}
-				title={alertState.title}
-				message={alertState.message}
-				buttons={alertState.buttons}
-				onDismiss={() =>
-					setAlertState((s) => ({ ...s, visible: false }))
-				}
-			/>
 		</View>
 	);
 }

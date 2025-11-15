@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import StyledText from '@/components/ui/StyledText';
 import StyledAlert from '@/components/ui/StyledAlert';
 import useAuthStore from '@/store/AuthStore';
+import useAlertStore from '@/store/AlertStore';
 import { IsVerified, VerificationStatus } from '@/types/GuestUser.types';
 
 const ID_TYPES = [
@@ -44,13 +45,7 @@ export default function VerifyAccountScreen() {
 	const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
 	const [isPreviewModalOpen, setIsPreviewModalOpen] = useState<boolean>(false);
 	const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
-	const [alertState, setAlertState] = useState<{
-		visible: boolean;
-		type?: 'success' | 'error' | 'warning' | 'info';
-		title: string;
-		message?: string;
-		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
-	}>({ visible: false, title: '' });
+	const { alertConfig, setAlertConfig } = useAlertStore();
 
 	const router = useRouter();
 	const { uploadValidIdMutation } = useUploadImage();
@@ -62,7 +57,7 @@ export default function VerifyAccountScreen() {
 		type?: 'success' | 'error' | 'warning' | 'info';
 		buttons?: { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[];
 	}) => {
-		setAlertState({
+		setAlertConfig({
 			visible: true,
 			...opts,
 		});
@@ -864,12 +859,12 @@ export default function VerifyAccountScreen() {
 			
 			{/* Styled Alert */}
 			<StyledAlert
-				visible={alertState.visible}
-				type={alertState.type}
-				title={alertState.title}
-				message={alertState.message}
-				buttons={alertState.buttons}
-				onDismiss={() => setAlertState({ visible: false, title: '' })}
+				visible={alertConfig.visible}
+				type={alertConfig.type}
+				title={alertConfig.title}
+				message={alertConfig.message}
+				buttons={alertConfig.buttons}
+				onDismiss={() => setAlertConfig({ ...alertConfig, visible: false })}
 			/>
 		</SafeAreaView>
 	);

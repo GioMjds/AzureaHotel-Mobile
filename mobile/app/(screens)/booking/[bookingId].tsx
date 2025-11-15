@@ -15,22 +15,13 @@ import { pesoFormatter, formatDate } from '@/utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
 import CancellationModal from '@/components/ui/CancellationModal';
 import StyledAlert from '@/components/ui/StyledAlert';
+import useAlertStore from '@/store/AlertStore';
 import { guestCancellationReasons } from '@/constants/dropdown-options';
 import StyledText from '@/components/ui/StyledText';
 
 export default function BookingDetailsScreen() {
 	const [cancellationModal, setCancellationModal] = useState<boolean>(false);
-	const [alertState, setAlertState] = useState<{
-		visible: boolean;
-		type?: 'success' | 'error' | 'warning' | 'info';
-		title: string;
-		message?: string;
-		buttons?: {
-			text: string;
-			onPress?: () => void;
-			style?: 'default' | 'cancel' | 'destructive';
-		}[];
-	}>({ visible: false, title: '' });
+	const { alertConfig, setAlertConfig } = useAlertStore();
 
 	const showStyledAlert = (opts: {
 		title: string;
@@ -42,12 +33,12 @@ export default function BookingDetailsScreen() {
 			style?: 'default' | 'cancel' | 'destructive';
 		}[];
 	}) => {
-		setAlertState({
+		setAlertConfig({
 			visible: true,
 			type: opts.type || 'info',
 			title: opts.title,
 			message: opts.message,
-			buttons: opts.buttons || [{ text: 'OK' }],
+			buttons: opts.buttons || [{ text: 'OK', style: 'default' }],
 		});
 	};
 
@@ -969,16 +960,14 @@ export default function BookingDetailsScreen() {
 				</View>
 			</ScrollView>
 
-			{/* Global styled alert */}
+			{/* Alert */}
 			<StyledAlert
-				visible={alertState.visible}
-				type={alertState.type}
-				title={alertState.title}
-				message={alertState.message}
-				buttons={alertState.buttons}
-				onDismiss={() =>
-					setAlertState((s) => ({ ...s, visible: false }))
-				}
+				visible={alertConfig.visible}
+				type={alertConfig.type}
+				title={alertConfig.title}
+				message={alertConfig.message}
+				buttons={alertConfig.buttons}
+				onDismiss={() => setAlertConfig({ ...alertConfig, visible: false })}
 			/>
 
 			{/* Cancellation Modal */}
