@@ -8,8 +8,9 @@ services:
     name: azureahotel-api
     runtime: python
     region: singapore
-    buildCommand: "./build.sh"
-    startCommand: "cd hotel_backend && gunicorn hotel_backend.wsgi:application --bind 0.0.0.0:$PORT"
+    rootDir: server/hotel_backend
+    buildCommand: "pip install -r ../requirements.txt && python manage.py collectstatic --no-input"
+    startCommand: "daphne -b 0.0.0.0 -p $PORT hotel_backend.asgi:application"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: hotel_backend.production_settings
@@ -33,10 +34,10 @@ services:
         value: 3306
       - key: SECRET_KEY
         generateValue: true
-      - key: EMAIL_HOST_USER
-        sync: false
-      - key: EMAIL_HOST_PASSWORD
-        sync: false
+      - key: DEBUG
+        value: "False"
+      - key: CLIENT_URL
+        value: "exp://192.168.1.14:8081"
       - key: CLOUD_NAME
         sync: false
       - key: API_KEY
