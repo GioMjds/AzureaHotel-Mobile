@@ -17,7 +17,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.azureahotel",
+      "package": "com.azureahotel.mobile",
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "INTERNET",
