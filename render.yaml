@@ -1,22 +1,53 @@
+databases:
+  - name: azureahotel-mysql
+    databaseName: hotel_management
+    plan: free
+
 services:
   - type: web
-    name: azurea-hotel-backend
+    name: azureahotel-api
     runtime: python
     region: singapore
-    plan: free
-    rootDir: server/hotel_backend  # Point directly to Django project
-    buildCommand: pip install -r ../requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
-    startCommand: daphne -b 0.0.0.0 -p $PORT hotel_backend.asgi:application
-    
-    # Most variables come from Environment Group (evg-d47j1qchg0os73fnlfe0)
-    # Link it in Render Dashboard: Service → Environment → Link Environment Group
-    # Only service-specific overrides below:
+    buildCommand: "./build.sh"
+    startCommand: "cd hotel_backend && gunicorn hotel_backend.wsgi:application --bind 0.0.0.0:$PORT"
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.12"
-      - key: DEBUG
-        value: "False"
+      - key: DJANGO_SETTINGS_MODULE
+        value: hotel_backend.production_settings
+      - key: DB_HOST
+        fromDatabase:
+          name: azureahotel-mysql
+          property: host
+      - key: DB_NAME
+        fromDatabase:
+          name: azureahotel-mysql
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: azureahotel-mysql
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: azureahotel-mysql
+          property: password
+      - key: DB_PORT
+        value: 3306
       - key: SECRET_KEY
         generateValue: true
-      - key: ALLOWED_HOSTS
-        value: ".onrender.com"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: CLOUD_NAME
+        sync: false
+      - key: API_KEY
+        sync: false
+      - key: API_SECRET
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: PAYMONGO_TEST_SECRET_KEY
+        sync: false
