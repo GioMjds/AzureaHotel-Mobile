@@ -21,3 +21,4 @@ mysqlclient
 firebase-admin
 reportlab
 pymysql
+imghdr
