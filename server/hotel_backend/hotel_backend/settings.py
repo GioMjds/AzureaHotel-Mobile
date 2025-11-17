@@ -33,6 +33,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = [
     "*",
+    'https://azureahotel-mobile.onrender.com'
 ]
 
 # Application definition
