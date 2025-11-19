@@ -11,10 +11,10 @@ import { FontAwesome } from '@expo/vector-icons';
 import StyledText from '@/components/ui/StyledText';
 import { useUserNotifications } from '@/hooks/useUserNotifications';
 import NotificationItem from '@/components/notifications/NotificationItem';
-import { useAlertActions } from '@/store/AlertStore';
+import useAlertStore from '@/store/AlertStore';
 
 export default function NotificationScreen() {
-	const { alert } = useAlertActions();
+	const alert = useAlertStore((state) => state.alert);
 	const router = useRouter();
 
 	const {
@@ -146,89 +146,88 @@ export default function NotificationScreen() {
 			</View>
 
 			{/* Content */}
-			{notifications.length === 0 ? (
-				<View className="flex-1 justify-center items-center px-8">
-					<View className="w-32 h-32 rounded-full bg-neutral-100 items-center justify-center mb-6">
-						<FontAwesome
-							name="bell-slash"
-							size={64}
-							color="#E9B3FB"
-						/>
-					</View>
-					<StyledText
-						variant="playfair-bold"
-						className="text-2xl text-text-primary mb-2 text-center"
-					>
-						No Notifications
-					</StyledText>
-					<StyledText
-						variant="montserrat-regular"
-						className="text-sm text-text-muted text-center"
-					>
-						You&apos;re all caught up! We&apos;ll notify you when
-						something new happens.
-					</StyledText>
-				</View>
-			) : (
-				<FlatList
-					data={notifications}
-					keyExtractor={(item) => item.id.toString()}
-					renderItem={({ item }) => (
-						<NotificationItem
-							{...item}
-							onPress={() => handleNotificationPress(item)}
-							onMarkAsRead={() => markAsRead(item.id)}
-						/>
-					)}
-					contentContainerStyle={{ padding: 16 }}
-					showsVerticalScrollIndicator={false}
-					refreshControl={
-						<RefreshControl
-							refreshing={isLoading}
-							onRefresh={refetch}
-							tintColor="#6F00FF"
-							colors={['#6F00FF']}
-						/>
+			<FlatList
+				data={notifications}
+				keyExtractor={(item) => item.id.toString()}
+				renderItem={({ item }) => (
+					<NotificationItem
+						{...item}
+						onPress={() => handleNotificationPress(item)}
+						onMarkAsRead={() => markAsRead(item.id)}
+					/>
+				)}
+				contentContainerStyle={{ padding: 16 }}
+				showsVerticalScrollIndicator={false}
+				refreshControl={
+					<RefreshControl
+						refreshing={isLoading}
+						onRefresh={refetch}
+						tintColor="#6F00FF"
+						colors={['#6F00FF']}
+					/>
+				}
+				onEndReached={() => {
+					if (hasNextPage && !isFetchingNextPage) {
+						fetchNextPage();
 					}
-					onEndReached={() => {
-						if (hasNextPage && !isFetchingNextPage) {
-							fetchNextPage();
-						}
-					}}
-					onEndReachedThreshold={0.5}
-					ListFooterComponent={() => {
-						if (isFetchingNextPage) {
-							return (
-								<View className="py-4 items-center">
-									<ActivityIndicator
-										size="small"
-										color="#6F00FF"
-									/>
-									<StyledText
-										variant="raleway-regular"
-										className="text-xs text-text-muted mt-2"
-									>
-										Loading more notifications...
-									</StyledText>
-								</View>
-							);
-						}
-						if (!hasNextPage && notifications.length > 0) {
-							return (
-								<View className="py-4 items-center">
-									<StyledText
-										variant="raleway-regular"
-										className="text-xs text-text-muted"
-									>
-										No more notifications
-									</StyledText>
-								</View>
-							);
-						}
-						return <View className="h-8" />;
-					}}
-				/>
-			)}
+				}}
+				onEndReachedThreshold={0.5}
+				ListFooterComponent={() => {
+					if (isFetchingNextPage) {
+						return (
+							<View className="py-4 items-center">
+								<ActivityIndicator
+									size="small"
+									color="#6F00FF"
+								/>
+								<StyledText
+									variant="raleway-regular"
+									className="text-xs text-text-muted mt-2"
+								>
+									Loading more notifications...
+								</StyledText>
+							</View>
+						);
+					}
+					if (!hasNextPage && notifications.length > 0) {
+						return (
+							<View className="py-4 items-center">
+								<StyledText
+									variant="raleway-regular"
+									className="text-xs text-text-muted"
+								>
+									No more notifications
+								</StyledText>
+							</View>
+						);
+					}
+					return <View className="h-8" />;
+				}}
+				ListEmptyComponent={
+					<View className="flex-1 justify-center items-center px-8">
+						<View className="w-32 h-32 rounded-full bg-neutral-100 items-center justify-center mb-6">
+							<FontAwesome
+								name="bell-slash"
+								size={64}
+								color="#E9B3FB"
+							/>
+						</View>
+						<StyledText
+							variant="playfair-bold"
+							className="text-2xl text-text-primary mb-2 text-center"
+						>
+							No Notifications
+						</StyledText>
+						<StyledText
+							variant="montserrat-regular"
+							className="text-sm text-text-muted text-center"
+						>
+							You&apos;re all caught up! We&apos;ll notify you
+							when something new happens.
+						</StyledText>
+					</View>
+				}
+			/>
 		</View>
 	);
 }

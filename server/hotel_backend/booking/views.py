@@ -1318,16 +1318,34 @@ def verify_paymongo_source(request, source_id):
                     arrival_time_str = booking_data.get('arrival_time', '')
                     
                     if check_in_str:
-                        check_in_dt = datetime.fromisoformat(check_in_str.replace('Z', '+00:00'))
-                        booking.check_in = check_in_dt.date()
+                        try:
+                            # Handle ISO format date strings
+                            check_in_dt = datetime.fromisoformat(check_in_str.replace('Z', '+00:00'))
+                            booking.check_in_date = check_in_dt.date()
+                        except ValueError:
+                            # Handle YYYY-MM-DD format
+                            booking.check_in_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
                     
                     if check_out_str:
-                        check_out_dt = datetime.fromisoformat(check_out_str.replace('Z', '+00:00'))
-                        booking.check_out = check_out_dt.date()
+                        try:
+                            # Handle ISO format date strings
+                            check_out_dt = datetime.fromisoformat(check_out_str.replace('Z', '+00:00'))
+                            booking.check_out_date = check_out_dt.date()
+                        except ValueError:
+                            # Handle YYYY-MM-DD format
+                            booking.check_out_date = datetime.strptime(check_out_str, '%Y-%m-%d').date()
                     
                     if arrival_time_str:
-                        arrival_dt = datetime.fromisoformat(arrival_time_str.replace('Z', '+00:00'))
-                        booking.arrival_time = arrival_dt.time()
+                        try:
+                            # Try parsing as ISO datetime first
+                            arrival_dt = datetime.fromisoformat(arrival_time_str.replace('Z', '+00:00'))
+                            booking.time_of_arrival = arrival_dt.time()
+                        except ValueError:
+                            # If that fails, try parsing as HH:MM format
+                            try:
+                                booking.time_of_arrival = datetime.strptime(arrival_time_str, '%H:%M').time()
+                            except ValueError:
+                                logger.warning(f'Could not parse arrival_time: {arrival_time_str}')
                     
                     booking.is_venue_booking = False
                     
@@ -1535,9 +1553,38 @@ def paymongo_webhook(request):
                 if 'room_id' in booking_data:
                     room = Rooms.objects.get(id=int(booking_data['room_id']))
                     booking.room = room
-                    booking.check_in = booking_data.get('check_in')
-                    booking.check_out = booking_data.get('check_out')
-                    booking.arrival_time = booking_data.get('arrival_time', '')
+                    
+                    check_in_str = booking_data.get('check_in')
+                    check_out_str = booking_data.get('check_out')
+                    arrival_time_str = booking_data.get('arrival_time', '')
+                    
+                    if check_in_str:
+                        try:
+                            # Handle ISO format or YYYY-MM-DD format
+                            check_in_dt = datetime.fromisoformat(check_in_str.replace('Z', '+00:00'))
+                            booking.check_in_date = check_in_dt.date()
+                        except ValueError:
+                            booking.check_in_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+                    
+                    if check_out_str:
+                        try:
+                            check_out_dt = datetime.fromisoformat(check_out_str.replace('Z', '+00:00'))
+                            booking.check_out_date = check_out_dt.date()
+                        except ValueError:
+                            booking.check_out_date = datetime.strptime(check_out_str, '%Y-%m-%d').date()
+                    
+                    if arrival_time_str:
+                        try:
+                            # Try parsing as ISO datetime first
+                            arrival_dt = datetime.fromisoformat(arrival_time_str.replace('Z', '+00:00'))
+                            booking.time_of_arrival = arrival_dt.time()
+                        except ValueError:
+                            # Try HH:MM format
+                            try:
+                                booking.time_of_arrival = datetime.strptime(arrival_time_str, '%H:%M').time()
+                            except ValueError:
+                                logger.warning(f'Could not parse arrival_time: {arrival_time_str}')
+                    
                     booking.is_venue_booking = False
                 elif 'area_id' in booking_data:
                     area = Areas.objects.get(id=int(booking_data['area_id']))
@@ -1783,11 +1830,26 @@ def paymongo_redirect_failed(request):
 
 # Redirect fallback (template) for PayMongo payment
 def payment_success(request):
-    logger.info('payment_success called - redirecting to app via deep link')
+    # Extract source_id from the referrer URL or request parameters
+    source_id = request.GET.get('source_id', '')
     
-    # Simple redirect page that sends user back to app
-    # The app will verify payment using stored source_id
-    html = """
+    # If not in query params, try to extract from referrer
+    if not source_id:
+        referrer = request.META.get('HTTP_REFERER', '')
+        if 'sources?id=' in referrer:
+            try:
+                source_id = referrer.split('sources?id=')[1].split('&')[0]
+            except Exception:
+                logger.warning('Could not extract source_id from referrer')
+    
+    logger.info(f'payment_success called - source_id={source_id}, redirecting to app via deep link')
+    
+    # Build deep link with source_id parameter
+    deep_link = 'azurea-hotel://payment/success'
+    if source_id:
+        deep_link += f'?source_id={source_id}'
+    
+    html = f"""
     <!DOCTYPE html>
     <html>
     <head>
@@ -1795,7 +1857,7 @@ def payment_success(request):
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Payment Successful - Redirecting...</title>
         <style>
-            body {
+            body {{
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 display: flex;
                 justify-content: center;
@@ -1803,16 +1865,16 @@ def payment_success(request):
                 min-height: 100vh;
                 margin: 0;
                 background: linear-gradient(135deg, #6F00FF 0%, #3B0270 100%);
-            }
-            .container {
+            }}
+            .container {{
                 background: white;
                 border-radius: 20px;
                 padding: 40px;
                 text-align: center;
                 box-shadow: 0 10px 40px rgba(0,0,0,0.2);
                 max-width: 400px;
-            }
-            .success-icon {
+            }}
+            .success-icon {{
                 width: 80px;
                 height: 80px;
                 background: #10B981;
@@ -1821,28 +1883,28 @@ def payment_success(request):
                 align-items: center;
                 justify-content: center;
                 margin: 0 auto 20px;
-            }
-            .checkmark {
+            }}
+            .checkmark {{
                 color: white;
                 font-size: 48px;
                 font-weight: bold;
-            }
-            h1 {
+            }}
+            h1 {{
                 color: #3B0270;
                 margin: 0 0 10px 0;
                 font-size: 24px;
-            }
-            p {
+            }}
+            p {{
                 color: #6F00FF;
                 margin: 0;
                 font-size: 14px;
-            }
+            }}
         </style>
         <script>
             // Automatically redirect to app after a short delay
-            setTimeout(function() {
-                window.location.href = 'azurea-hotel://payment/success';
-            }, 2000);
+            setTimeout(function() {{
+                window.location.href = '{deep_link}';
+            }}, 2000);
         </script>
     </head>
     <body>

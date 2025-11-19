@@ -35,7 +35,6 @@ interface AlertActions {
 type AlertStore = AlertState & AlertActions;
 
 const useAlertStore = create<AlertStore>((set) => ({
-	// Initial state - matches the pattern in confirm.tsx
 	alertConfig: {
 		visible: false,
 		type: 'info',
@@ -86,11 +85,17 @@ const useAlertStore = create<AlertStore>((set) => ({
 
 // Selectors
 export const useAlert = () => useAlertStore((state) => state.alertConfig);
-export const useAlertActions = () => useAlertStore((state) => ({
-	setAlertConfig: state.setAlertConfig,
-	showAlert: state.showAlert,
-	hideAlert: state.hideAlert,
-	alert: state.alert,
-}));
+export const useAlertActions = () => {
+	const setAlertConfig = useAlertStore((state) => state.setAlertConfig);
+	const showAlert = useAlertStore((state) => state.showAlert);
+	const hideAlert = useAlertStore((state) => state.hideAlert);
+	const alert = useAlertStore((state) => state.alert);
 
+	return {
+		setAlertConfig,
+		showAlert,
+		hideAlert,
+		alert,
+	};
+};
 export default useAlertStore;

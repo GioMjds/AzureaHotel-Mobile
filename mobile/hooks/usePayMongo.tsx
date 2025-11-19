@@ -1,6 +1,9 @@
 import { useCallback, useState, useRef } from 'react';
 import * as WebBrowser from 'expo-web-browser';
-import { paymongoService, CreateSourcePrebookingParams } from '@/services/paymongo';
+import {
+	paymongoService,
+	CreateSourcePrebookingParams,
+} from '@/services/paymongo';
 
 type CreateResult = {
 	success: boolean;
@@ -14,8 +17,11 @@ type PaymentStatus = 'pending' | 'chargeable' | 'paid' | 'failed' | 'expired';
 export function usePaymongo() {
 	const [isProcessing, setIsProcessing] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
-	const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
-	const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+	const [paymentStatus, setPaymentStatus] =
+		useState<PaymentStatus>('pending');
+	const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+		null
+	);
 
 	const createSourceAndRedirect = useCallback(
 		async (
@@ -33,7 +39,6 @@ export function usePaymongo() {
 					amountPhp,
 					opts
 				);
-				console.log('[usePaymongo] createSource raw response:', resp);
 				const data = resp.data || resp;
 
 				// Extract source data
@@ -119,9 +124,8 @@ export function usePaymongo() {
 				} catch (error) {
 					console.error('Polling error:', error);
 				}
-			}, 3000); // Poll every 3 seconds
+			}, 3000);
 
-			// Return cleanup function
 			return () => {
 				if (pollingIntervalRef.current) {
 					clearInterval(pollingIntervalRef.current);
@@ -146,8 +150,12 @@ export function usePaymongo() {
 			setPaymentStatus('pending');
 
 			try {
-				const resp: any = await paymongoService.createSourcePrebooking(params);
-				console.log('[usePaymongo] createSourcePrebooking raw response:', resp);
+				const resp: any =
+					await paymongoService.createSourcePrebooking(params);
+				console.log(
+					'[usePaymongo] createSourcePrebooking raw response:',
+					resp
+				);
 				const data = resp.data || resp;
 
 				// Extract source data
@@ -160,6 +168,15 @@ export function usePaymongo() {
 					null;
 
 				if (redirectUrl) {
+					if (sourceId) {
+						const AsyncStorage =
+							require('@react-native-async-storage/async-storage').default;
+						await AsyncStorage.setItem(
+							'paymongo_pending_source_id',
+							sourceId
+						);
+					}
+
 					await WebBrowser.openBrowserAsync(redirectUrl);
 				}
 
