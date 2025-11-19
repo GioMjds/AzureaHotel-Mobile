@@ -75,6 +75,8 @@ class BookingSerializer(serializers.ModelSerializer):
             'down_payment',
             'phone_number',
             'total_amount',
+            'paymongo_source_id',
+            'paymongo_payment_id',
         ]
         
     def get_payment_proof(self, obj):
@@ -164,6 +166,24 @@ class BookingSerializer(serializers.ModelSerializer):
         elif instance.area:
             try:
                 original_total = float(instance.total_price)
+                
+                # Build list of all applicable discounts for area
+                available_discounts = []
+                
+                # 1. Admin discount (from area.discount_percent)
+                admin_discount = int(instance.area.discount_percent or 0)
+                if admin_discount > 0:
+                    available_discounts.append(admin_discount)
+                
+                # 2. Senior/PWD discount (20%)
+                if user and getattr(user, 'is_senior_or_pwd', False):
+                    available_discounts.append(PWD_SENIOR_DISCOUNT_PERCENT)
+                
+                # Select the best (highest) discount
+                if available_discounts:
+                    discount_percent = max(available_discounts)
+                else:
+                    discount_percent = 0
                 
                 discounted_price = original_total * (1 - discount_percent / 100)
                 representation['original_price'] = original_total

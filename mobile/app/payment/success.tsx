@@ -8,25 +8,23 @@ import useAlertStore from '@/store/AlertStore';
 import { paymongoService } from '@/services/paymongo';
 
 export default function PaymentSuccessScreen() {
+	const [isVerifying, setIsVerifying] = useState<boolean>(true);
+
 	const router = useRouter();
 	const queryClient = useQueryClient();
+
 	const { setAlertConfig } = useAlertStore();
 	const { source_id } = useLocalSearchParams<{ source_id?: string }>();
-	const [isVerifying, setIsVerifying] = useState(true);
 
 	useEffect(() => {
 		const verifyPaymentAndCreateBooking = async () => {
-			// Try to get source_id from URL params first, then from AsyncStorage
 			let sourceIdToVerify = source_id;
 			
 			if (!sourceIdToVerify) {
-				console.log('No source_id in URL params, checking AsyncStorage...');
 				try {
 					const storedSourceId = await AsyncStorage.getItem('paymongo_pending_source_id');
 					if (storedSourceId) {
 						sourceIdToVerify = storedSourceId;
-						console.log('✅ Retrieved source_id from AsyncStorage:', sourceIdToVerify);
-						// Clear it after retrieving
 						await AsyncStorage.removeItem('paymongo_pending_source_id');
 					}
 				} catch (error) {
@@ -53,11 +51,7 @@ export default function PaymentSuccessScreen() {
 			}
 
 			try {
-				console.log('Verifying PayMongo source:', sourceIdToVerify);
-				
-				// Verify the payment source and create booking if needed
 				const response = await paymongoService.verifySource(sourceIdToVerify as string);
-				console.log('Payment verification response:', response);
 
 				// Invalidate bookings to refresh the list
 				queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
@@ -86,7 +80,6 @@ export default function PaymentSuccessScreen() {
 					});
 				}, 500);
 			} catch (error: any) {
-				console.error('Payment verification error:', error);
 				setIsVerifying(false);
 				
 				setAlertConfig({

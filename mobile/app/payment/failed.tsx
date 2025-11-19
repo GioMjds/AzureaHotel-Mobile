@@ -10,7 +10,6 @@ export default function PaymentFailedScreen() {
 	const { source_id } = useLocalSearchParams<{ source_id?: string }>();
 
 	useEffect(() => {
-		// Show error alert and navigate back
 		const timer = setTimeout(() => {
 			setAlertConfig({
 				visible: true,

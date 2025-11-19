@@ -29,8 +29,8 @@ import uuid
 from django.utils.http import urlencode
 from user_roles.models import CustomUsers
 from .models import Transactions
-from property.models import Room
-from property.models import Area
+from property.models import Rooms
+from property.models import Areas
 
 logger = logging.getLogger(__name__)
 
@@ -1533,14 +1533,14 @@ def paymongo_webhook(request):
                 booking.paymongo_source_id = resource_id
                 
                 if 'room_id' in booking_data:
-                    room = Room.objects.get(id=int(booking_data['room_id']))
+                    room = Rooms.objects.get(id=int(booking_data['room_id']))
                     booking.room = room
                     booking.check_in = booking_data.get('check_in')
                     booking.check_out = booking_data.get('check_out')
                     booking.arrival_time = booking_data.get('arrival_time', '')
                     booking.is_venue_booking = False
                 elif 'area_id' in booking_data:
-                    area = Area.objects.get(id=int(booking_data['area_id']))
+                    area = Areas.objects.get(id=int(booking_data['area_id']))
                     booking.area = area
                     booking.start_time = booking_data.get('start_time')
                     booking.end_time = booking_data.get('end_time')
