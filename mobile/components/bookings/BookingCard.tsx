@@ -1,3 +1,4 @@
+import React from 'react';
 import { useRouter } from 'expo-router';
 import { View, Image, TouchableOpacity } from 'react-native';
 import { UserBooking } from '@/types/Bookings.types';
@@ -13,12 +14,14 @@ interface BookingCardProps {
 	item: UserBooking;
 	onLeaveFeedback?: (booking: UserBooking) => void;
 	showFeedbackButton?: boolean;
+	footer?: React.ReactNode;
 }
 
 const BookingCard = ({ 
 	item, 
 	onLeaveFeedback,
-	showFeedbackButton = true 
+	showFeedbackButton = true,
+	footer,
 }: BookingCardProps) => {
 	const isAreaBooking = item.is_venue_booking;
 
@@ -189,6 +192,13 @@ const BookingCard = ({
 					className="h-1 rounded-full mt-3 opacity-80"
 				/>
 			</View>
+
+			{/* Optional footer (e.g. pagination). Rendered inside the same touchable area so it scrolls with the list */}
+			{footer && (
+				<View className="px-4 mt-2">
+					{footer}
+				</View>
+			)}
 		</TouchableOpacity>
 	);
 };

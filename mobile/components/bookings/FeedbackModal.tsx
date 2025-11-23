@@ -7,7 +7,7 @@ import {
 	ActivityIndicator,
 	Dimensions,
 	Keyboard,
-	Pressable
+	Pressable,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import { booking } from '@/services/Booking';
 import StyledText from '@/components/ui/StyledText';
 import StyledAlert from '@/components/ui/StyledAlert';
 import useAlertStore from '@/store/AlertStore';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 interface FeedbackModalProps {
 	visible: boolean;
@@ -133,7 +134,7 @@ const FeedbackModal = ({
 			2: 'Fair',
 			3: 'Good',
 			4: 'Very Good',
-			5: 'Excellent'
+			5: 'Excellent',
 		};
 		return labels[stars as keyof typeof labels];
 	};
@@ -158,236 +159,280 @@ const FeedbackModal = ({
 					className="flex-1 justify-end"
 					style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}
 				>
-					<View
-						className="w-full rounded-3xl overflow-hidden"
-						style={{ height: screenHeight * 0.7 }}
+					<KeyboardAwareScrollView
+						enableOnAndroid
+						enableAutomaticScroll
+						extraScrollHeight={250}
+						keyboardShouldPersistTaps="handled"
+						contentContainerStyle={{
+							flexGrow: 1,
+							justifyContent: 'flex-end',
+						}}
 					>
-						{/* Header */}
-						<View 
-							className="px-6 py-5 flex-row items-center justify-between"
-							style={{ backgroundColor: '#2D3748', borderBottomWidth: 1, borderBottomColor: '#4A5568' }}
+						<View
+							className="w-full rounded-3xl overflow-hidden"
+							style={{ height: screenHeight * 0.55 }}
 						>
-							<StyledText
-								variant="montserrat-bold"
-								className="text-2xl flex-1 text-white"
+							{/* Header */}
+							<View
+								className="px-6 py-5 flex-row items-center justify-between"
+								style={{
+									backgroundColor: '#2D3748',
+									borderBottomWidth: 1,
+									borderBottomColor: '#4A5568',
+								}}
 							>
-								Leave Your Feedback
-							</StyledText>
-							<TouchableOpacity
-								onPress={handleClose}
-								disabled={isSubmitting}
-								className="p-2 -mr-2"
-								style={{ opacity: isSubmitting ? 0.5 : 1 }}
-							>
-								<Ionicons
-									name="close"
-									size={28}
-									color="#FFFFFF"
-								/>
-							</TouchableOpacity>
-						</View>
-
-						<ScrollView
-							className="flex-1"
-							showsVerticalScrollIndicator={false}
-							contentContainerStyle={{ paddingVertical: 24, paddingHorizontal: 24 }}
-							style={{ backgroundColor: '#2D3748' }}
-						>
-							{/* Booking Info */}
-							<View 
-								className="mb-6 p-4 rounded-2xl"
-								style={{ backgroundColor: '#1A202C' }}
-							>
-								<View className="mb-1">
-									<StyledText
-										variant="montserrat-regular"
-										className="text-sm mb-1"
-										style={{ color: '#A0AEC0' }}
-									>
-										Name: 
-									</StyledText>
-									<StyledText
-										variant="montserrat-bold"
-										className="text-lg text-white"
-									>
-										{bookingName}
-									</StyledText>
-								</View>
-								<View>
-									<StyledText
-										variant="montserrat-regular"
-										className="text-sm mb-1"
-										style={{ color: '#A0AEC0' }}
-									>
-										Stay:
-									</StyledText>
-									<StyledText
-										variant="montserrat-bold"
-										className="text-lg text-white"
-									>
-										{bookingItem?.check_in_date} - {bookingItem?.check_out_date}
-									</StyledText>
-								</View>
-							</View>
-
-							{/* Rating Section */}
-							<View className="mb-6">
-								<StyledText
-									variant="montserrat-regular"
-									className="text-xl text-center mb-4"
-									style={{ color: '#E2E8F0' }}
-								>
-									How would you rate your experience?
-								</StyledText>
-
-								<View className="flex-row justify-center items-center mb-3" style={{ gap: 8 }}>
-									{[1, 2, 3, 4, 5].map((star) => (
-										<Pressable
-											key={star}
-											onPress={() => handleStarPress(star)}
-											disabled={isSubmitting}
-											style={({ pressed }) => [
-												{
-													padding: 8,
-													opacity: isSubmitting ? 0.5 : 1,
-													transform: [{ scale: pressed ? 0.85 : 1 }],
-												}
-											]}
-										>
-											<Ionicons
-												name={star <= rating ? 'star' : 'star-outline'}
-												size={44}
-												color={star <= rating ? '#FDB022' : '#4A5568'}
-											/>
-										</Pressable>
-									))}
-								</View>
-
-								{rating > 0 && (
-									<View className="items-center">
-										<StyledText
-											variant="playfair-semibold"
-											className="text-2xl"
-											style={{ color: '#FDB022' }}
-										>
-											{getRatingLabel(rating)}!
-										</StyledText>
-									</View>
-								)}
-							</View>
-
-							{/* Review Text Section */}
-							<View className="mb-4">
 								<StyledText
 									variant="montserrat-bold"
-									className="text-base mb-3"
-									style={{ color: '#E2E8F0' }}
+									className="text-2xl flex-1 text-white"
 								>
-									Share your experience
+									Leave Your Feedback
 								</StyledText>
+								<TouchableOpacity
+									onPress={handleClose}
+									disabled={isSubmitting}
+									className="p-2 -mr-2"
+									style={{ opacity: isSubmitting ? 0.5 : 1 }}
+								>
+									<Ionicons
+										name="close"
+										size={28}
+										color="#FFFFFF"
+									/>
+								</TouchableOpacity>
+							</View>
 
-								<View 
-									className="rounded-2xl overflow-hidden"
+							<ScrollView
+								className="flex-1"
+								showsVerticalScrollIndicator={false}
+								contentContainerStyle={{
+									paddingVertical: 24,
+									paddingHorizontal: 24,
+								}}
+								style={{ backgroundColor: '#2D3748' }}
+							>
+								{/* Booking Info */}
+								<View
+									className="mb-6 p-4 rounded-2xl"
 									style={{ backgroundColor: '#1A202C' }}
 								>
-									<TextInput
-										value={comment}
-										onChangeText={setComment}
-										placeholder="Tell us about your stay..."
-										placeholderTextColor="#718096"
-										multiline
-										numberOfLines={5}
-										maxLength={500}
-										textAlignVertical="top"
-										editable={!isSubmitting}
-										className="p-4 text-base leading-6"
-										style={{ 
-											textAlign: 'left',
-											color: '#E2E8F0',
-											fontFamily: 'Montserrat_400Regular'
-										}}
-									/>
+									<View className="mb-1">
+										<StyledText
+											variant="montserrat-regular"
+											className="text-sm mb-1"
+											style={{ color: '#A0AEC0' }}
+										>
+											Name:
+										</StyledText>
+										<StyledText
+											variant="montserrat-bold"
+											className="text-lg text-white"
+										>
+											{bookingName}
+										</StyledText>
+									</View>
+									<View>
+										<StyledText
+											variant="montserrat-regular"
+											className="text-sm mb-1"
+											style={{ color: '#A0AEC0' }}
+										>
+											Stay:
+										</StyledText>
+										<StyledText
+											variant="montserrat-bold"
+											className="text-lg text-white"
+										>
+											{bookingItem?.check_in_date} -{' '}
+											{bookingItem?.check_out_date}
+										</StyledText>
+									</View>
 								</View>
-							</View>
-						</ScrollView>
 
-						{/* Footer Actions */}
-						<View 
-							className="px-6 py-4 flex-row"
-							style={{ 
-								backgroundColor: '#1A202C',
-								borderTopWidth: 1,
-								borderTopColor: '#4A5568',
-								gap: 12
-							}}
-						>
-							<TouchableOpacity
-								onPress={handleClose}
-								disabled={isSubmitting}
-								className="flex-1 py-4 rounded-xl"
-								style={{ 
-									backgroundColor: '#4A5568',
-									opacity: isSubmitting ? 0.5 : 1 
-								}}
-							>
-								<StyledText
-									variant="montserrat-bold"
-									className="text-center text-lg"
-									style={{ color: '#E2E8F0' }}
-								>
-									Cancel
-								</StyledText>
-							</TouchableOpacity>
-							<TouchableOpacity
-								onPress={handleSubmit}
-								disabled={
-									isSubmitting ||
-									rating === 0 ||
-									comment.length < 1
-								}
-								className="flex-1 py-4 rounded-xl"
-								style={{ 
-									backgroundColor: isSubmitting || rating === 0 || comment.length < 1
-										? '#4A5568'
-										: '#3B82F6'
-								}}
-							>
-								<View className="flex-row items-center justify-center">
-									{isSubmitting ? (
-										<>
-											<ActivityIndicator
-												size="small"
-												color="#FFFFFF"
-											/>
-											<StyledText
-												variant="montserrat-bold"
-												className="ml-2 text-lg"
-												style={{ color: '#FFFFFF' }}
+								{/* Rating Section */}
+								<View className="mb-6">
+									<StyledText
+										variant="montserrat-regular"
+										className="text-xl text-center mb-4"
+										style={{ color: '#E2E8F0' }}
+									>
+										How would you rate your experience?
+									</StyledText>
+
+									<View
+										className="flex-row justify-center items-center mb-3"
+										style={{ gap: 8 }}
+									>
+										{[1, 2, 3, 4, 5].map((star) => (
+											<Pressable
+												key={star}
+												onPress={() =>
+													handleStarPress(star)
+												}
+												disabled={isSubmitting}
+												style={({ pressed }) => [
+													{
+														padding: 8,
+														opacity: isSubmitting
+															? 0.5
+															: 1,
+														transform: [
+															{
+																scale: pressed
+																	? 0.85
+																	: 1,
+															},
+														],
+													},
+												]}
 											>
-												Submitting...
-											</StyledText>
-										</>
-									) : (
-										<>
-											<Ionicons
-												name="paper-plane"
-												size={16}
-												color="#FFFFFF"
-												style={{ marginRight: 6 }}
-											/>
+												<Ionicons
+													name={
+														star <= rating
+															? 'star'
+															: 'star-outline'
+													}
+													size={44}
+													color={
+														star <= rating
+															? '#FDB022'
+															: '#4A5568'
+													}
+												/>
+											</Pressable>
+										))}
+									</View>
+
+									{rating > 0 && (
+										<View className="items-center">
 											<StyledText
-												variant="montserrat-bold"
-												className="text-lg"
-												style={{ color: '#FFFFFF' }}
+												variant="playfair-semibold"
+												className="text-2xl"
+												style={{ color: '#FDB022' }}
 											>
-												Submit
+												{getRatingLabel(rating)}!
 											</StyledText>
-										</>
+										</View>
 									)}
 								</View>
-							</TouchableOpacity>
+
+								{/* Review Text Section */}
+								<View className="mb-4">
+									<StyledText
+										variant="montserrat-bold"
+										className="text-base mb-3"
+										style={{ color: '#E2E8F0' }}
+									>
+										Share your experience
+									</StyledText>
+
+									<View
+										className="rounded-2xl overflow-hidden"
+										style={{ backgroundColor: '#1A202C' }}
+									>
+										<TextInput
+											value={comment}
+											onChangeText={setComment}
+											placeholder="Tell us about your stay..."
+											placeholderTextColor="#718096"
+											multiline
+											numberOfLines={5}
+											maxLength={500}
+											textAlignVertical="top"
+											editable={!isSubmitting}
+											className="p-4 text-base leading-6"
+											style={{
+												textAlign: 'left',
+												color: '#E2E8F0',
+												fontFamily:
+													'Montserrat_400Regular',
+											}}
+										/>
+									</View>
+								</View>
+							</ScrollView>
+
+							{/* Footer Actions */}
+							<View
+								className="px-6 py-4 flex-row"
+								style={{
+									backgroundColor: '#1A202C',
+									borderTopWidth: 1,
+									borderTopColor: '#4A5568',
+									gap: 12,
+								}}
+							>
+								<TouchableOpacity
+									onPress={handleClose}
+									disabled={isSubmitting}
+									className="flex-1 py-4 rounded-xl"
+									style={{
+										backgroundColor: '#4A5568',
+										opacity: isSubmitting ? 0.5 : 1,
+									}}
+								>
+									<StyledText
+										variant="montserrat-bold"
+										className="text-center text-lg"
+										style={{ color: '#E2E8F0' }}
+									>
+										Cancel
+									</StyledText>
+								</TouchableOpacity>
+								<TouchableOpacity
+									onPress={handleSubmit}
+									disabled={
+										isSubmitting ||
+										rating === 0 ||
+										comment.length < 1
+									}
+									className="flex-1 py-4 rounded-xl"
+									style={{
+										backgroundColor:
+											isSubmitting ||
+											rating === 0 ||
+											comment.length < 1
+												? '#4A5568'
+												: '#3B82F6',
+									}}
+								>
+									<View className="flex-row items-center justify-center">
+										{isSubmitting ? (
+											<>
+												<ActivityIndicator
+													size="small"
+													color="#FFFFFF"
+												/>
+												<StyledText
+													variant="montserrat-bold"
+													className="ml-2 text-lg"
+													style={{ color: '#FFFFFF' }}
+												>
+													Submitting...
+												</StyledText>
+											</>
+										) : (
+											<>
+												<Ionicons
+													name="paper-plane"
+													size={16}
+													color="#FFFFFF"
+													style={{ marginRight: 6 }}
+												/>
+												<StyledText
+													variant="montserrat-bold"
+													className="text-lg"
+													style={{ color: '#FFFFFF' }}
+												>
+													Submit
+												</StyledText>
+											</>
+										)}
+									</View>
+								</TouchableOpacity>
+							</View>
 						</View>
-					</View>
+					</KeyboardAwareScrollView>
 				</View>
 			</Modal>
 
@@ -398,7 +443,9 @@ const FeedbackModal = ({
 				title={alertConfig.title}
 				message={alertConfig.message}
 				buttons={alertConfig.buttons}
-				onDismiss={() => setAlertConfig({ ...alertConfig, visible: false })}
+				onDismiss={() =>
+					setAlertConfig({ ...alertConfig, visible: false })
+				}
 			/>
 		</>
 	);

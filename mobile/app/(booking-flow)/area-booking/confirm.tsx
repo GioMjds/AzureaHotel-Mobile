@@ -1,6 +1,6 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
 	View,
 	TouchableOpacity,
@@ -9,6 +9,7 @@ import {
 	Image,
 	TextInput,
 	Modal,
+	BackHandler
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -54,6 +55,7 @@ export default function ConfirmAreaBookingScreen() {
 	const [confirmedDownPayment, setConfirmedDownPayment] = useState<
 		number | null
 	>(null);
+	const [exitAlertVisible, setExitAlertVisible] = useState<boolean>(false);
 
 	const { alertConfig, setAlertConfig } = useAlertStore();
 
@@ -97,6 +99,37 @@ export default function ConfirmAreaBookingScreen() {
 
 	const areaData: Area = areaResponse?.data;
 
+	const createBookingMutation = useMutation({
+		mutationFn: (data: any) => booking.createAreaBooking(data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
+			showAlert(
+				'success',
+				'Booking Successful!',
+				'Your area booking has been submitted. You will receive a confirmation shortly.',
+				[
+					{
+						text: 'OK',
+						style: 'default',
+						onPress: () => {
+							hideAlert();
+							router.replace('/(screens)');
+						},
+					},
+				]
+			);
+		},
+		onError: (error: any) => {
+			console.error('Booking error:', error);
+			showAlert(
+				'error',
+				'Booking Failed',
+				'An error occurred while processing your booking. Please try again.',
+				[{ text: 'OK', style: 'default' }]
+			);
+		}
+	});
+
 	const showAlert = (
 		type: 'success' | 'error' | 'warning' | 'info',
 		title: string,
@@ -118,6 +151,27 @@ export default function ConfirmAreaBookingScreen() {
 
 	const hideAlert = () => {
 		setAlertConfig({ ...alertConfig, visible: false });
+	};
+
+	useFocusEffect(
+		useCallback(() => {
+			const backAction = () => {
+				setExitAlertVisible(true);
+				return true;
+			};
+
+			const backHandler = BackHandler.addEventListener(
+				'hardwareBackPress',
+				backAction
+			);
+
+			return () => backHandler.remove();
+		}, [])
+	);
+
+	const handleExitBooking = () => {
+		setExitAlertVisible(false);
+		router.back();
 	};
 
 	const formatDateTime = (dateTimeString: string | null) => {
@@ -325,13 +379,8 @@ export default function ConfirmAreaBookingScreen() {
 				});
 
 				if (result.success && result.sourceId) {
-					// CRITICAL: Store the source_id so we can verify payment when app returns
 					await AsyncStorage.setItem(
 						'paymongo_pending_source_id',
-						result.sourceId
-					);
-					console.log(
-						'✅ Stored source_id for verification:',
 						result.sourceId
 					);
 
@@ -366,62 +415,23 @@ export default function ConfirmAreaBookingScreen() {
 			return;
 		}
 
-		// STANDARD FLOW FOR OTHER PAYMENT METHODS (GCash, etc.)
-		setIsSubmitting(true);
+		const reservationData = {
+			firstName: pendingFormData.firstName,
+			lastName: pendingFormData.lastName,
+			phoneNumber: pendingFormData.phoneNumber.replace(/\s+/g, ''),
+			specialRequests: pendingFormData.specialRequests,
+			areaId: areaId,
+			startTime: new Date(startTime).toISOString(),
+			endTime: new Date(endTime).toISOString(),
+			totalPrice: finalPrice,
+			status: 'pending',
+			isVenueBooking: true,
+			numberOfGuests: pendingFormData.numberOfGuests,
+			paymentMethod: pendingFormData.paymentMethod,
+			paymentProof: gcashFile,
+		};
 
-		try {
-			const reservationData = {
-				firstName: pendingFormData.firstName,
-				lastName: pendingFormData.lastName,
-				phoneNumber: pendingFormData.phoneNumber.replace(/\s+/g, ''),
-				specialRequests: pendingFormData.specialRequests,
-				areaId: areaId,
-				startTime: new Date(startTime).toISOString(),
-				endTime: new Date(endTime).toISOString(),
-				totalPrice: finalPrice,
-				status: 'pending',
-				isVenueBooking: true,
-				numberOfGuests: pendingFormData.numberOfGuests,
-				paymentMethod: pendingFormData.paymentMethod,
-				paymentProof: gcashFile,
-			};
-
-			const bookingResponse =
-				await booking.createAreaBooking(reservationData);
-			const createdBookingId =
-				bookingResponse.data?.id || bookingResponse.id;
-
-			// Show success message for GCash bookings
-			setTimeout(() => {
-				setIsSubmitting(false);
-				showAlert(
-					'success',
-					'Booking Successful!',
-					'Your area booking has been submitted. You will receive a confirmation shortly.',
-					[
-						{
-							text: 'OK',
-							style: 'default',
-							onPress: () => {
-								hideAlert();
-								router.replace('/(screens)');
-							},
-						},
-					]
-				);
-			}, 1500);
-
-			queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
-		} catch (error: any) {
-			console.error('Booking error:', error);
-			setIsSubmitting(false);
-			showAlert(
-				'error',
-				'Booking Failed',
-				'An error occurred while processing your booking. Please try again.',
-				[{ text: 'OK', style: 'default' }]
-			);
-		}
+		createBookingMutation.mutate(reservationData);
 	};
 
 	if (isLoading) {
@@ -1040,9 +1050,9 @@ export default function ConfirmAreaBookingScreen() {
 				cancelText="Cancel"
 			/>
 
-			{/* Loading Overlay */}
+			{/* Loading Overlay - Checks both Manual state (PayMongo) and Mutation state (Standard) */}
 			<ConfirmingBooking
-				isVisible={isSubmitting}
+				isVisible={isSubmitting || createBookingMutation.isPending}
 				message="Securing your reservation and processing payment..."
 			/>
 
@@ -1149,6 +1159,27 @@ export default function ConfirmAreaBookingScreen() {
 				onConfirm={handlePayMongoAmountConfirm}
 				totalAmount={parseFloat(totalPrice || '0')}
 				isProcessing={isPayMongoProcessing}
+			/>
+
+			{/* Confirm Exit Booking */}
+			<StyledAlert
+				visible={exitAlertVisible}
+				type="warning"
+				title="Exit Booking"
+				message="Are you sure you want to exit? Your booking progress will be lost."
+				buttons={[
+					{
+						text: 'Cancel',
+						onPress: () => setExitAlertVisible(false),
+						style: 'cancel',
+					},
+					{
+						text: 'Exit',
+						onPress: handleExitBooking,
+						style: 'destructive',
+					},
+				]}
+				onDismiss={() => setExitAlertVisible(false)}
 			/>
 		</SafeAreaView>
 	);

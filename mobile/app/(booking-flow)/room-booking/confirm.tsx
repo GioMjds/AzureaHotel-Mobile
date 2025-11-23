@@ -1,6 +1,6 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
 	View,
 	TouchableOpacity,
@@ -10,6 +10,7 @@ import {
 	TextInput,
 	Platform,
 	Modal,
+	BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,6 +47,7 @@ interface FormData {
 
 export default function ConfirmRoomBookingScreen() {
 	const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+	// We keep isSubmitting for the PayMongo flow to preserve original logic
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 	const [gcashProof, setGcashProof] = useState<string | null>(null);
 	const [gcashFile, setGcashFile] = useState<any>(null);
@@ -62,6 +64,7 @@ export default function ConfirmRoomBookingScreen() {
 	const [confirmedDownPayment, setConfirmedDownPayment] = useState<
 		number | null
 	>(null);
+	const [exitAlertVisible, setExitAlertVisible] = useState<boolean>(false);
 
 	const { alertConfig, setAlertConfig } = useAlertStore();
 
@@ -108,6 +111,7 @@ export default function ConfirmRoomBookingScreen() {
 		},
 	});
 
+	// --- QUERY: Get Room Details ---
 	const { data: roomResponse, isLoading } = useQuery({
 		queryKey: ['room', roomId],
 		queryFn: () => booking.getRoomById(roomId!),
@@ -116,6 +120,41 @@ export default function ConfirmRoomBookingScreen() {
 	});
 
 	const roomData: Room = roomResponse?.data;
+
+	const createBookingMutation = useMutation({
+		mutationFn: (data: any) => booking.createRoomBooking(data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
+			
+			setAlertConfig({
+				visible: true,
+				type: 'success',
+				title: 'Booking Successful!',
+				message:
+					'Your room booking has been submitted. You will receive a confirmation shortly.',
+				buttons: [
+					{
+						text: 'OK',
+						style: 'default',
+						onPress: () => router.replace('/(screens)'),
+					},
+				],
+			});
+		},
+		onError: (error: any) => {
+			const errorMessage = error.response?.data?.error
+				? JSON.stringify(error.response.data.error, null, 2)
+				: error.message || 'An unknown error occurred';
+
+			setAlertConfig({
+				visible: true,
+				type: 'error',
+				title: 'Booking Failed',
+				message: `Error: ${errorMessage}`,
+				buttons: [{ text: 'OK', style: 'default' }],
+			});
+		}
+	});
 
 	const formatDateTime = (dateTimeString: string | null) => {
 		if (!dateTimeString) return '';
@@ -129,6 +168,27 @@ export default function ConfirmRoomBookingScreen() {
 
 	const formattedCheckIn = formatDateTime(checkInDate);
 	const formattedCheckOut = formatDateTime(checkOutDate);
+
+	useFocusEffect(
+		useCallback(() => {
+			const backAction = () => {
+				setExitAlertVisible(true);
+				return true;
+			};
+
+			const backHandler = BackHandler.addEventListener(
+				'hardwareBackPress',
+				backAction
+			);
+
+			return () => backHandler.remove();
+		}, [])
+	);
+
+	const handleExitBooking = () => {
+		setExitAlertVisible(false);
+		router.back();
+	};
 
 	const calculateNights = () => {
 		if (!checkInDate || !checkOutDate) return 0;
@@ -330,6 +390,7 @@ export default function ConfirmRoomBookingScreen() {
 
 		setShowConfirmModal(true);
 	};
+
 	const handlePayMongoAmountConfirm = (amount: number) => {
 		setConfirmedDownPayment(amount);
 		setShowPayMongoModal(false);
@@ -355,6 +416,7 @@ export default function ConfirmRoomBookingScreen() {
 
 		setShowConfirmModal(false);
 
+		// --- PAYMONGO FLOW (Kept manual to preserve redirect/hook logic) ---
 		if (pendingFormData.paymentMethod === 'paymongo') {
 			if (!confirmedDownPayment) {
 				setAlertConfig({
@@ -443,82 +505,41 @@ export default function ConfirmRoomBookingScreen() {
 			return;
 		}
 
-		setIsSubmitting(true);
+		const formData = new FormData();
+		formData.append('firstName', pendingFormData.firstName);
+		formData.append('lastName', pendingFormData.lastName);
+		formData.append(
+			'phoneNumber',
+			pendingFormData.phoneNumber.replace(/\s+/g, '')
+		);
+		formData.append(
+			'numberOfGuests',
+			pendingFormData.numberOfGuests.toString()
+		);
+		formData.append(
+			'specialRequests',
+			pendingFormData.specialRequests || ''
+		);
+		formData.append('roomId', roomId!);
+		formData.append('checkIn', checkInDate!);
+		formData.append('checkOut', checkOutDate!);
+		formData.append('totalPrice', totalPrice!);
+		formData.append('status', 'pending');
+		formData.append('isVenueBooking', 'false');
+		formData.append('paymentMethod', pendingFormData.paymentMethod);
 
-		try {
-			const formData = new FormData();
-			formData.append('firstName', pendingFormData.firstName);
-			formData.append('lastName', pendingFormData.lastName);
-			formData.append(
-				'phoneNumber',
-				pendingFormData.phoneNumber.replace(/\s+/g, '')
+		if (pendingFormData.arrivalTime) {
+			const arrivalTime24h = convertTo24Hour(
+				pendingFormData.arrivalTime
 			);
-			formData.append(
-				'numberOfGuests',
-				pendingFormData.numberOfGuests.toString()
-			);
-			formData.append(
-				'specialRequests',
-				pendingFormData.specialRequests || ''
-			);
-			formData.append('roomId', roomId!);
-			formData.append('checkIn', checkInDate!);
-			formData.append('checkOut', checkOutDate!);
-			formData.append('totalPrice', totalPrice!);
-			formData.append('status', 'pending');
-			formData.append('isVenueBooking', 'false');
-			formData.append('paymentMethod', pendingFormData.paymentMethod);
-
-			if (pendingFormData.arrivalTime) {
-				const arrivalTime24h = convertTo24Hour(
-					pendingFormData.arrivalTime
-				);
-				formData.append('arrivalTime', arrivalTime24h);
-			}
-
-			if (pendingFormData.paymentMethod === 'gcash' && gcashFile) {
-				formData.append('paymentProof', gcashFile as any);
-			}
-
-			const bookingResponse = await booking.createRoomBooking(formData);
-			const createdBookingId =
-				bookingResponse.data?.id || bookingResponse.id;
-
-			setTimeout(() => {
-				setIsSubmitting(false);
-				setAlertConfig({
-					visible: true,
-					type: 'success',
-					title: 'Booking Successful!',
-					message:
-						'Your room booking has been submitted. You will receive a confirmation shortly.',
-					buttons: [
-						{
-							text: 'OK',
-							style: 'default',
-							onPress: () => router.replace('/(screens)'),
-						},
-					],
-				});
-			}, 1500);
-
-			queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
-		} catch (error: any) {
-			console.error('❌ Booking error:', error);
-			setIsSubmitting(false);
-
-			const errorMessage = error.response?.data?.error
-				? JSON.stringify(error.response.data.error, null, 2)
-				: error.message || 'An unknown error occurred';
-
-			setAlertConfig({
-				visible: true,
-				type: 'error',
-				title: 'Booking Failed',
-				message: `Error: ${errorMessage}`,
-				buttons: [{ text: 'OK', style: 'default' }],
-			});
+			formData.append('arrivalTime', arrivalTime24h);
 		}
+
+		if (pendingFormData.paymentMethod === 'gcash' && gcashFile) {
+			formData.append('paymentProof', gcashFile as any);
+		}
+
+		createBookingMutation.mutate(formData);
 	};
 
 	if (isLoading) {
@@ -887,7 +908,8 @@ export default function ConfirmRoomBookingScreen() {
 								variant="montserrat-regular"
 								className="text-sm mt-1"
 							>
-								Expected arrival time between 2:00 PM and 11:00 PM.
+								Expected arrival time between 2:00 PM and 11:00
+								PM.
 							</StyledText>
 							{errors.arrivalTime && (
 								<StyledText className="text-feedback-error-DEFAULT font-montserrat text-sm mt-1">
@@ -1285,7 +1307,7 @@ export default function ConfirmRoomBookingScreen() {
 
 			{/* Loading Overlay */}
 			<ConfirmingBooking
-				isVisible={isSubmitting}
+				isVisible={isSubmitting || createBookingMutation.isPending}
 				message="Securing your reservation and processing payment..."
 			/>
 
@@ -1398,6 +1420,27 @@ export default function ConfirmRoomBookingScreen() {
 				onDismiss={() =>
 					setAlertConfig({ ...alertConfig, visible: false })
 				}
+			/>
+
+			{/* Confirm Exit Booking */}
+			<StyledAlert 
+				visible={exitAlertVisible}
+				type="warning"
+				title="Exit Booking"
+				message="Are you sure you want to exit? Your booking progress will be lost."
+				buttons={[
+					{
+						text: 'Cancel',
+						onPress: () => setExitAlertVisible(false),
+						style: 'cancel',
+					},
+					{
+						text: 'Exit',
+						onPress: handleExitBooking,
+						style: 'destructive',
+					},
+				]}
+				onDismiss={() => setExitAlertVisible(false)}
 			/>
 		</SafeAreaView>
 	);

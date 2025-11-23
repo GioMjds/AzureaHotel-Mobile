@@ -8,7 +8,7 @@ import {
     BackHandler
 } from 'react-native';
 import { useState, useCallback } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { auth } from '@/services/UserAuth';
 import BookingCard from '@/components/bookings/BookingCard';
 import StatusFilter from '@/components/bookings/StatusFilter';
@@ -22,6 +22,7 @@ import { useNetwork } from '@/components/NetworkProvider';
 
 export default function BookingsScreen() {
     const [selectedStatus, setSelectedStatus] = useState<string>('');
+    const [currentPage, setCurrentPage] = useState<number>(1);
     const [feedbackModalVisible, setFeedbackModalVisible] = useState<boolean>(false);
     const [selectedBookingForFeedback, setSelectedBookingForFeedback] = useState<any>(null);
     const [exitAlertVisible, setExitAlertVisible] = useState<boolean>(false);
@@ -33,41 +34,27 @@ export default function BookingsScreen() {
         isLoading, 
         error, 
         refetch, 
-        isFetching,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage
-    } = useInfiniteQuery({
-        queryKey: ['guest-bookings', selectedStatus],
-        queryFn: async ({ pageParam }) => {
-            return await auth.getGuestBookings({
+        isFetching
+    } = useQuery({
+        queryKey: ['guest-bookings', selectedStatus, currentPage],
+        queryFn: () => {
+            return auth.getGuestBookings({
                 status: selectedStatus,
-                page: pageParam,
-                page_size: 5,
+                page: currentPage,
+                page_size: 10,
             });
         },
-        getNextPageParam: (lastPage) => {
-            const currentPage = lastPage?.pagination?.current_page;
-            const totalPages = lastPage?.pagination?.total_pages;
-            
-            // Only return next page number if there are more pages
-            if (currentPage && totalPages && currentPage < totalPages) {
-                return currentPage + 1;
-            }
-            return undefined;
-        },
-        initialPageParam: 1,
-        staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh
-        gcTime: 10 * 60 * 1000, // 10 minutes - cache time
-        refetchOnMount: false, // Don't refetch on component mount
-        refetchOnWindowFocus: false, // Don't refetch when window gains focus
-        refetchOnReconnect: true, // Only refetch when reconnecting to network
-        enabled: true
     });
 
-    const allBookings = data?.pages?.flatMap(page => page.data) || [];
+    const allBookings = data?.data || [];
+    const pagination = data?.pagination;
     const bookingIds = allBookings.map((booking: any) => booking.id);
     const firstBookingId = bookingIds.length > 0 ? bookingIds[0] : undefined;
+
+    const handleStatusChange = useCallback((newStatus: string) => {
+        setSelectedStatus(newStatus);
+        setCurrentPage(1);
+    }, []);
 
     useFocusEffect(
         useCallback(() => {
@@ -94,28 +81,66 @@ export default function BookingsScreen() {
 
     useBookingUpdates(firstBookingId);
 
-    const handleLoadMore = useCallback(() => {
-        if (hasNextPage && !isFetchingNextPage) {
-            fetchNextPage();
+    const handleNextPage = useCallback(() => {
+        if (pagination && currentPage < pagination.total_pages) {
+            setCurrentPage(prev => prev + 1);
         }
-    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+    }, [pagination, currentPage]);
 
-    const renderFooter = useCallback(() => {
-        if (!isFetchingNextPage) return null;
-        
+    const handlePreviousPage = useCallback(() => {
+        if (currentPage > 1) {
+            setCurrentPage(prev => prev - 1);
+        }
+    }, [currentPage]);
+
+    const renderPagination = useCallback(() => {
+        if (!pagination || pagination.total_pages <= 1) return null;
+
         return (
-            <View className="py-4 items-center">
-                <ActivityIndicator size="small" color="#6F00FF" />
-                <Text className="text-text-muted font-montserrat text-sm mt-2">
-                    Loading more bookings...
-                </Text>
+            <View className="flex-row items-center justify-center py-4 px-4 bg-background-elevated border-t border-border-subtle">
+                <TouchableOpacity
+                    onPress={handlePreviousPage}
+                    disabled={currentPage === 1}
+                    className={`px-4 py-2 rounded-lg mr-2 ${
+                        currentPage === 1 
+                            ? 'bg-gray-200' 
+                            : 'bg-interactive-primary-DEFAULT active:bg-interactive-primary-pressed'
+                    }`}
+                >
+                    <Ionicons 
+                        name="chevron-back" 
+                        size={20} 
+                        color={currentPage === 1 ? '#9CA3AF' : '#FFF1F1'} 
+                    />
+                </TouchableOpacity>
+
+                <View className="px-4">
+                    <Text className="font-montserrat-bold text-text-primary">
+                        Page {currentPage} of {pagination.total_pages}
+                    </Text>
+                    <Text className="font-montserrat text-xs text-text-muted text-center">
+                        {pagination.total_items} total bookings
+                    </Text>
+                </View>
+
+                <TouchableOpacity
+                    onPress={handleNextPage}
+                    disabled={currentPage === pagination.total_pages}
+                    className={`px-4 py-2 rounded-lg ml-2 ${
+                        currentPage === pagination.total_pages 
+                            ? 'bg-gray-200' 
+                            : 'bg-interactive-primary-DEFAULT active:bg-interactive-primary-pressed'
+                    }`}
+                >
+                    <Ionicons 
+                        name="chevron-forward" 
+                        size={20} 
+                        color={currentPage === pagination.total_pages ? '#9CA3AF' : '#FFF1F1'} 
+                    />
+                </TouchableOpacity>
             </View>
         );
-    }, [isFetchingNextPage]);
-
-    const renderItem = useCallback(({ item }: { item: any }) => (
-        <BookingCard item={item} onLeaveFeedback={handleLeaveFeedback} />
-    ), []);
+    }, [pagination, currentPage, handleNextPage, handlePreviousPage]);
 
     const handleLeaveFeedback = useCallback((booking: any) => {
         setSelectedBookingForFeedback(booking);
@@ -126,6 +151,18 @@ export default function BookingsScreen() {
         setFeedbackModalVisible(false);
         setSelectedBookingForFeedback(null);
     }, []);
+
+    const renderItem = useCallback(({ item, index }: { item: any; index: number }) => {
+        const isLast = index === allBookings.length - 1;
+
+        return (
+            <BookingCard
+                item={item}
+                onLeaveFeedback={handleLeaveFeedback}
+                footer={isLast ? renderPagination() : undefined}
+            />
+        );
+    }, [allBookings.length, handleLeaveFeedback, renderPagination]);
 
     const keyExtractor = useCallback((item: any, index: number) => `${item.id}-${index}`, []);
 
@@ -194,7 +231,7 @@ export default function BookingsScreen() {
 
             <StatusFilter 
                 selectedStatus={selectedStatus} 
-                onStatusChange={setSelectedStatus} 
+                onStatusChange={handleStatusChange} 
             />
 
             <FlatList
@@ -203,16 +240,13 @@ export default function BookingsScreen() {
                 renderItem={renderItem}
                 refreshControl={
                     <RefreshControl 
-                        refreshing={isFetching && !isFetchingNextPage} 
+                        refreshing={isFetching} 
                         onRefresh={refetch}
                         colors={['#6F00FF']}
                         tintColor="#6F00FF"
                     />
                 }
                 contentContainerStyle={{ paddingBottom: 140, paddingTop: 55 }}
-                onEndReached={handleLoadMore}
-                onEndReachedThreshold={0.5}
-                ListFooterComponent={renderFooter}
                 ListEmptyComponent={() => (
                     <View className="flex-1 justify-center items-center py-12">
                         <Ionicons name="calendar-outline" size={64} color="#d1d5db" />
@@ -229,11 +263,10 @@ export default function BookingsScreen() {
                 )}
                 showsVerticalScrollIndicator={false}
                 removeClippedSubviews={true}
-                maxToRenderPerBatch={5}
+                maxToRenderPerBatch={10}
                 windowSize={10}
-                initialNumToRender={5}
+                initialNumToRender={10}
             />
-
             {selectedBookingForFeedback && (
                 <FeedbackModal
                     visible={feedbackModalVisible}
