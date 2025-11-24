@@ -37,6 +37,14 @@ export interface AvailabilityUpdate {
 class FirebaseRealtimeService {
 	private listeners: Map<string, () => void> = new Map();
 	private queryClient?: any;
+	// Throttle / debounce guard to avoid excessive invalidations
+	private lastInvalidationAt: number = 0;
+	private invalidationThrottleMs: number = 1000; // 1s throttle by default
+	private pendingInvalidateTimer: ReturnType<typeof setTimeout> | null = null;
+	private pendingBookingInvalidations: Set<number> = new Set();
+	private pendingInvalidateGuestBookings: boolean = false;
+	private pendingInvalidateRooms: boolean = false;
+	private pendingInvalidateAreas: boolean = false;
 	private hasConnectedListener = false;
 
 	setQueryClient(client: any) {
@@ -102,12 +110,8 @@ class FirebaseRealtimeService {
 
 					// Invalidate booking queries
 					if (this.queryClient) {
-						this.queryClient.invalidateQueries({
-							queryKey: ['guest-bookings'],
-						});
-						this.queryClient.invalidateQueries({
-							queryKey: ['booking', bookingId],
-						});
+						// Throttle invalidations to avoid tight loops when many realtime events arrive
+						this.scheduleInvalidation({ guestBookings: true, bookingIds: [bookingId] });
 					}
 				}
 			});
@@ -137,12 +141,7 @@ class FirebaseRealtimeService {
 
 					// Invalidate room queries
 					if (this.queryClient) {
-						this.queryClient.invalidateQueries({
-							queryKey: ['rooms'],
-						});
-						this.queryClient.invalidateQueries({
-							queryKey: ['room', roomId],
-						});
+						this.scheduleInvalidation({ rooms: true });
 					}
 				}
 			});
@@ -172,12 +171,7 @@ class FirebaseRealtimeService {
 
 					// Invalidate area queries
 					if (this.queryClient) {
-						this.queryClient.invalidateQueries({
-							queryKey: ['areas'],
-						});
-						this.queryClient.invalidateQueries({
-							queryKey: ['area', areaId],
-						});
+						this.scheduleInvalidation({ areas: true });
 					}
 				}
 			});
@@ -196,36 +190,101 @@ class FirebaseRealtimeService {
 	) {
 		if (!this.queryClient) return;
 
+		// Collect invalidation targets and schedule a single batched invalidation
+		const bookingIdsToInvalidate: number[] = [];
+		let invalidateGuestBookings = false;
+		let invalidateRooms = false;
+		let invalidateAreas = false;
+
 		notifications.forEach((notification) => {
 			switch (notification.type) {
 				case 'booking_update':
 					if (notification.booking_id) {
-						this.queryClient.invalidateQueries({
-							queryKey: ['guest-bookings'],
-						});
-						this.queryClient.invalidateQueries({
-							queryKey: ['booking', notification.booking_id],
-						});
+						invalidateGuestBookings = true;
+						bookingIdsToInvalidate.push(notification.booking_id);
 					}
 					break;
 				case 'booking_deleted':
-					this.queryClient.invalidateQueries({
-						queryKey: ['guest-bookings'],
-					});
+					invalidateGuestBookings = true;
 					if (notification.booking_id) {
-						this.queryClient.removeQueries({
-							queryKey: ['booking', notification.booking_id],
-						});
+						bookingIdsToInvalidate.push(notification.booking_id);
 					}
 					break;
 				case 'room_availability':
-					this.queryClient.invalidateQueries({ queryKey: ['rooms'] });
+					invalidateRooms = true;
 					break;
 				case 'area_availability':
-					this.queryClient.invalidateQueries({ queryKey: ['areas'] });
+					invalidateAreas = true;
 					break;
 			}
 		});
+
+		this.scheduleInvalidation({
+			guestBookings: invalidateGuestBookings,
+			bookingIds: bookingIdsToInvalidate,
+			rooms: invalidateRooms,
+			areas: invalidateAreas,
+		});
+	}
+
+	// Schedule (debounce) invalidation so many realtime events collapse into one refetch
+	private scheduleInvalidation(opts: {
+		guestBookings?: boolean;
+		bookingIds?: number[];
+		rooms?: boolean;
+		areas?: boolean;
+	}) {
+		if (!this.queryClient) return;
+
+		if (opts.bookingIds && opts.bookingIds.length > 0) {
+			opts.bookingIds.forEach((id) => this.pendingBookingInvalidations.add(id));
+		}
+
+		if (opts.guestBookings) this.pendingInvalidateGuestBookings = true;
+		if (opts.rooms) this.pendingInvalidateRooms = true;
+		if (opts.areas) this.pendingInvalidateAreas = true;
+
+		if (this.pendingInvalidateTimer) {
+			// already scheduled; merge flags and exit
+			// we still ensure guestBookings, rooms, areas flags are represented via timer payload by reading pending sets
+			return;
+		}
+
+		this.pendingInvalidateTimer = setTimeout(() => {
+			// perform actual invalidations once
+			try {
+				// Guest bookings
+				if (this.pendingInvalidateGuestBookings || this.pendingBookingInvalidations.size > 0) {
+					this.queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
+				}
+
+				// Specific booking details
+				if (this.pendingBookingInvalidations.size > 0) {
+					this.pendingBookingInvalidations.forEach((bid) => {
+						this.queryClient.invalidateQueries({ queryKey: ['booking', bid] });
+					});
+					this.pendingBookingInvalidations.clear();
+				}
+
+				// Rooms and areas (less frequent)
+				if (this.pendingInvalidateRooms) {
+					this.queryClient.invalidateQueries({ queryKey: ['rooms'] });
+					this.pendingInvalidateRooms = false;
+				}
+				if (this.pendingInvalidateAreas) {
+					this.queryClient.invalidateQueries({ queryKey: ['areas'] });
+					this.pendingInvalidateAreas = false;
+				}
+			} finally {
+				this.lastInvalidationAt = Date.now();
+				// reset guest bookings flag
+				this.pendingInvalidateGuestBookings = false;
+				if (this.pendingInvalidateTimer) {
+					clearTimeout(this.pendingInvalidateTimer);
+					this.pendingInvalidateTimer = null;
+				}
+			}
+		}, this.invalidationThrottleMs);
 	}
 
 	// Mark notification as read

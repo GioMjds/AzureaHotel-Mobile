@@ -122,7 +122,6 @@ class BookingSerializer(serializers.ModelSerializer):
                 price_per_night = float(getattr(instance.room, 'price_per_night', None) or instance.room.room_price)
                 original_total = price_per_night * nights
                 
-                # Build list of all applicable discounts
                 available_discounts = []
                 
                 # 1. Admin discount (from room.discount_percent)
@@ -221,13 +220,7 @@ class BookingRequestSerializer(serializers.Serializer):
     def validate(self, data):
         errors = {}
         room = None
-        
-        # Note: For PayMongo integration we accept a numeric downPayment instead of forcing an uploaded file.
-        # This keeps backwards compatibility: if a file is present it will still be uploaded, otherwise
-        # the frontend should send 'downPayment' to initialize PayMongo.
-        payment_method = data.get('paymentMethod') or data.get('payment_method')
-        payment_proof = data.get('paymentProof') or data.get('payment_proof')
-        
+
         try:
             if not data.get('isVenueBooking', False):
                 room = Rooms.objects.get(id=data.get('roomId'))
@@ -251,7 +244,6 @@ class BookingRequestSerializer(serializers.Serializer):
             # Prefer downPayment for PayMongo flows
             down_payment_val = validated_data.get('downPayment') or validated_data.get('down_payment')
             if down_payment_val is None:
-                # Fallback: if a file was uploaded (old flow), upload to Cloudinary
                 if payment_proof_file:
                     try:
                         upload_result = cloudinary.uploader.upload(payment_proof_file)
@@ -259,8 +251,6 @@ class BookingRequestSerializer(serializers.Serializer):
                     except Exception as e:
                         raise serializers.ValidationError(f"Error uploading payment proof: {str(e)}")
                 else:
-                    # Neither down payment nor file provided: allow backend to proceed but keep payment incomplete
-                    # (Frontend may initiate PayMongo after creating booking)
                     pass
 
         if request and hasattr(request, 'user') and request.user.is_authenticated:
@@ -330,11 +320,8 @@ class BookingRequestSerializer(serializers.Serializer):
                 if 'endTime' in validated_data and validated_data['endTime']:
                     end_time = datetime.strptime(validated_data['endTime'], "%H:%M").time()
                 
-                # For venue bookings, fallback to frontend value or 0
                 original_price = float(validated_data.get('totalPrice', 0))
-                
-                # For venue bookings, the frontend already sends the final discounted price
-                # Don't apply additional discount, just use the provided price
+
                 total_price = original_price
 
                 booking = Bookings.objects.create(
@@ -401,7 +388,6 @@ class BookingRequestSerializer(serializers.Serializer):
                 discounted_price = price_per_night * (1 - discount_percent / 100)
                 total_price = discounted_price * nights
                 
-                
                 booking = Bookings.objects.create(
                     user=user,
                     room=room,
@@ -419,7 +405,6 @@ class BookingRequestSerializer(serializers.Serializer):
                     payment_proof=payment_proof_url,
                     payment_date=timezone.now() if payment_method == 'gcash' else None,
                 )
-                
                 
                 if user.is_verified != 'verified':
                     user.last_booking_date = timezone.now().date()
@@ -499,69 +484,3 @@ class ReviewSerializer(serializers.ModelSerializer):
             validated_data['room'] = validated_data['booking'].room
             
         return super().create(validated_data)
-
-# CraveOn Food Order Review Serializer
-class CraveOnReviewSerializer(serializers.ModelSerializer):
-    order_details = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = CraveOnReview
-        fields = ['id', 'order_id', 'rating', 'comment', 'created_at', 'order_details']
-        read_only_fields = ['id', 'created_at']
-    
-    def get_order_details(self, obj):
-        """Get order details from CraveOn database"""
-        from django.db import connections
-        try:
-            cursor = connections['SystemInteg'].cursor()
-            cursor.execute("""
-                SELECT o.order_id, o.total_amount, o.status, o.guest_name, 
-                       o.hotel_room_area, o.ordered_at
-                FROM orders o 
-                WHERE o.order_id = %s
-            """, [obj.order_id])
-            
-            result = cursor.fetchone()
-            if result:
-                return {
-                    'order_id': result[0],
-                    'total_amount': float(result[1]),
-                    'status': result[2],
-                    'guest_name': result[3],
-                    'hotel_room_area': result[4],
-                    'ordered_at': result[5]
-                }
-        except Exception as e:
-            return None
-        return None
-    
-    def validate_rating(self, value):
-        if value < 1 or value > 5:
-            raise serializers.ValidationError("Rating must be between 1 and 5")
-        return value
-    
-    def validate_order_id(self, value):
-        """Validate that the order exists and is completed"""
-        from django.db import connections
-        try:
-            cursor = connections['SystemInteg'].cursor()
-            cursor.execute("SELECT status FROM orders WHERE order_id = %s", [value])
-            result = cursor.fetchone()
-            
-            if not result:
-                raise serializers.ValidationError("Order not found")
-            
-            if result[0] != 'Completed':
-                raise serializers.ValidationError("Only completed orders can be reviewed")
-            
-            # Check if already reviewed
-            cursor.execute("SELECT id FROM reviews WHERE order_id = %s", [value])
-            if cursor.fetchone():
-                raise serializers.ValidationError("This order has already been reviewed")
-                
-        except Exception as e:
-            if "already been reviewed" in str(e) or "not found" in str(e) or "completed orders" in str(e):
-                raise e
-            raise serializers.ValidationError("Error validating order")
-        
-        return value

@@ -35,6 +35,7 @@ import StyledText from '@/components/ui/StyledText';
 import StyledAlert from '@/components/ui/StyledAlert';
 import { usePaymongo } from '@/hooks/usePayMongo';
 import { convertTo24Hour, formatDateTime, validateCheckInTime } from '@/utils/formatters';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 interface FormData {
 	firstName: string;
@@ -512,7 +513,13 @@ export default function ConfirmRoomBookingScreen() {
 				</View>
 			</View>
 
-			<ScrollView className="flex-1">
+			<KeyboardAwareScrollView
+				className="flex-1"
+				enableOnAndroid={true}
+				keyboardShouldPersistTaps="handled"
+				extraScrollHeight={Platform.OS === 'ios' ? 20 : 120}
+				contentContainerStyle={{ flexGrow: 1 }}
+			>
 				<View className="p-6">
 					{/* Room Info Card */}
 					{roomData && (
@@ -1233,7 +1240,7 @@ export default function ConfirmRoomBookingScreen() {
 						</StyledText>
 					</TouchableOpacity>
 				</View>
-			</ScrollView>
+			</KeyboardAwareScrollView>
 
 			{/* Confirmation Modal */}
 			<ConfirmBookingModal

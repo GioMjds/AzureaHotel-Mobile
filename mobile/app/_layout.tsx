@@ -13,7 +13,6 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { useFirebaseNotifications } from '@/hooks/useFirebaseNotifications';
 import { NetworkProvider } from '@/components/NetworkProvider';
-
 import messaging, {
 	registerDeviceForRemoteMessages,
 	getToken,

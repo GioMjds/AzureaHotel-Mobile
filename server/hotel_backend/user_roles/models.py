@@ -69,25 +69,6 @@ class Notification(models.Model):
     class Meta:
         db_table = 'notifications'
 
-class CraveOnUser(models.Model):
-    user_id = models.AutoField(primary_key=True)
-    first_name = models.CharField(max_length=100)
-    middle_name = models.CharField(max_length=100, null=True, blank=True)
-    last_name = models.CharField(max_length=100)
-    email = models.CharField(max_length=100)
-    contact = models.CharField(max_length=11)
-    address = models.TextField()
-    password = models.CharField(max_length=100)
-    is_archived = models.BooleanField(default=False)
-    status = models.CharField(max_length=20, default='Active')
-    user_img = models.TextField(null=True, blank=True)
-
-    class Meta:
-        managed = False  # Don't let Django manage this table
-        db_table = 'customers'
-        app_label = 'craveon'  # Use a separate app label for routing
-
-
 class DeviceToken(models.Model):
     """Stores device FCM tokens optionally linked to a user. Useful for sending pushes to guests/devices."""
     token = models.CharField(max_length=512, unique=True)

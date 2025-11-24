@@ -20,6 +20,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from 'expo-router';
 import { useNetwork } from '@/components/NetworkProvider';
 import StyledText from '@/components/ui/StyledText';
+import useAuthStore from '@/store/AuthStore';
 
 export default function BookingsScreen() {
     const [selectedStatus, setSelectedStatus] = useState<string>('');
@@ -29,6 +30,7 @@ export default function BookingsScreen() {
     const [exitAlertVisible, setExitAlertVisible] = useState<boolean>(false);
 
     const { isOffline } = useNetwork();
+    const { user } = useAuthStore();
 
     const { 
         data,  
@@ -45,6 +47,7 @@ export default function BookingsScreen() {
                 page_size: 10,
             });
         },
+        enabled: !!user,
     });
 
     const allBookings = data?.data || [];

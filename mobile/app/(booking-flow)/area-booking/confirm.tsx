@@ -4,17 +4,16 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
 	View,
 	TouchableOpacity,
-	ScrollView,
 	ActivityIndicator,
 	Image,
 	TextInput,
 	Modal,
-	BackHandler
+	BackHandler,
+	Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { format, parseISO } from 'date-fns';
 import { useForm, Controller } from 'react-hook-form';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useAuthStore from '@/store/AuthStore';
@@ -28,6 +27,8 @@ import { Area } from '@/types/Area.types';
 import StyledAlert from '@/components/ui/StyledAlert';
 import StyledText from '@/components/ui/StyledText';
 import { usePaymongo } from '@/hooks/usePayMongo';
+import { formatDateTime } from '@/utils/formatters';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 interface FormData {
 	firstName: string;
@@ -172,16 +173,6 @@ export default function ConfirmAreaBookingScreen() {
 	const handleExitBooking = () => {
 		setExitAlertVisible(false);
 		router.back();
-	};
-
-	const formatDateTime = (dateTimeString: string | null) => {
-		if (!dateTimeString) return '';
-		try {
-			const date = parseISO(dateTimeString);
-			return format(date, 'EEE, MMM dd, yyyy');
-		} catch {
-			return dateTimeString;
-		}
 	};
 
 	const formattedStartTime = formatDateTime(startTime);
@@ -463,7 +454,13 @@ export default function ConfirmAreaBookingScreen() {
 				</View>
 			</View>
 
-			<ScrollView className="flex-1">
+			<KeyboardAwareScrollView
+				className="flex-1"
+				enableOnAndroid={true}
+				keyboardShouldPersistTaps="handled"
+				extraScrollHeight={Platform.OS === 'ios' ? 20 : 120}
+				contentContainerStyle={{ flexGrow: 1 }}
+			>
 				<View className="p-6">
 					{/* Area Info Card */}
 					{areaData && (
@@ -1027,7 +1024,7 @@ export default function ConfirmAreaBookingScreen() {
 						</StyledText>
 					</TouchableOpacity>
 				</View>
-			</ScrollView>
+			</KeyboardAwareScrollView>
 
 			{/* Styled Alert */}
 			<StyledAlert

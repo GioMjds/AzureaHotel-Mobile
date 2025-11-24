@@ -157,20 +157,7 @@ DATABASES = {
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
     },
-    'craveon': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'SystemInteg',
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
-    }
 }
-
-DATABASE_ROUTERS = [
-    'user_roles.routers.AuthRouter',
-    'booking.routers.CraveOnRouter',
-]
 
 # Firebase configuration
 FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID')
@@ -192,14 +179,6 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
-    },
-    'SystemInteg': {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": os.getenv('CRAVEON_DB_NAME'),
-        "USER": os.getenv('CRAVEON_DB_USER'),
-        "PASSWORD": os.getenv('CRAVEON_DB_PASSWORD'),
-        "HOST": os.getenv('CRAVEON_DB_HOST'),
-        "PORT": os.getenv('CRAVEON_DB_PORT'),
     }
 }
 

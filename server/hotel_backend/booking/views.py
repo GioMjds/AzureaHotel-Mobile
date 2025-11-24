@@ -131,37 +131,15 @@ def bookings_list(request):
             }, status=status.HTTP_200_OK)
             
         elif request.method == 'POST':
-            # Log incoming payload for debugging
-            try:
-                logger.info('Incoming booking POST: %s', json.dumps(request.data.dict() if hasattr(request.data, 'dict') else dict(request.data)))
-            except Exception:
-                logger.info('Incoming booking POST (raw): %s', str(request.data))
-
-            # Log files with details
-            file_keys = list(request.FILES.keys())
-            logger.info('Incoming files keys: %s', file_keys)
-            for fk in file_keys:
-                try:
-                    f = request.FILES.get(fk)
-                    logger.info('File key=%s, name=%s, content_type=%s, size=%s', fk, getattr(f, 'name', None), getattr(f, 'content_type', None), getattr(f, 'size', None))
-                except Exception:
-                    logger.info('File key=%s could not be logged in detail', fk)
-
             request_data = request.data.copy()
 
-            # Backwards compatibility: ensure uploaded file is available under 'paymentProof'
-            # The serializer expects to read the file from request.FILES.get('paymentProof')
             try:
-                # If client uploaded under snake_case 'payment_proof', mirror it to camelCase in the underlying WSGI request
                 if 'payment_proof' in request.FILES and 'paymentProof' not in request.FILES:
                     try:
-                        # request._request is the original HttpRequest which holds a mutable FILES dict
                         request._request.FILES['paymentProof'] = request._request.FILES.get('payment_proof')
-                        logger.info('Mirrored request.FILES["payment_proof"] to request.FILES["paymentProof"]')
                     except Exception as e:
                         logger.warning('Could not mirror payment_proof to paymentProof: %s', str(e))
 
-                # If client used camelCase already, nothing to do
             except Exception:
                 logger.exception('Error while normalizing uploaded file keys')
             unauthenticated = not (request.user and request.user.is_authenticated)
