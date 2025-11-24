@@ -19,6 +19,7 @@ import StyledAlert from '@/components/ui/StyledAlert';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from 'expo-router';
 import { useNetwork } from '@/components/NetworkProvider';
+import StyledText from '@/components/ui/StyledText';
 
 export default function BookingsScreen() {
     const [selectedStatus, setSelectedStatus] = useState<string>('');
@@ -74,9 +75,7 @@ export default function BookingsScreen() {
 
     const handleExitApp = () => {
         setExitAlertVisible(false);
-        setTimeout(() => {
-            BackHandler.exitApp();
-        }, 100);
+        BackHandler.exitApp();
     };
 
     useBookingUpdates(firstBookingId);
@@ -104,7 +103,7 @@ export default function BookingsScreen() {
                     className={`px-4 py-2 rounded-lg mr-2 ${
                         currentPage === 1 
                             ? 'bg-gray-200' 
-                            : 'bg-interactive-primary-DEFAULT active:bg-interactive-primary-pressed'
+                            : 'bg-interactive-primary active:bg-interactive-primary-pressed'
                     }`}
                 >
                     <Ionicons 
@@ -115,12 +114,12 @@ export default function BookingsScreen() {
                 </TouchableOpacity>
 
                 <View className="px-4">
-                    <Text className="font-montserrat-bold text-text-primary">
+                    <StyledText variant='montserrat-bold' className="text-md text-text-primary text-center">
                         Page {currentPage} of {pagination.total_pages}
-                    </Text>
-                    <Text className="font-montserrat text-xs text-text-muted text-center">
+                    </StyledText>
+                    <StyledText variant='montserrat-regular' className="text-sm text-text-muted text-center">
                         {pagination.total_items} total bookings
-                    </Text>
+                    </StyledText>
                 </View>
 
                 <TouchableOpacity
@@ -129,7 +128,7 @@ export default function BookingsScreen() {
                     className={`px-4 py-2 rounded-lg ml-2 ${
                         currentPage === pagination.total_pages 
                             ? 'bg-gray-200' 
-                            : 'bg-interactive-primary-DEFAULT active:bg-interactive-primary-pressed'
+                            : 'bg-interactive-primary active:bg-interactive-primary-pressed'
                     }`}
                 >
                     <Ionicons 

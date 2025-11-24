@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Text,
     TextInput,
@@ -31,8 +31,9 @@ export default function VerifyRegisterOTPScreen() {
     const [countdown, setCountdown] = useState<number>(120);
     const [canResend, setCanResend] = useState<boolean>(false);
 	const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
-	const [otpInputRefs, setOtpInputRefs] = useState<(TextInput | null)[]>([]);
-	const { alertConfig, setAlertConfig } = useAlertStore();
+	const otpInputRefs = useRef<(TextInput | null)[]>([]);
+
+	const { alertConfig, setAlertConfig, hideAlert } = useAlertStore();
 
 	const showStyledAlert = (opts: {
 		title: string;
@@ -47,7 +48,9 @@ export default function VerifyRegisterOTPScreen() {
 			message: opts.message,
 			buttons: opts.buttons || [{ text: 'OK' }],
 		});
-	};    const { login } = useAuth();
+	};
+
+    const { login } = useAuth();
 
     useEffect(() => {
         const loadStoredData = async () => {
@@ -139,14 +142,14 @@ export default function VerifyRegisterOTPScreen() {
 
         // Auto-focus next input
         if (text && index < 5) {
-            otpInputRefs[index + 1]?.focus();
+            otpInputRefs.current[index + 1]?.focus();
         }
     };
 
     const handleOtpKeyPress = (e: any, index: number) => {
         // Handle backspace
         if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
-            otpInputRefs[index - 1]?.focus();
+            otpInputRefs.current[index - 1]?.focus();
         }
     };
 
@@ -226,9 +229,7 @@ export default function VerifyRegisterOTPScreen() {
                                     <TextInput
                                         key={index}
                                         ref={(ref) => {
-                                            const newRefs = [...otpInputRefs];
-                                            newRefs[index] = ref;
-                                            if (index === 5) setOtpInputRefs(newRefs);
+                                            if (ref) otpInputRefs.current[index] = ref;
                                         }}
                                         className="bg-input-background border-2 border-input-border focus:border-input-border-focus rounded-2xl w-12 h-14 text-center text-text-primary font-montserrat-bold text-2xl"
                                         value={otp[index]}
@@ -324,12 +325,12 @@ export default function VerifyRegisterOTPScreen() {
             </SafeAreaView>
         </View>
         <StyledAlert
-            visible={alertState.visible}
-            type={alertState.type}
-            title={alertState.title}
-            message={alertState.message}
-            buttons={alertState.buttons}
-            onDismiss={() => setAlertState(s => ({ ...s, visible: false }))}
+            visible={alertConfig.visible}
+            type={alertConfig.type}
+            title={alertConfig.title}
+            message={alertConfig.message}
+            buttons={alertConfig.buttons}
+            onDismiss={hideAlert}
         />
         </>
     );

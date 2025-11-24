@@ -1,4 +1,4 @@
-import { IsVerified } from '@/types/GuestUser.types';
+import { IsVerified, VerificationStatus } from '@/types/GuestUser.types';
 
 interface ColorMap {
 	[key: string]: string;
@@ -135,7 +135,7 @@ export const statusStyles: Record<string, object> = {
 	completed: { backgroundColor: '#3B0270' }, // text-primary
 	cancelled: { backgroundColor: '#EF4444' }, // feedback-error-DEFAULT
 	rejected: { backgroundColor: '#EF4444' }, // feedback-error-DEFAULT
-	'no_show': { backgroundColor: '#D97706' } // feedback-warning-dark
+	no_show: { backgroundColor: '#D97706' }, // feedback-warning-dark
 };
 
 export const getStatusStyle = (status: string) => {
@@ -247,5 +247,113 @@ export const getVerificationDisplay = (status: IsVerified) => {
 				icon: '!',
 				isVerified: false,
 			};
+	}
+};
+
+// Helper to produce the verification message text
+export const getVerificationMessage = (status: VerificationStatus | null) => {
+	if (!status) return '';
+	if (status.isVerified)
+		return 'Your account has been successfully verified. You now have full access to all platform features.';
+	if (status.isRejected)
+		return `Your verification was rejected. ${status.rejectionReason || 'Please try again with clearer images.'}`;
+	return 'Your verification is currently under review. This usually takes 1-2 business days.';
+};
+
+// UI helpers for status-based classes and text
+export const getBannerClasses = (status: VerificationStatus | null) => {
+	if (!status)
+		return 'bg-feedback-warning-light border-feedback-warning-DEFAULT';
+	if (status.isVerified)
+		return 'bg-feedback-success-light border-feedback-success-DEFAULT';
+	if (status.isRejected)
+		return 'bg-feedback-error-light border-feedback-error-DEFAULT';
+	return 'bg-feedback-warning-light border-feedback-warning-DEFAULT';
+};
+
+export const getPillBgClass = (status: VerificationStatus | null) => {
+	if (!status) return 'bg-feedback-warning-DEFAULT';
+	if (status.isVerified) return 'bg-feedback-success-DEFAULT';
+	if (status.isRejected) return 'bg-feedback-error-DEFAULT';
+	return 'bg-feedback-warning-DEFAULT';
+};
+
+export const getStatusIconName = (status: VerificationStatus | null) => {
+	if (!status) return 'time';
+	if (status.isVerified) return 'checkmark-circle';
+	if (status.isRejected) return 'close-circle';
+	return 'time';
+};
+
+export const getStatusTitle = (status: VerificationStatus | null) => {
+	if (!status) return 'Verification Pending';
+	if (status.isVerified) return 'Verification Approved';
+	if (status.isRejected) return 'Verification Rejected';
+	return 'Verification Pending';
+};
+
+export const getStatusTextClass = (status: VerificationStatus | null) => {
+	if (!status) return 'text-feedback-warning-dark';
+	if (status.isVerified) return 'text-feedback-success-dark';
+	if (status.isRejected) return 'text-feedback-error-dark';
+	return 'text-feedback-warning-dark';
+};
+
+export const getSubmitButtonClass = (
+	isComplete: boolean,
+	isPending: boolean
+) => {
+	return !isComplete || isPending
+		? 'bg-interactive-primary-disabled'
+		: 'bg-interactive-primary';
+};
+
+export const getSubmitButtonLabel = (
+	status: VerificationStatus | null,
+	isPending: boolean
+) => {
+	if (isPending) return 'Submitting Verification...';
+	return status?.isRejected
+		? 'Resubmit for Verification'
+		: 'Submit for Verification';
+};
+
+export const convertTo24Hour = (time12h: string): string => {
+	try {
+		const [time, modifier] = time12h.split(' ');
+		let [hours, minutes] = time.split(':');
+
+		let hoursNum = parseInt(hours, 10);
+
+		if (modifier === 'PM' && hoursNum !== 12) {
+			hoursNum += 12;
+		} else if (modifier === 'AM' && hoursNum === 12) {
+			hoursNum = 0;
+		}
+
+		return `${hoursNum.toString().padStart(2, '0')}:${minutes}`;
+	} catch (error) {
+		console.error('Error converting time format:', error);
+		return time12h;
+	}
+};
+
+export const validateCheckInTime = (timeString: string) => {
+	if (!timeString) return false;
+
+	try {
+		const [time, period] = timeString.split(' ');
+		const [hours] = time.split(':').map(Number);
+
+		let hour24 = hours;
+		if (period === 'PM' && hours !== 12) {
+			hour24 = hours + 12;
+		} else if (period === 'AM' && hours === 12) {
+			hour24 = 0;
+		}
+
+		return hour24 >= 14 && hour24 <= 23;
+	} catch {
+		return false;
 	}
 };

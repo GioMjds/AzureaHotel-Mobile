@@ -33,7 +33,6 @@ export default function ChangePassword() {
 		iconColor: '#10B981',
 	});
 
-	// Form for old password verification
 	const {
 		control: oldPasswordControl,
 		handleSubmit: handleOldPasswordSubmit,
@@ -44,7 +43,6 @@ export default function ChangePassword() {
 		defaultValues: { oldPassword: '' },
 	});
 
-	// Form for new password
 	const {
 		control: newPasswordControl,
 		handleSubmit: handleNewPasswordSubmit,
@@ -56,7 +54,6 @@ export default function ChangePassword() {
 
 	const newPasswordValue = watch('newPassword');
 
-	// Mutation for checking old password
 	const checkOldPasswordMutation = useMutation({
 		mutationFn: (oldPassword: string) => auth.checkOldPassword(oldPassword),
 		onSuccess: () => {

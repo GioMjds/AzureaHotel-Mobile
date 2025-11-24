@@ -34,6 +34,7 @@ import { Room } from '@/types/Room.types';
 import StyledText from '@/components/ui/StyledText';
 import StyledAlert from '@/components/ui/StyledAlert';
 import { usePaymongo } from '@/hooks/usePayMongo';
+import { convertTo24Hour, formatDateTime, validateCheckInTime } from '@/utils/formatters';
 
 interface FormData {
 	firstName: string;
@@ -47,23 +48,16 @@ interface FormData {
 
 export default function ConfirmRoomBookingScreen() {
 	const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
-	// We keep isSubmitting for the PayMongo flow to preserve original logic
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 	const [gcashProof, setGcashProof] = useState<string | null>(null);
 	const [gcashFile, setGcashFile] = useState<any>(null);
-	const [pendingFormData, setPendingFormData] = useState<FormData | null>(
-		null
-	);
+	const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
 	const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
 	const [qrModalVisible, setQrModalVisible] = useState<boolean>(false);
 	const [selectedQrImage, setSelectedQrImage] = useState<number | null>(null);
-	const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
-		'gcash' | 'paymongo'
-	>('gcash');
+	const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'gcash' | 'paymongo'>('gcash');
 	const [showPayMongoModal, setShowPayMongoModal] = useState<boolean>(false);
-	const [confirmedDownPayment, setConfirmedDownPayment] = useState<
-		number | null
-	>(null);
+	const [confirmedDownPayment, setConfirmedDownPayment] = useState<number | null>(null);
 	const [exitAlertVisible, setExitAlertVisible] = useState<boolean>(false);
 
 	const { alertConfig, setAlertConfig } = useAlertStore();
@@ -81,6 +75,7 @@ export default function ConfirmRoomBookingScreen() {
 	const { user } = useAuthStore();
 	const router = useRouter();
 	const queryClient = useQueryClient();
+
 	const {
 		createSourcePrebookingAndRedirect,
 		isProcessing: isPayMongoProcessing,
@@ -111,7 +106,6 @@ export default function ConfirmRoomBookingScreen() {
 		},
 	});
 
-	// --- QUERY: Get Room Details ---
 	const { data: roomResponse, isLoading } = useQuery({
 		queryKey: ['room', roomId],
 		queryFn: () => booking.getRoomById(roomId!),
@@ -125,7 +119,6 @@ export default function ConfirmRoomBookingScreen() {
 		mutationFn: (data: any) => booking.createRoomBooking(data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
-			
 			setAlertConfig({
 				visible: true,
 				type: 'success',
@@ -155,16 +148,6 @@ export default function ConfirmRoomBookingScreen() {
 			});
 		}
 	});
-
-	const formatDateTime = (dateTimeString: string | null) => {
-		if (!dateTimeString) return '';
-		try {
-			const date = parseISO(dateTimeString);
-			return format(date, 'EEE, MMM dd, yyyy');
-		} catch {
-			return dateTimeString;
-		}
-	};
 
 	const formattedCheckIn = formatDateTime(checkInDate);
 	const formattedCheckOut = formatDateTime(checkOutDate);
@@ -218,8 +201,7 @@ export default function ConfirmRoomBookingScreen() {
 		: null;
 
 	const handlePickImage = async () => {
-		const { status } =
-			await ImagePicker.requestMediaLibraryPermissionsAsync();
+		const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
 		if (status !== 'granted') {
 			setAlertConfig({
@@ -261,46 +243,6 @@ export default function ConfirmRoomBookingScreen() {
 	const formatTimeDisplay = (timeString: string) => {
 		if (!timeString) return 'Select arrival time';
 		return timeString;
-	};
-
-	const convertTo24Hour = (time12h: string): string => {
-		try {
-			const [time, modifier] = time12h.split(' ');
-			let [hours, minutes] = time.split(':');
-
-			let hoursNum = parseInt(hours, 10);
-
-			if (modifier === 'PM' && hoursNum !== 12) {
-				hoursNum += 12;
-			} else if (modifier === 'AM' && hoursNum === 12) {
-				hoursNum = 0;
-			}
-
-			return `${hoursNum.toString().padStart(2, '0')}:${minutes}`;
-		} catch (error) {
-			console.error('Error converting time format:', error);
-			return time12h;
-		}
-	};
-
-	const validateCheckInTime = (timeString: string) => {
-		if (!timeString) return false;
-
-		try {
-			const [time, period] = timeString.split(' ');
-			const [hours] = time.split(':').map(Number);
-
-			let hour24 = hours;
-			if (period === 'PM' && hours !== 12) {
-				hour24 = hours + 12;
-			} else if (period === 'AM' && hours === 12) {
-				hour24 = 0;
-			}
-
-			return hour24 >= 14 && hour24 <= 23;
-		} catch {
-			return false;
-		}
 	};
 
 	const onSubmit = (data: FormData) => {
@@ -490,7 +432,6 @@ export default function ConfirmRoomBookingScreen() {
 					});
 				}
 			} catch (error: any) {
-				console.error('❌ PayMongo redirect error:', error);
 				setIsSubmitting(false);
 				setAlertConfig({
 					visible: true,
