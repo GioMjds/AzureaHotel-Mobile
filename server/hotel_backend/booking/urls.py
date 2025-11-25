@@ -37,12 +37,4 @@ urlpatterns = [
     path('paymongo/create_from_entry', views.create_from_entry, name='paymongo_create_from_entry'),
     path('paymongo/redirect/success', views.paymongo_redirect_success, name='paymongo_redirect_success'),
     path('paymongo/redirect/failed', views.paymongo_redirect_failed, name='paymongo_redirect_failed'),
-    
-    # For Food Ordering (fetch the API from the other system) -> CraveOn
-    path('fetch_foods', views.fetch_foods, name='fetch_foods'),
-    path('place_food_order', views.place_food_order, name='place_food_order'),
-    path('fetch_food_orders', views.fetch_food_orders, name='fetch_food_orders'),
-    path('review_food_order', views.review_food_order, name='review_food_order'),
-    path('user/food_order_reviews', views.get_user_food_order_reviews, name='get_user_food_order_reviews'),
-    path('user/reviewable_food_orders', views.get_reviewable_food_orders, name='get_reviewable_food_orders'),
 ]

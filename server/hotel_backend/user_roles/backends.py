@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from .models import CraveOnUser
 from django.contrib.auth.hashers import check_password
 
 class MultiDBAuthBackend(ModelBackend):
@@ -16,13 +15,3 @@ class MultiDBAuthBackend(ModelBackend):
                 user = None
         if user and user.check_password(password):
             return user
-
-        # Try Customer (flask DB)
-        try:
-            flask_user = CraveOnUser.objects.using('flask').get(email=username)
-            if check_password(password, flask_user.password):
-                flask_user.is_flask_customer = True
-                return flask_user
-        except CraveOnUser.DoesNotExist:
-            return None
-        return None

@@ -21,3 +21,5 @@ mysqlclient
 firebase-admin
 reportlab
 pymysql
+psycopg
+psycopg2
