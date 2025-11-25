@@ -88,7 +88,6 @@ export const useUserNotifications = () => {
             if (context?.previousData) {
                 queryClient.setQueryData(['userNotifications'], context.previousData);
             }
-            logger.error(`Error marking notification ${notificationId} as read: ${err}`);
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['userNotifications'] });
@@ -121,7 +120,6 @@ export const useUserNotifications = () => {
             if (context?.previousData) {
                 queryClient.setQueryData(['userNotifications'], context.previousData);
             }
-            logger.error(`Error marking all notifications as read: ${error}`);
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['userNotifications'] });

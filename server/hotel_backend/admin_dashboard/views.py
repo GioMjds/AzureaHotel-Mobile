@@ -57,7 +57,7 @@ def notify_user_for_verification(user, notification_type, message):
             }
         )
     except Exception as e:
-        logger.exception(f"Failed to send notification to user {user.id}: {str(e)}")
+        return
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

@@ -49,7 +49,7 @@ def _build_additional_data(booking: Bookings) -> dict:
             data['room_name'] = getattr(booking.room, 'room_name', None) or getattr(booking.room, 'room_number', None)
             data['room_id'] = booking.room.id
     except Exception:
-        logger.debug('Could not include related room/area names for booking %s', getattr(booking, 'id', None))
+        return
 
     return data
 
@@ -83,7 +83,7 @@ def booking_post_save(sender, instance: Bookings, created: bool, **kwargs):
                     additional_data=additional_data,
                 )
         except Exception:
-            logger.exception('Failed to send booking update via firebase_service for booking %s', booking_id)
+            return
 
         # Mirror/write to the exact path mobile expects: user-notifications/{userId}
         try:
@@ -147,7 +147,7 @@ def booking_post_save(sender, instance: Bookings, created: bool, **kwargs):
                 user_notifications_ref.set(notif_payload)
 
         except Exception:
-            logger.exception('Failed to write mirror entries to Firebase realtime DB for booking %s', booking_id)
+            return
 
         try:
             if user is not None:
@@ -182,7 +182,7 @@ def booking_post_save(sender, instance: Bookings, created: bool, **kwargs):
                     booking=instance,
                 )
         except Exception:
-            logger.exception('Failed to create Notification db record for booking %s', booking_id)
+            return
 
         try:
             if get_channel_layer is not None and async_to_sync is not None:
@@ -197,7 +197,7 @@ def booking_post_save(sender, instance: Bookings, created: bool, **kwargs):
                     },
                 )
         except Exception:
-            logger.exception('Failed to push admin active_count_update for booking %s', booking_id)
+            return
 
     except Exception:
-        logger.exception('Unhandled exception in booking_post_save signal for booking %s', getattr(instance, 'id', None))
+        return

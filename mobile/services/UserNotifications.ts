@@ -53,7 +53,6 @@ class UserNotificationService {
                 has_more: response.has_more || false
             };
         } catch (error) {
-            logger.error(`Failed to fetch notifications: ${error}`);
             throw error;
         }
     }
@@ -69,7 +68,6 @@ class UserNotificationService {
             );
             return response;
         } catch (error) {
-            logger.error(`Failed to mark notification ${notificationId} as read: ${error}`);
             throw error;
         }
     }
@@ -84,7 +82,6 @@ class UserNotificationService {
             );
             return response;
         } catch (error) {
-            logger.error(`Failed to mark all notifications as read: ${error}`);
             throw error;
         }
     }

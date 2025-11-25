@@ -146,9 +146,8 @@ def create_booking_notification(user, notification_type, booking_id, message):
                 }
             )
         except Exception as e:
-            logger.error(f"WebSocket send failed: {str(e)}")
+            pass
 
-        # Send via Firebase (for FCM push - background/terminated apps)
         try:
             firebase_service.send_user_notification(
                 user_id=user.id,
@@ -165,11 +164,10 @@ def create_booking_notification(user, notification_type, booking_id, message):
                 }
             )
         except Exception as e:
-            logger.error(f"FCM push send failed: {str(e)}")
+            pass
 
         return notification
     except Exception as e:
-        logger.error(f"Failed to create booking notification: {str(e)}")
         return None
 
 # Create your views here.
@@ -727,7 +725,7 @@ def google_auth(request):
                         }
                     )
                 except Exception as firebase_error:
-                    logger.warning(f"Failed to generate Firebase token for Google auth: {firebase_error}")
+                    pass
             
             response_data = {
                 'success': True,
@@ -861,8 +859,7 @@ def user_login(request):
                     }
                 )
             except Exception as firebase_error:
-                logger.warning(f"Failed to generate Firebase token during login: {firebase_error}")
-                # Don't fail login if Firebase token generation fails
+                pass
         
         response_data = {
             'message': f"{auth_user.first_name} {auth_user.last_name} successfully logged in.",

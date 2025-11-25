@@ -29,12 +29,9 @@ def create_source(amount: int = None, currency: str = 'PHP', source_type: str = 
 		'type': source_type,
 	}
 
-	# Only include amount when explicitly provided
 	if amount is not None:
 		attributes['amount'] = int(amount)
 
-	# Only include redirect object when both success and failed URLs are provided and non-empty.
-	# Sending empty strings causes PayMongo to respond with parameter_required errors.
 	if redirect_success and redirect_failed:
 		attributes['redirect'] = {
 			'success': redirect_success,
@@ -47,24 +44,10 @@ def create_source(amount: int = None, currency: str = 'PHP', source_type: str = 
 	payload = {'data': {'attributes': attributes}}
 
 	resp = None
-	try:
-		logger.debug('PayMongo create_source payload: %s', json.dumps(payload))
-		resp = requests.post(url, json=payload, auth=_auth(), timeout=10)
-		# Log response body for debug (even before raise)
-		logger.debug('PayMongo create_source raw response status=%s body=%s', getattr(resp, 'status_code', None), getattr(resp, 'text', None))
-		resp.raise_for_status()
-		return resp.json()
-	except requests.exceptions.RequestException as e:
-		# If we have a response object, include its body for easier debugging
-		if resp is not None:
-			try:
-				logger.error('PayMongo create_source failed: status=%s body=%s', resp.status_code, resp.text)
-			except Exception:
-				logger.exception('Failed to log PayMongo response body')
-			# Raise a RuntimeError with the response text to propagate a clearer message
-			raise RuntimeError(f"PayMongo create failed: status={resp.status_code} body={resp.text}")
-		# Fallback for other request exceptions
-		raise
+	resp = requests.post(url, json=payload, auth=_auth(), timeout=10)
+
+	resp.raise_for_status()
+	return resp.json()
 
 
 def retrieve_source(source_id: str):
@@ -74,6 +57,5 @@ def retrieve_source(source_id: str):
 		resp.raise_for_status()
 		return resp.json()
 	except Exception as e:
-		logger.exception('Failed to retrieve PayMongo source %s', source_id)
 		raise
 

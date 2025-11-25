@@ -15,12 +15,10 @@ export function useForgotPassword() {
             return await auth.forgotPassword(email);
         },
         onSuccess: async (data, variables) => {
-            // Store email for later steps
             await SecureStore.setItemAsync(RESET_EMAIL_KEY, variables);
-            logger.info(`Reset OTP sent successfully to ${variables}`);
         },
-        onError: (error: any) => {
-            logger.error(`Forgot password error: ${error}`);
+        onError: (error) => {
+            throw error;
         },
     });
 
@@ -32,8 +30,8 @@ export function useForgotPassword() {
         onSuccess: (data) => {
             logger.info('Reset OTP verified successfully');
         },
-        onError: (error: any) => {
-            logger.error(`Verify reset OTP error: ${error}`);
+        onError: (error) => {
+            throw error;
         },
     });
 
@@ -51,12 +49,10 @@ export function useForgotPassword() {
             return await auth.resetPassword(email, newPassword, confirmNewPassword);
         },
         onSuccess: async () => {
-            // Clear the stored reset email
             await SecureStore.deleteItemAsync(RESET_EMAIL_KEY);
-            logger.info('Password reset successfully');
         },
-        onError: (error: any) => {
-            logger.error(`Reset password error: ${error}`);
+        onError: (error) => {
+            throw error;
         },
     });
 
@@ -65,8 +61,7 @@ export function useForgotPassword() {
         try {
             return await SecureStore.getItemAsync(RESET_EMAIL_KEY);
         } catch (error) {
-            logger.error(`Error getting stored email: ${error}`);
-            return null;
+            throw error;
         }
     };
 

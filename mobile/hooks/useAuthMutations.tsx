@@ -43,21 +43,13 @@ export function useAuthMutations() {
 
                 // Authenticate with Firebase using token from login response
                 if (data.firebase_token) {
-                    try {
-                        await FirebaseAuthService.authenticateWithToken(data.firebase_token);
-                    } catch (error) {
-                        logger.error(`⚠️ Firebase authentication failed: ${error}`);
-                    }
+                    await FirebaseAuthService.authenticateWithToken(data.firebase_token);
                 } else {
-                    // Fallback: try to get Firebase token separately (for backward compatibility)
-                    logger.warn('⚠️ No Firebase token in login response, falling back to separate request');
                     await FirebaseAuthService.authenticateWithFirebase();
                 }
 
                 queryClient.invalidateQueries({ queryKey: ['user'] });
                 queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
-            } else {
-                throw new Error('Invalid response from server');
             }
         },
         onError: (error) => {
@@ -80,7 +72,6 @@ export function useAuthMutations() {
             queryClient.clear();
         },
         onError: async (error) => {
-            logger.error(`Logout error: ${error}`);
             await FirebaseAuthService.signOutFromFirebase();
             await clearStoredData();
             setUser(null);

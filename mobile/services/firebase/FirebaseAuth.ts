@@ -14,10 +14,7 @@ export class FirebaseAuthService {
      */
     static async authenticateWithToken(firebaseToken: string): Promise<boolean> {
         try {
-            if (!firebaseToken) {
-                logger.warn('⚠️ No Firebase token provided');
-                return false;
-            }
+            if (!firebaseToken) return false;
             
             const userCredential = await signInWithCustomToken(
                 firebaseAuth,
@@ -31,7 +28,6 @@ export class FirebaseAuthService {
 
             return true;
         } catch (error) {
-            logger.error(`❌ Firebase authentication with token failed: ${error}`);
             return false;
         }
     }
@@ -44,10 +40,7 @@ export class FirebaseAuthService {
     static async authenticateWithFirebase(): Promise<boolean> {
         try {
             const accessToken = await SecureStore.getItemAsync('access_token');
-            if (!accessToken) {
-                logger.warn('⚠️ No access token found for Firebase authentication');
-                return false;
-            }
+            if (!accessToken) return false;
 
             const response = await httpClient.post<{
                 firebase_token: string;
@@ -57,14 +50,10 @@ export class FirebaseAuthService {
 
             const { firebase_token } = response;
 
-            if (!firebase_token) {
-                logger.warn('⚠️ No Firebase token received from backend');
-                return false;
-            }
-            
+            if (!firebase_token) return false;
+
             return await this.authenticateWithToken(firebase_token);
         } catch (error) {
-            logger.error(`❌ Firebase authentication failed: ${error}`);
             return false;
         }
     }
@@ -78,8 +67,8 @@ export class FirebaseAuthService {
                 await firebaseAuth.signOut();
             }
             await SecureStore.deleteItemAsync('firebase_uid');
-        } catch (error) {
-            logger.error(`❌ Firebase sign out failed: ${error}`);
+        } catch {
+            return;
         }
     }
 

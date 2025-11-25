@@ -103,7 +103,7 @@ def booking_status_changed(sender, instance, created, **kwargs):
         )
         
     except Exception as e:
-        logger.error(f"Error in booking signal: {e}")
+        raise
 
 @receiver(post_delete, sender=Bookings)
 def booking_deleted(sender, instance, **kwargs):
@@ -153,6 +153,5 @@ def booking_deleted(sender, instance, **kwargs):
             },
             notification_type='booking'
         )
-            
     except Exception as e:
-        logger.error(f"Error in booking deletion signal: {e}")
+        raise

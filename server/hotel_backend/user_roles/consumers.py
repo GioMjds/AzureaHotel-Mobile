@@ -24,26 +24,20 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             await self.close()
 
     async def receive(self, text_data):
-        try:
-            data = json.loads(text_data)
-            message_type = data.get('type')
+        data = json.loads(text_data)
+        message_type = data.get('type')
 
-            if message_type == 'authenticate':
-                user_id = data.get('userId')
-                await self.authenticate_user(user_id)
-            elif message_type == 'mark_read' and self.user:
-                count = await self.mark_notifications_read()
-                await self.send(text_data=json.dumps({
-                    'type': 'unread_update',
-                    'count': count
-                }))
-            elif message_type == 'heartbeat':
-                await self.send(text_data=json.dumps({'type': 'heartbeat_ack'}))
-        except json.JSONDecodeError:
-            logger.error(f"WS: Invalid JSON recieved: {text_data}")
-        except Exception as e:
-            logger.error(f"WS: Error in receive: {str(e)}")
-            logger.error(traceback.format_exc())
+        if message_type == 'authenticate':
+            user_id = data.get('userId')
+            await self.authenticate_user(user_id)
+        elif message_type == 'mark_read' and self.user:
+            count = await self.mark_notifications_read()
+            await self.send(text_data=json.dumps({
+                'type': 'unread_update',
+                'count': count
+            }))
+        elif message_type == 'heartbeat':
+            await self.send(text_data=json.dumps({'type': 'heartbeat_ack'}))
 
     async def authenticate_user(self, user_id):
         try:
@@ -88,7 +82,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                 'count': count
             }))
         except Exception as e:
-            logger.error(f"WS: Error sending initial count: {str(e)}")
+            pass
 
     async def disconnect(self, close_code):
         try:
@@ -98,7 +92,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                     self.channel_name
                 )
         except Exception as e:
-            logger.error(f"WS: Error during disconnect: {str(e)}")
+            pass
 
     async def send_notification(self, event):
         try:
@@ -108,7 +102,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                 'unread_count': event['unread_count']
             }))
         except Exception as e:
-            logger.error(f"WS: Error sending notification: {str(e)}")
+            pass
 
     async def update_unread_count(self, event):
         try:
@@ -117,7 +111,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                 'count': event['count']
             }))
         except Exception as e:
-            logger.error(f"WS: Error updating unread count: {str(e)}")
+            pass
 
     @database_sync_to_async
     def get_user(self, user_id):
