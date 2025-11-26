@@ -17,11 +17,8 @@ type PaymentStatus = 'pending' | 'chargeable' | 'paid' | 'failed' | 'expired';
 export function usePaymongo() {
 	const [isProcessing, setIsProcessing] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
-	const [paymentStatus, setPaymentStatus] =
-		useState<PaymentStatus>('pending');
-	const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
-		null
-	);
+	const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
+	const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
 	const createSourceAndRedirect = useCallback(
 		async (
@@ -69,7 +66,6 @@ export function usePaymongo() {
 	const verifySource = useCallback(async (sourceId: string) => {
 		try {
 			const resp: any = await paymongoService.verifySource(sourceId);
-			console.log('[usePaymongo] verifySource raw response:', resp);
 			const sourceData = resp.data?.data || resp.data || resp;
 			const status = sourceData.attributes?.status as PaymentStatus;
 			setPaymentStatus(status || 'pending');
@@ -150,12 +146,7 @@ export function usePaymongo() {
 			setPaymentStatus('pending');
 
 			try {
-				const resp: any =
-					await paymongoService.createSourcePrebooking(params);
-				console.log(
-					'[usePaymongo] createSourcePrebooking raw response:',
-					resp
-				);
+				const resp: any = await paymongoService.createSourcePrebooking(params);
 				const data = resp.data || resp;
 
 				// Extract source data

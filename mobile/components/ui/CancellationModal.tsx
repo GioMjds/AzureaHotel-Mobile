@@ -9,6 +9,7 @@ import {
     Keyboard,
     ActivityIndicator
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -88,6 +89,16 @@ const CancellationModal = ({
             onRequestClose={handleClose}
         >
             <TouchableWithoutFeedback onPress={isSubmitting ? undefined : Keyboard.dismiss}>
+                <KeyboardAwareScrollView
+                    enableOnAndroid
+					enableAutomaticScroll
+					extraScrollHeight={210}
+					keyboardShouldPersistTaps="handled"
+					contentContainerStyle={{
+						flexGrow: 1,
+						justifyContent: 'flex-end',
+					}}
+                >
                 <View 
                     className="flex-1 justify-center items-center px-4"
                     style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
@@ -213,6 +224,7 @@ const CancellationModal = ({
                         </View>
                     </TouchableWithoutFeedback>
                 </View>
+                </KeyboardAwareScrollView>
             </TouchableWithoutFeedback>
         </Modal>
     );

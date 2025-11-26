@@ -38,8 +38,7 @@ export const useNetworkStatus = (): NetworkStatus => {
                         checkConnection: checkNetworkStatus,
                     });
                 }
-            } catch (error) {
-                console.warn('Failed to get network status:', error);
+            } catch  {
                 if (isMounted) {
                     setNetworkStatus({
                         isConnected: null,
