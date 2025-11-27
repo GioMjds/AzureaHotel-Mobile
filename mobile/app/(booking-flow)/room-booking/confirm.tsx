@@ -94,6 +94,7 @@ export default function ConfirmRoomBookingScreen() {
 		control,
 		handleSubmit,
 		formState: { errors },
+		setError,
 	} = useForm<FormData>({
 		mode: 'onSubmit',
 		defaultValues: {
@@ -205,13 +206,9 @@ export default function ConfirmRoomBookingScreen() {
 		const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
 		if (status !== 'granted') {
-			setAlertConfig({
-				visible: true,
-				type: 'warning',
-				title: 'Permission Required',
-				message:
-					'Sorry, we need camera roll permissions to upload payment proof.',
-				buttons: [{ text: 'OK', style: 'default' }],
+			setError('paymentMethod', {
+				type: 'manual',
+				message: 'Camera roll permission is required to upload payment proof.',
 			});
 			return;
 		}
@@ -247,48 +244,36 @@ export default function ConfirmRoomBookingScreen() {
 	};
 
 	const onSubmit = (data: FormData) => {
+		// Arrival time validation
 		if (!data.arrivalTime) {
-			setAlertConfig({
-				visible: true,
-				type: 'warning',
-				title: 'Arrival Time Required',
+			setError('arrivalTime', {
+				type: 'required',
 				message: 'Please select your expected arrival time',
-				buttons: [{ text: 'OK', style: 'default' }],
 			});
 			return;
 		}
 
 		// Validate check-in time is between 2:00 PM and 11:00 PM
 		if (!validateCheckInTime(data.arrivalTime)) {
-			setAlertConfig({
-				visible: true,
-				type: 'error',
-				title: 'Invalid Check-in Time',
+			setError('arrivalTime', {
+				type: 'validate',
 				message: 'Check-in time must be between 2:00 PM and 11:00 PM',
-				buttons: [{ text: 'OK', style: 'default' }],
 			});
 			return;
 		}
 
 		if (data.paymentMethod === 'gcash' && !gcashFile) {
-			setAlertConfig({
-				visible: true,
-				type: 'warning',
-				title: 'Payment Proof Required',
+			setError('paymentMethod', {
+				type: 'required',
 				message: 'Please upload GCash payment proof',
-				buttons: [{ text: 'OK', style: 'default' }],
 			});
 			return;
 		}
 
 		if (data.paymentMethod === 'paymongo' && !confirmedDownPayment) {
-			setAlertConfig({
-				visible: true,
-				type: 'warning',
-				title: 'Down Payment Required',
-				message:
-					'Please select PayMongo payment method and confirm your down payment amount first.',
-				buttons: [{ text: 'OK', style: 'default' }],
+			setError('paymentMethod', {
+				type: 'required',
+				message: 'Please confirm down payment amount for PayMongo',
 			});
 			return;
 		}
@@ -296,24 +281,17 @@ export default function ConfirmRoomBookingScreen() {
 		const cleanedValue = data.phoneNumber.replace(/[^\d+]/g, '');
 		const phPattern = /^(\+639\d{9}|09\d{9})$/;
 		if (!phPattern.test(cleanedValue)) {
-			setAlertConfig({
-				visible: true,
-				type: 'error',
-				title: 'Invalid Phone Number',
-				message:
-					'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
-				buttons: [{ text: 'OK', style: 'default' }],
+			setError('phoneNumber', {
+				type: 'pattern',
+				message: 'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
 			});
 			return;
 		}
 
 		if (roomData?.max_guests && data.numberOfGuests > roomData.max_guests) {
-			setAlertConfig({
-				visible: true,
-				type: 'error',
-				title: 'Exceeds Capacity',
+			setError('numberOfGuests', {
+				type: 'validate',
 				message: `Maximum capacity is ${roomData.max_guests} guests`,
-				buttons: [{ text: 'OK', style: 'default' }],
 			});
 			return;
 		}
@@ -321,12 +299,10 @@ export default function ConfirmRoomBookingScreen() {
 		setPendingFormData(data);
 
 		if (!roomId || !checkInDate || !checkOutDate || !totalPrice) {
-			setAlertConfig({
-				visible: true,
-				type: 'error',
-				title: 'Error',
+			// Attach a generic form error so the UI surfaces the issue instead of an alert
+			setError('firstName', {
+				type: 'manual',
 				message: 'Missing booking information. Please try again.',
-				buttons: [{ text: 'OK', style: 'default' }],
 			});
 			return;
 		}
@@ -680,11 +656,16 @@ export default function ConfirmRoomBookingScreen() {
 								Phone Number *
 							</StyledText>
 							<Controller
-								control={control}
-								name="phoneNumber"
-								rules={{
-									required: 'Phone number is required',
-								}}
+									control={control}
+									name="phoneNumber"
+									rules={{
+										required: 'Phone number is required',
+										pattern: {
+											value: /^(\+639\d{9}|09\d{9})$/,
+											message:
+												'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
+										},
+									}}
 								render={({
 									field: { onChange, onBlur, value },
 								}) => (
@@ -715,19 +696,22 @@ export default function ConfirmRoomBookingScreen() {
 								Number of Guests *
 							</StyledText>
 							<Controller
-								control={control}
-								name="numberOfGuests"
-								rules={{
-									required: 'Number of guests is required',
-									validate: (value) => {
-										const numValue =
-											parseInt(value.toString()) || 0;
-										if (numValue < 1) {
-											return 'At least 1 guest is required';
-										}
-										return true;
-									},
-								}}
+									control={control}
+									name="numberOfGuests"
+									rules={{
+										required: 'Number of guests is required',
+										validate: (value) => {
+											const numValue =
+												parseInt(value.toString()) || 0;
+											if (numValue < 1) {
+												return 'At least 1 guest is required';
+											}
+											if (roomData?.max_guests && numValue > roomData.max_guests) {
+												return `Maximum capacity is ${roomData.max_guests} guests`;
+											}
+											return true;
+										},
+									}}
 								render={({
 									field: { onChange, onBlur, value },
 								}) => (

@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import StyledText from '@/components/ui/StyledText';
 import { useUserNotifications } from '@/hooks/useUserNotifications';
+import React from 'react';
 import NotificationItem from '@/components/notifications/NotificationItem';
 import useAlertStore from '@/store/AlertStore';
 
@@ -30,6 +31,15 @@ export default function NotificationScreen() {
 		markAllAsRead,
 		isMarkingAllAsRead,
 	} = useUserNotifications();
+
+	// Deduplicate notifications by id (guards against overlapping paginated pages)
+	const uniqueNotifications = React.useMemo(() => {
+		const map = new Map<number, any>();
+		for (const n of notifications) {
+			map.set(n.id, n);
+		}
+		return Array.from(map.values());
+	}, [notifications]);
 
 	const handleNotificationPress = (notification: any) => {
 		if (!notification.is_read) markAsRead(notification.id);
@@ -147,7 +157,7 @@ export default function NotificationScreen() {
 
 			{/* Content */}
 			<FlatList
-				data={notifications}
+				data={uniqueNotifications}
 				keyExtractor={(item) => item.id.toString()}
 				renderItem={({ item }) => (
 					<NotificationItem
@@ -189,7 +199,7 @@ export default function NotificationScreen() {
 							</View>
 						);
 					}
-					if (!hasNextPage && notifications.length > 0) {
+					if (!hasNextPage && uniqueNotifications.length > 0) {
 						return (
 							<View className="py-4 items-center">
 								<StyledText

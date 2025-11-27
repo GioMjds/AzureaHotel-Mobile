@@ -22,6 +22,7 @@ export interface UserBooking {
     created_at: string;
     updated_at: string;
     payment_method: string;
+    payment_proof: string | null;
     payment_date: string;
     down_payment: number | null;
     phone_number: string;

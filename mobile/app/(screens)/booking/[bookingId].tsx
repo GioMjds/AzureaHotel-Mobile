@@ -6,6 +6,7 @@ import {
 	View,
 	Image,
 	RefreshControl,
+	Linking,
 } from 'react-native';
 import { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -43,6 +44,7 @@ export default function BookingDetailsScreen() {
 	};
 
 	const { bookingId } = useLocalSearchParams();
+
 	const router = useRouter();
 	const queryClient = useQueryClient();
 
@@ -51,7 +53,7 @@ export default function BookingDetailsScreen() {
 		queryFn: () => booking.getBookingDetail(bookingId as string),
 		refetchOnMount: false,
 		refetchOnWindowFocus: false,
-		retry: false,
+		retry: true,
 	});
 
 	const cancelMutation = useMutation({
@@ -150,7 +152,8 @@ export default function BookingDetailsScreen() {
 	};
 
 	const calculateNights = () => {
-		if (!bookingData?.check_in_date || !bookingData?.check_out_date) return 0;
+		if (!bookingData?.check_in_date || !bookingData?.check_out_date)
+			return 0;
 		const checkIn = new Date(bookingData.check_in_date);
 		const checkOut = new Date(bookingData.check_out_date);
 		const diffTime = Math.abs(checkOut.getTime() - checkIn.getTime());
@@ -185,7 +188,7 @@ export default function BookingDetailsScreen() {
 				text: 'text-feedback-error-dark',
 				label: 'Rejected',
 			},
-			'checked_in': {
+			checked_in: {
 				color: 'bg-feedback-success-dark',
 				text: 'text-feedback-success-light',
 				label: 'Checked In',
@@ -195,11 +198,11 @@ export default function BookingDetailsScreen() {
 				text: 'text-feedback-info-dark',
 				label: 'Checked Out',
 			},
-			'no_show': {
+			no_show: {
 				color: 'bg-feedback-info-dark',
 				text: 'text-feedback-info-light',
-				label: 'No Show'
-			}
+				label: 'No Show',
+			},
 		};
 		return config[status as keyof typeof config] || config.pending;
 	};
@@ -287,6 +290,8 @@ export default function BookingDetailsScreen() {
 	}
 
 	const isAreaBooking = bookingData.is_venue_booking;
+
+	const isGcashPayment = bookingData.payment_method.toLowerCase() === 'gcash';
 
 	const propertyName = isAreaBooking
 		? bookingData.area_details?.area_name
@@ -395,8 +400,7 @@ export default function BookingDetailsScreen() {
 									className="text-text-primary text-lg"
 								>
 									{pesoFormatter.format(
-										bookingData.discounted_price ||
-											bookingData.total_price
+										bookingData.total_price
 									)}
 								</StyledText>
 								<StyledText
@@ -612,13 +616,37 @@ export default function BookingDetailsScreen() {
 										' '
 									)}
 								</StyledText>
-								<StyledText
-									variant="montserrat-regular"
-									className="text-text-muted text-sm"
-								>
-									Paid on{' '}
-									{formatDate(bookingData.payment_date)}
-								</StyledText>
+								{bookingData.payment_date && (
+									<StyledText
+										variant="montserrat-regular"
+										className="text-text-muted text-sm"
+									>
+										Paid on{' '}
+										{formatDate(bookingData.payment_date)}
+									</StyledText>
+								)}
+
+								{/* Show GCash payment proof image when available */}
+								{isGcashPayment && bookingData.payment_proof && (
+									<View className="mt-4">
+										<StyledText
+											variant="montserrat-bold"
+											className="text-text-primary text-sm mb-2"
+										>
+											Payment Proof
+										</StyledText>
+										<TouchableOpacity>
+											<Image
+												source={{
+													uri: bookingData.payment_proof,
+												}}
+												className="w-full h-48 rounded-lg"
+												resizeMode="cover"
+												accessibilityLabel="GCash payment proof"
+											/>
+										</TouchableOpacity>
+									</View>
+								)}
 							</View>
 						</View>
 
@@ -645,12 +673,6 @@ export default function BookingDetailsScreen() {
 									className="text-text-primary text-lg mb-2"
 								>
 									{bookingData.phone_number}
-								</StyledText>
-								<StyledText
-									variant="montserrat-regular"
-									className="text-text-muted text-sm"
-								>
-									Primary Contact Number
 								</StyledText>
 							</View>
 						</View>
@@ -813,7 +835,8 @@ export default function BookingDetailsScreen() {
 												variant="montserrat-regular"
 												className="text-feedback-success-dark text-base ml-2"
 											>
-												Discount ({bookingData.discount_percent}%)
+												Discount (
+												{bookingData.discount_percent}%)
 											</StyledText>
 										</View>
 										<StyledText
@@ -850,7 +873,9 @@ export default function BookingDetailsScreen() {
 											variant="montserrat-bold"
 											className="text-feedback-info-dark text-base"
 										>
-											{pesoFormatter.format(bookingData.down_payment)}
+											{pesoFormatter.format(
+												bookingData.down_payment
+											)}
 										</StyledText>
 									</View>
 								)}
@@ -875,7 +900,10 @@ export default function BookingDetailsScreen() {
 											variant="montserrat-bold"
 											className="text-feedback-info-dark text-base"
 										>
-											{pesoFormatter.format(bookingData?.total_price - bookingData?.down_payment!)}
+											{pesoFormatter.format(
+												bookingData?.total_price -
+													bookingData?.down_payment!
+											)}
 										</StyledText>
 									</View>
 								)}
@@ -967,7 +995,9 @@ export default function BookingDetailsScreen() {
 				title={alertConfig.title}
 				message={alertConfig.message}
 				buttons={alertConfig.buttons}
-				onDismiss={() => setAlertConfig({ ...alertConfig, visible: false })}
+				onDismiss={() =>
+					setAlertConfig({ ...alertConfig, visible: false })
+				}
 			/>
 
 			{/* Cancellation Modal */}

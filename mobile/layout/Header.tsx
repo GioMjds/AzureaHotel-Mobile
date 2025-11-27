@@ -76,10 +76,7 @@ const Header = ({ headerLabel }: HeaderProps) => {
 							text: 'OK',
 							style: 'default',
 							onPress: () =>
-								setAlertConfig((s) => ({
-									...s,
-									visible: false,
-								})),
+								setAlertConfig({ ...alertConfig, visible: false }),
 						},
 					]
 				);
@@ -111,10 +108,7 @@ const Header = ({ headerLabel }: HeaderProps) => {
 							text: 'OK',
 							style: 'default',
 							onPress: () =>
-								setAlertConfig((s) => ({
-									...s,
-									visible: false,
-								})),
+								setAlertConfig({ ...alertConfig, visible: false }),
 						},
 					]
 				);
@@ -145,8 +139,12 @@ const Header = ({ headerLabel }: HeaderProps) => {
 					{
 						text: 'OK',
 						style: 'default',
+					},
+					{
+						text: 'OK',
+						style: 'default',
 						onPress: () =>
-							setAlertConfig((s) => ({ ...s, visible: false })),
+							setAlertConfig({ ...alertConfig, visible: false }),
 					},
 				]
 			);
@@ -162,7 +160,7 @@ const Header = ({ headerLabel }: HeaderProps) => {
 						text: 'OK',
 						style: 'default',
 						onPress: () =>
-							setAlertConfig((s) => ({ ...s, visible: false })),
+							setAlertConfig({ ...alertConfig, visible: false }),
 					},
 				]
 			);

@@ -26,7 +26,7 @@ export function useBookingUpdates(bookingId?: number) {
         }
 
         const bookingRef = ref(database, `booking-updates/${bookingId}`);
-        
+
         const unsubscribe = onValue(bookingRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {

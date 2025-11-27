@@ -255,8 +255,8 @@ const ConfirmingBooking: FC<ConfirmingBookingProps> = ({
 					</View>
 
 					{/* Bottom Info */}
-					<View className="mt-24 items-center">
-						<View className="flex-row items-center gap-2 mb-3">
+					<View className="mt-36 items-center">
+						<View className="flex-row items-center gap-2 mb-2">
 							<Ionicons name="time-outline" size={16} color="#6F00FF" />
 							<StyledText
 								variant="montserrat-regular"

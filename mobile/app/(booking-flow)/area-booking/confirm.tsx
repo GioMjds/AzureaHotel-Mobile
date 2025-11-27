@@ -79,6 +79,7 @@ export default function ConfirmAreaBookingScreen() {
 		control,
 		handleSubmit,
 		formState: { errors },
+		setError,
 	} = useForm<FormData>({
 		mode: 'onSubmit',
 		defaultValues: {
@@ -120,8 +121,7 @@ export default function ConfirmAreaBookingScreen() {
 				]
 			);
 		},
-		onError: (error: any) => {
-			console.error('Booking error:', error);
+		onError: () => {
 			showAlert(
 				'error',
 				'Booking Failed',
@@ -182,12 +182,10 @@ export default function ConfirmAreaBookingScreen() {
 			await ImagePicker.requestMediaLibraryPermissionsAsync();
 
 		if (status !== 'granted') {
-			showAlert(
-				'warning',
-				'Permission Required',
-				'Sorry, we need camera roll permissions to upload payment proof.',
-				[{ text: 'OK', style: 'default' }]
-			);
+			setError('paymentMethod', {
+				type: 'manual',
+				message: 'Camera roll permission is required to upload payment proof.',
+			});
 			return;
 		}
 
@@ -218,56 +216,46 @@ export default function ConfirmAreaBookingScreen() {
 
 	const onSubmit = (data: FormData) => {
 		if (data.paymentMethod === 'gcash' && !gcashFile) {
-			showAlert(
-				'error',
-				'Payment Proof Required',
-				'Please upload GCash payment proof',
-				[{ text: 'OK', style: 'default' }]
-			);
+			setError('paymentMethod', {
+				type: 'required',
+				message: 'Please upload GCash payment proof',
+			});
 			return;
 		}
 
 		setPendingFormData(data);
 
 		if (data.paymentMethod === 'paymongo' && !confirmedDownPayment) {
-			showAlert(
-				'warning',
-				'Down Payment Required',
-				'Please select PayMongo payment method and confirm your down payment amount first.',
-				[{ text: 'OK', style: 'default' }]
-			);
+			setError('paymentMethod', {
+				type: 'required',
+				message: 'Please confirm down payment amount for PayMongo',
+			});
 			return;
 		}
 
 		const cleanedValue = data.phoneNumber.replace(/[^\d+]/g, '');
 		const phPattern = /^(\+639\d{9}|09\d{9})$/;
 		if (!phPattern.test(cleanedValue)) {
-			showAlert(
-				'error',
-				'Invalid Phone Number',
-				'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
-				[{ text: 'OK', style: 'default' }]
-			);
+			setError('phoneNumber', {
+				type: 'pattern',
+				message: 'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
+			});
 			return;
 		}
 
 		if (areaData?.capacity && data.numberOfGuests > areaData.capacity) {
-			showAlert(
-				'warning',
-				'Exceeds Capacity',
-				`Maximum capacity is ${areaData.capacity} guests`,
-				[{ text: 'OK', style: 'default' }]
-			);
+			setError('numberOfGuests', {
+				type: 'validate',
+				message: `Maximum capacity is ${areaData.capacity} guests`,
+			});
 			return;
 		}
 
 		if (!areaId || !startTime || !endTime || !totalPrice) {
-			showAlert(
-				'error',
-				'Error',
-				'Missing booking information. Please try again.',
-				[{ text: 'OK', style: 'default' }]
-			);
+			setError('firstName', {
+				type: 'manual',
+				message: 'Missing booking information. Please try again.',
+			});
 			return;
 		}
 
@@ -288,14 +276,7 @@ export default function ConfirmAreaBookingScreen() {
 	};
 
 	const handleConfirmBooking = async () => {
-		if (
-			!areaId ||
-			!startTime ||
-			!endTime ||
-			!totalPrice ||
-			!pendingFormData
-		)
-			return;
+		if (!areaId || !startTime || !endTime || !totalPrice || !pendingFormData) return;
 
 		setShowConfirmModal(false);
 
@@ -322,22 +303,18 @@ export default function ConfirmAreaBookingScreen() {
 
 		if (pendingFormData.paymentMethod === 'paymongo') {
 			if (!confirmedDownPayment) {
-				showAlert(
-					'error',
-					'Error',
-					'Please enter down payment amount first.',
-					[{ text: 'OK', style: 'default' }]
-				);
+				setError('paymentMethod', {
+					type: 'required',
+					message: 'Please enter down payment amount first.',
+				});
 				return;
 			}
 
 			if (!user?.id) {
-				showAlert(
-					'error',
-					'Authentication Error',
-					'Please log in to continue with booking.',
-					[{ text: 'OK', style: 'default' }]
-				);
+				setError('firstName', {
+					type: 'manual',
+					message: 'Please log in to continue with booking.',
+				});
 				return;
 			}
 
@@ -598,6 +575,11 @@ export default function ConfirmAreaBookingScreen() {
 								name="phoneNumber"
 								rules={{
 									required: 'Phone number is required',
+									pattern: {
+										value: /^(\+639\d{9}|09\d{9})$/,
+										message:
+											'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
+									},
 								}}
 								render={({
 									field: { onChange, onBlur, value },
@@ -638,6 +620,9 @@ export default function ConfirmAreaBookingScreen() {
 											parseInt(value.toString()) || 0;
 										if (numValue < 1) {
 											return 'At least 1 guest is required';
+										}
+										if (areaData?.capacity && numValue > areaData.capacity) {
+											return `Maximum capacity is ${areaData.capacity} guests`;
 										}
 										return true;
 									},
@@ -1027,14 +1012,14 @@ export default function ConfirmAreaBookingScreen() {
 			</KeyboardAwareScrollView>
 
 			{/* Styled Alert */}
-			<StyledAlert
+			{/* <StyledAlert
 				visible={alertConfig.visible}
 				type={alertConfig.type}
 				title={alertConfig.title}
 				message={alertConfig.message}
 				buttons={alertConfig.buttons}
 				onDismiss={hideAlert}
-			/>
+			/> */}
 
 			{/* Confirmation Modal */}
 			<ConfirmBookingModal
