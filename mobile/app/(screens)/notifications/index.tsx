@@ -10,7 +10,7 @@ import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import StyledText from '@/components/ui/StyledText';
 import { useUserNotifications } from '@/hooks/useUserNotifications';
-import React from 'react';
+import React, { useMemo } from 'react';
 import NotificationItem from '@/components/notifications/NotificationItem';
 import useAlertStore from '@/store/AlertStore';
 
@@ -33,7 +33,7 @@ export default function NotificationScreen() {
 	} = useUserNotifications();
 
 	// Deduplicate notifications by id (guards against overlapping paginated pages)
-	const uniqueNotifications = React.useMemo(() => {
+	const uniqueNotifications = useMemo(() => {
 		const map = new Map<number, any>();
 		for (const n of notifications) {
 			map.set(n.id, n);

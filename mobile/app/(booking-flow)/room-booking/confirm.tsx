@@ -4,7 +4,6 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
 	View,
 	TouchableOpacity,
-	ScrollView,
 	ActivityIndicator,
 	Image,
 	TextInput,
@@ -322,21 +321,59 @@ export default function ConfirmRoomBookingScreen() {
 		control._formValues.paymentMethod = 'gcash';
 	};
 
-	const handleConfirmBooking = async () => {
-		if (
-			!roomId ||
-			!checkInDate ||
-			!checkOutDate ||
-			!totalPrice ||
-			!pendingFormData
-		) {
-			return;
+	const handleInitiatePrebooking = async (amount: number) => {
+		if (!user?.id || !roomId || !checkInDate || !checkOutDate) {
+			return { success: false, error: new Error('Missing booking or authentication data') };
 		}
+
+		try {
+			const baseUrl = process.env.EXPO_PUBLIC_DJANGO_URL;
+			const bookingData = {
+				user_id: user.id.toString(),
+				room_id: roomId,
+				first_name: pendingFormData?.firstName || '',
+				last_name: pendingFormData?.lastName || '',
+				phone_number: (pendingFormData?.phoneNumber || '').replace(/\s+/g, ''),
+				check_in: checkInDate,
+				check_out: checkOutDate,
+				total_price: parseFloat(totalPrice || '0'),
+				number_of_guests: pendingFormData?.numberOfGuests || 1,
+				special_requests: pendingFormData?.specialRequests || '',
+				arrival_time: pendingFormData?.arrivalTime
+					? convertTo24Hour(pendingFormData.arrivalTime)
+					: '',
+			};
+
+			const result = await createSourcePrebookingAndRedirect({
+				amountPhp: amount,
+				bookingData,
+				successUrl: `${baseUrl}/booking/paymongo/payment-success`,
+				failedUrl: `${baseUrl}/booking/paymongo/payment-failed`,
+			});
+
+			const redirectUrl = result?.data?.data?.attributes?.redirect?.checkout_url ||
+				result?.data?.data?.attributes?.redirect?.success ||
+				undefined;
+
+			return {
+				success: !!result?.success,
+				redirectUrl,
+				sourceId: result?.sourceId,
+				error: result?.error,
+			};
+		} catch (e: any) {
+			return { success: false, error: e };
+		}
+	};
+
+	const handleConfirmBooking = async () => {
+		if (!roomId || !checkInDate || !checkOutDate || !totalPrice || !pendingFormData) return;
 
 		setShowConfirmModal(false);
 
-		// --- PAYMONGO FLOW (Kept manual to preserve redirect/hook logic) ---
 		if (pendingFormData.paymentMethod === 'paymongo') {
+			// Payment is handled via the PayMongo modal. The modal now initiates the
+			// prebooking and opens the checkout URL in the browser for a smoother UX.
 			if (!confirmedDownPayment) {
 				setAlertConfig({
 					visible: true,
@@ -345,6 +382,7 @@ export default function ConfirmRoomBookingScreen() {
 					message: 'Please enter down payment amount first.',
 					buttons: [{ text: 'OK', style: 'default' }],
 				});
+				setShowPayMongoModal(true);
 				return;
 			}
 
@@ -359,67 +397,19 @@ export default function ConfirmRoomBookingScreen() {
 				return;
 			}
 
-			setIsSubmitting(true);
-
-			try {
-				const baseUrl = process.env.EXPO_PUBLIC_DJANGO_URL;
-
-				const bookingData = {
-					user_id: user.id.toString(),
-					room_id: roomId,
-					first_name: pendingFormData.firstName,
-					last_name: pendingFormData.lastName,
-					phone_number: pendingFormData.phoneNumber.replace(
-						/\s+/g,
-						''
-					),
-					check_in: checkInDate,
-					check_out: checkOutDate,
-					total_price: parseFloat(totalPrice),
-					number_of_guests: pendingFormData.numberOfGuests,
-					special_requests: pendingFormData.specialRequests || '',
-					arrival_time: pendingFormData.arrivalTime
-						? convertTo24Hour(pendingFormData.arrivalTime)
-						: '',
-				};
-
-				const result = await createSourcePrebookingAndRedirect({
-					amountPhp: confirmedDownPayment,
-					bookingData,
-					successUrl: `${baseUrl}/booking/paymongo/payment-success`,
-					failedUrl: `${baseUrl}/booking/paymongo/payment-failed`,
-				});
-
-				if (result.success) {
-					setIsSubmitting(false);
-					setAlertConfig({
-						visible: true,
-						type: 'info',
-						title: 'Opening Payment Gateway',
-						message: `You will be redirected to PayMongo to complete your ₱${confirmedDownPayment.toFixed(2)} payment. After payment, you'll be redirected back to the app automatically.`,
-						buttons: [
-							{
-								text: 'Continue',
-								style: 'default',
-								onPress: () => {
-									router.replace('/(screens)');
-								},
-							},
-						],
-					});
-				}
-			} catch (error: any) {
-				setIsSubmitting(false);
-				setAlertConfig({
-					visible: true,
-					type: 'error',
-					title: 'Payment Failed',
-					message:
-						error.message ||
-						'Failed to initiate payment. Please try again.',
-					buttons: [{ text: 'OK', style: 'default' }],
-				});
-			}
+			setAlertConfig({
+				visible: true,
+				type: 'info',
+				title: 'Payment In Progress',
+				message: `Please complete the payment in the opened PayMongo page. You will be redirected back to the app once payment completes.`,
+				buttons: [
+					{
+						text: 'OK',
+						style: 'default',
+						onPress: () => router.replace('/(screens)'),
+					},
+				],
+			});
 			return;
 		}
 
@@ -1338,6 +1328,7 @@ export default function ConfirmRoomBookingScreen() {
 				visible={showPayMongoModal}
 				onClose={handlePayMongoModalClose}
 				onConfirm={handlePayMongoAmountConfirm}
+				initiatePayment={handleInitiatePrebooking}
 				totalAmount={parseFloat(totalPrice || '0')}
 				isProcessing={isPayMongoProcessing}
 			/>

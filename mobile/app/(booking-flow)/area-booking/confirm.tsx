@@ -275,6 +275,49 @@ export default function ConfirmAreaBookingScreen() {
 		control._formValues.paymentMethod = 'gcash';
 	};
 
+	// Handler passed to modal to create prebooking/source and return checkout URL.
+	const handleInitiatePrebooking = async (amount: number) => {
+		if (!user?.id || !areaId || !startTime || !endTime) {
+			return { success: false, error: new Error('Missing booking or authentication data') };
+		}
+
+		try {
+			const baseUrl = process.env.EXPO_PUBLIC_DJANGO_URL;
+			const bookingData = {
+				user_id: user.id.toString(),
+				area_id: areaId,
+				first_name: pendingFormData?.firstName || '',
+				last_name: pendingFormData?.lastName || '',
+				phone_number: (pendingFormData?.phoneNumber || '').replace(/\s+/g, ''),
+				start_time: new Date(startTime).toISOString(),
+				end_time: new Date(endTime).toISOString(),
+				total_price: parseFloat(totalPrice || '0'),
+				number_of_guests: pendingFormData?.numberOfGuests || 1,
+				special_requests: pendingFormData?.specialRequests || '',
+			};
+
+			const result = await createSourcePrebookingAndRedirect({
+				amountPhp: amount,
+				bookingData,
+				successUrl: `${baseUrl}/booking/paymongo/payment-success`,
+				failedUrl: `${baseUrl}/booking/paymongo/payment-failed`,
+			});
+
+			const redirectUrl = result?.data?.data?.attributes?.redirect?.checkout_url ||
+				result?.data?.data?.attributes?.redirect?.success ||
+				undefined;
+
+			return {
+				success: !!result?.success,
+				redirectUrl,
+				sourceId: result?.sourceId,
+				error: result?.error,
+			};
+		} catch (e: any) {
+			return { success: false, error: e };
+		}
+	};
+
 	const handleConfirmBooking = async () => {
 		if (!areaId || !startTime || !endTime || !totalPrice || !pendingFormData) return;
 
@@ -307,6 +350,7 @@ export default function ConfirmAreaBookingScreen() {
 					type: 'required',
 					message: 'Please enter down payment amount first.',
 				});
+				setShowPayMongoModal(true);
 				return;
 			}
 
@@ -318,68 +362,18 @@ export default function ConfirmAreaBookingScreen() {
 				return;
 			}
 
-			setIsSubmitting(true);
-
-			try {
-				const baseUrl = process.env.EXPO_PUBLIC_DJANGO_URL;
-
-				const bookingData = {
-					user_id: user.id.toString(),
-					area_id: areaId,
-					first_name: pendingFormData.firstName,
-					last_name: pendingFormData.lastName,
-					phone_number: pendingFormData.phoneNumber.replace(
-						/\s+/g,
-						''
-					),
-					start_time: new Date(startTime).toISOString(),
-					end_time: new Date(endTime).toISOString(),
-					total_price: finalPrice,
-					number_of_guests: pendingFormData.numberOfGuests,
-					special_requests: pendingFormData.specialRequests || '',
-				};
-
-				const result = await createSourcePrebookingAndRedirect({
-					amountPhp: confirmedDownPayment,
-					bookingData,
-					successUrl: `${baseUrl}/booking/paymongo/payment-success`,
-					failedUrl: `${baseUrl}/booking/paymongo/payment-failed`,
-				});
-
-				if (result.success && result.sourceId) {
-					await AsyncStorage.setItem(
-						'paymongo_pending_source_id',
-						result.sourceId
-					);
-
-					setIsSubmitting(false);
-					showAlert(
-						'info',
-						'Opening Payment Gateway',
-						`You will be redirected to PayMongo to complete your ₱${confirmedDownPayment.toFixed(2)} payment. After payment, you'll be redirected back to the app automatically.`,
-						[
-							{
-								text: 'Continue',
-								style: 'default',
-								onPress: () => {
-									hideAlert();
-									router.replace('/(screens)');
-								},
-							},
-						]
-					);
-				}
-			} catch (error: any) {
-				console.error('❌ PayMongo redirect error:', error);
-				setIsSubmitting(false);
-				showAlert(
-					'error',
-					'Payment Failed',
-					error.message ||
-						'Failed to initiate payment. Please try again.',
-					[{ text: 'OK', style: 'default' }]
-				);
-			}
+			showAlert(
+				'info',
+				'Payment In Progress',
+				`Please complete the payment in the opened PayMongo page. You will be redirected back to the app once payment completes.`,
+				[
+					{
+						text: 'OK',
+						style: 'default',
+						onPress: () => router.replace('/(screens)'),
+					},
+				]
+			);
 			return;
 		}
 
@@ -1011,16 +1005,6 @@ export default function ConfirmAreaBookingScreen() {
 				</View>
 			</KeyboardAwareScrollView>
 
-			{/* Styled Alert */}
-			{/* <StyledAlert
-				visible={alertConfig.visible}
-				type={alertConfig.type}
-				title={alertConfig.title}
-				message={alertConfig.message}
-				buttons={alertConfig.buttons}
-				onDismiss={hideAlert}
-			/> */}
-
 			{/* Confirmation Modal */}
 			<ConfirmBookingModal
 				isVisible={showConfirmModal}
@@ -1139,6 +1123,7 @@ export default function ConfirmAreaBookingScreen() {
 				visible={showPayMongoModal}
 				onClose={handlePayMongoModalClose}
 				onConfirm={handlePayMongoAmountConfirm}
+				initiatePayment={handleInitiatePrebooking}
 				totalAmount={parseFloat(totalPrice || '0')}
 				isProcessing={isPayMongoProcessing}
 			/>

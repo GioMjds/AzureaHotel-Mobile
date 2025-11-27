@@ -80,7 +80,7 @@ const AreaCard = ({ item }: AreaCardProps) => {
 				{/* Area Name */}
 				<StyledText
 					variant="playfair-bold"
-					className="text-text-primary text-4xl mb-2"
+					className="text-text-primary text-3xl mb-2"
 					numberOfLines={2}
 				>
 					{item.area_name}

@@ -49,7 +49,6 @@ export default function AreaBookingCalendar() {
 	const [price, setPrice] = useState<number>(0);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-	// Styled alert state/helper
 	const { alertConfig, setAlertConfig } = useAlertStore();
 
 	const showStyledAlert = (opts: {
@@ -97,13 +96,13 @@ export default function AreaBookingCalendar() {
 		data: GetAreaBookings[];
 	}>({
 		queryKey: ['areaBookings', areaId, currentMonth],
-		queryFn: async () => {
+		queryFn: () => {
 			const startDate = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
 			const endDate = format(
 				endOfMonth(addMonths(currentMonth, 1)),
 				'yyyy-MM-dd'
 			);
-			return await booking.getAreaBookings(areaId!, startDate, endDate);
+			return booking.getAreaBookings(areaId!, startDate, endDate);
 		},
 		enabled: !!areaId,
 		refetchInterval: 60000,
@@ -200,12 +199,11 @@ export default function AreaBookingCalendar() {
 	};
 
 	const getDateCellClass = (date: Date) => {
-		const isUnavailable = isDateUnavailable(date);
 		const isSelected = selectedDate && isSameDay(date, selectedDate);
 		const dateStatus = getDateStatus(date);
+		const isUnavailable = isDateUnavailable(date);
 
 		if (isSelected) return 'bg-violet-primary rounded-full';
-		if (isUnavailable) return 'bg-neutral-300 rounded-full';
 
 		if (
 			dateStatus &&
@@ -221,17 +219,20 @@ export default function AreaBookingCalendar() {
 			}
 		}
 
+		if (isUnavailable) return 'bg-neutral-300 rounded-full';
+
 		return 'bg-surface-default border border-border-focus rounded-full';
 	};
 
 	const getDateTextClass = (date: Date) => {
-		const isUnavailable = isDateUnavailable(date);
 		const isSelected = selectedDate && isSameDay(date, selectedDate);
-
-		if (isSelected) return 'text-text-inverse font-montserrat-bold';
-		if (isUnavailable) return 'text-neutral-500 font-montserrat';
-
 		const dateStatus = getDateStatus(date);
+		const isUnavailable = isDateUnavailable(date);
+
+		// Selected state first
+		if (isSelected) return 'text-text-inverse font-montserrat-bold';
+
+		// Booking status overrides generic unavailable text color
 		if (
 			dateStatus &&
 			['reserved', 'checked_in'].includes(dateStatus.toLowerCase())
@@ -245,6 +246,8 @@ export default function AreaBookingCalendar() {
 					return 'text-neutral-500 font-montserrat';
 			}
 		}
+
+		if (isUnavailable) return 'text-neutral-500 font-montserrat';
 
 		return 'text-text-primary font-montserrat';
 	};

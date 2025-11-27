@@ -1,12 +1,21 @@
 import { FC, useState } from 'react';
-import { View, Modal, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Modal, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import StyledText from '../ui/StyledText';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface PayMongoAmountModalProps {
 	visible: boolean;
 	onClose: () => void;
 	onConfirm: (amount: number) => void;
+	initiatePayment?: (
+		amount: number
+	) => Promise<{
+		success: boolean;
+		redirectUrl?: string;
+		sourceId?: string;
+		error?: any;
+	}>;
 	totalAmount: number;
 	isProcessing?: boolean;
 }
@@ -15,9 +24,11 @@ const PayMongoAmountModal: FC<PayMongoAmountModalProps> = ({
 	visible,
 	onClose,
 	onConfirm,
+	initiatePayment,
 	totalAmount,
 	isProcessing = false,
 }) => {
+	const [isInitiating, setIsInitiating] = useState(false);
 	const [amount, setAmount] = useState<string>('');
 	const [error, setError] = useState<string>('');
 
@@ -40,7 +51,7 @@ const PayMongoAmountModal: FC<PayMongoAmountModalProps> = ({
 		setError('');
 	};
 
-	const handleConfirm = () => {
+	const handleConfirm = async () => {
 		const numAmount = parseFloat(amount);
 		
 		// Validation
@@ -58,21 +69,78 @@ const PayMongoAmountModal: FC<PayMongoAmountModalProps> = ({
 			setError(`Amount cannot exceed total (₱${totalAmount.toFixed(2)})`);
 			return;
 		}
-		
+
 		// Minimum down payment (e.g., 20% of total)
 		const minDownPayment = totalAmount * 0.2;
 		if (numAmount < minDownPayment) {
 			setError(`Minimum down payment is ₱${minDownPayment.toFixed(2)} (20% of total)`);
 			return;
 		}
-		
+
+		// If initiatePayment is provided, create the source and open checkout URL
+		if (initiatePayment) {
+			setIsInitiating(true);
+			try {
+				const res = await initiatePayment(numAmount);
+				if (!res || !res.success) {
+					setError(res?.error?.message || 'Failed to initiate payment');
+					setIsInitiating(false);
+					return;
+				}
+
+				// Store the source ID for tracking
+				if (res.sourceId) {
+					try {
+						await AsyncStorage.setItem('paymongo_pending_source_id', res.sourceId);
+					} catch (e) {
+						console.warn('Failed to store paymongo source id', e);
+					}
+				}
+
+				// Open the PayMongo checkout URL in browser
+				if (res.redirectUrl) {
+					try {
+						const canOpen = await Linking.canOpenURL(res.redirectUrl);
+						if (canOpen) {
+							await Linking.openURL(res.redirectUrl);
+							setIsInitiating(false);
+							onConfirm(numAmount);
+							setAmount('');
+							setError('');
+							onClose();
+						} else {
+							setError('Cannot open PayMongo checkout page');
+							setIsInitiating(false);
+						}
+					} catch (e) {
+						console.warn('Failed to open PayMongo checkout URL', e);
+						setError('Failed to open payment page. Please try again.');
+						setIsInitiating(false);
+					}
+				} else {
+					setError('No checkout URL received from PayMongo');
+					setIsInitiating(false);
+				}
+				return;
+			} catch (e: any) {
+				setError(e?.message || String(e));
+				setIsInitiating(false);
+				return;
+			}
+		}
+
+		// Fallback if no initiatePayment function provided
 		onConfirm(numAmount);
+		setAmount('');
+		setError('');
 	};
 
 	const handleClose = () => {
-		setAmount('');
-		setError('');
-		onClose();
+		if (!isInitiating && !isProcessing) {
+			setAmount('');
+			setError('');
+			onClose();
+		}
 	};
 
 	const suggestedAmounts = [
@@ -104,7 +172,7 @@ const PayMongoAmountModal: FC<PayMongoAmountModalProps> = ({
 							</StyledText>
 							<TouchableOpacity 
 								onPress={handleClose}
-								disabled={isProcessing}
+								disabled={isProcessing || isInitiating}
 								className="p-2"
 							>
 								<Ionicons name="close" size={24} color="#3B0270" />
@@ -137,7 +205,7 @@ const PayMongoAmountModal: FC<PayMongoAmountModalProps> = ({
 									keyboardType="decimal-pad"
 									value={amount}
 									onChangeText={handleAmountChange}
-									editable={!isProcessing}
+									editable={!isProcessing && !isInitiating}
 								/>
 							</View>
 							{error && (
@@ -157,7 +225,7 @@ const PayMongoAmountModal: FC<PayMongoAmountModalProps> = ({
 									<TouchableOpacity
 										key={index}
 										onPress={() => setAmount(suggestion.value.toFixed(2))}
-										disabled={isProcessing}
+										disabled={isProcessing || isInitiating}
 										className="flex-1 bg-background-subtle px-3 py-2 rounded-lg border border-border-DEFAULT"
 									>
 										<StyledText className="font-montserrat text-xs text-text-primary text-center">
@@ -176,7 +244,7 @@ const PayMongoAmountModal: FC<PayMongoAmountModalProps> = ({
 							<View className="flex-row items-start">
 								<Ionicons name="information-circle" size={16} color="#3B82F6" className="mr-2 mt-0.5" />
 								<StyledText className="flex-1 font-raleway text-xs text-feedback-info-DEFAULT">
-									Minimum down payment is 20% of the total amount. The remaining balance will be paid upon check-in.
+									Minimum down payment is 20% of the total amount. You will be redirected to PayMongo to complete payment.
 								</StyledText>
 							</View>
 						</View>
@@ -185,8 +253,10 @@ const PayMongoAmountModal: FC<PayMongoAmountModalProps> = ({
 						<View className="flex-row gap-3">
 							<TouchableOpacity
 								onPress={handleClose}
-								disabled={isProcessing}
-								className="flex-1 bg-interactive-secondary-DEFAULT px-4 py-3 rounded-xl border border-interactive-outline-border"
+								disabled={isProcessing || isInitiating}
+								className={`flex-1 bg-interactive-secondary-DEFAULT px-4 py-3 rounded-xl border border-interactive-outline-border ${
+									isProcessing || isInitiating ? 'opacity-50' : ''
+								}`}
 							>
 								<StyledText className="text-interactive-secondary-foreground font-montserrat-bold text-center">
 									Cancel
@@ -195,9 +265,9 @@ const PayMongoAmountModal: FC<PayMongoAmountModalProps> = ({
 							
 							<TouchableOpacity
 								onPress={handleConfirm}
-								disabled={isProcessing || !amount}
+								disabled={isProcessing || isInitiating || !amount}
 								className={`flex-1 px-4 py-3 rounded-xl border border-interactive-outline-border ${
-									isProcessing || !amount
+									isProcessing || isInitiating || !amount
 										? 'bg-interactive-primary-DEFAULT opacity-50'
 										: 'bg-interactive-primary-DEFAULT'
 								}`}
@@ -205,10 +275,10 @@ const PayMongoAmountModal: FC<PayMongoAmountModalProps> = ({
 								<StyledText 
 									variant='montserrat-bold' 
 									className={`text-black text-center ${
-										isProcessing || !amount ? 'opacity-50' : ''
+										isProcessing || isInitiating || !amount ? 'opacity-50' : ''
 									}`}
 								>
-									{isProcessing ? 'Processing...' : 'Confirm & Pay'}
+									{isProcessing || isInitiating ? 'Opening Payment...' : 'Proceed to Payment'}
 								</StyledText>
 							</TouchableOpacity>
 						</View>
