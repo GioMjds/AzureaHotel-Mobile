@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import dj_database_url
 from pathlib import Path
 import os
 from dotenv import load_dotenv
@@ -158,6 +159,11 @@ DATABASES = {
         'PORT': os.getenv('DB_PORT'),
     },
 }
+
+DATABASE_URL = os.getenv('DB_URL') or os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    # parse and override the default database config
+    DATABASES['default'] = dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=False)
 
 # Firebase configuration
 FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID')
