@@ -162,8 +162,14 @@ DATABASES = {
 
 DATABASE_URL = os.getenv('DB_URL') or os.getenv('DATABASE_URL')
 if DATABASE_URL:
-    # parse and override the default database config
-    DATABASES['default'] = dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=False)
+    DATABASES['default'] = dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=600,
+        ssl_require=not DEBUG
+    )
+    print("Using DATABASE_URL for DB connection")
+else:
+    print("Using DB_* env vars for DB connection")
 
 # Firebase configuration
 FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID')
