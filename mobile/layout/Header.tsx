@@ -331,92 +331,77 @@ const Header = ({ headerLabel }: HeaderProps) => {
 									</StyledText>
 								</TouchableOpacity>
 
-								{/* Verification menu logic:
-									- If user was REJECTED: allow them to replace by navigating to verify screen
-									- If user already submitted a valid id (front/back) and not rejected: show "View Verification" with status
-									- Otherwise (unverified): show Verify Account CTA
-								*/}
-								{guest.is_verified === IsVerified.REJECTED ? (
-									<TouchableOpacity
-										activeOpacity={0.8}
-										onPress={() =>
-											handleNavigateTo(
-												'/(profile)/settings/verify-account'
-											)
-										}
-										className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
-									>
-										<FontAwesome
-											name="id-card"
-											size={18}
-											color="#3B0270"
-											style={{ width: 28 }}
-										/>
-										<StyledText
-											variant="montserrat-regular"
-											className="text-text-primary ml-1"
+								{guest.is_verified !== IsVerified.VERIFIED && (
+									guest.is_verified === IsVerified.REJECTED ? (
+										<TouchableOpacity
+											activeOpacity={0.8}
+											onPress={() =>
+												handleNavigateTo(
+													'/(profile)/settings/verify-account'
+												)
+											}
+											className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
 										>
-											Replace Verification
-										</StyledText>
-									</TouchableOpacity>
-								) : guest.valid_id_front || guest.valid_id_back ? (
-									<TouchableOpacity
-										activeOpacity={0.8}
-										onPress={() =>
-											handleNavigateTo(
-												'/(profile)/settings/verify-account'
-											)
-										}
-										className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
-									>
-										<FontAwesome
-											name="id-card"
-											size={18}
-											color="#3B0270"
-											style={{ width: 28 }}
-										/>
-										<View className="flex-row items-center">
+											<FontAwesome
+												name="id-card"
+												size={18}
+												color="#3B0270"
+												style={{ width: 28 }}
+											/>
 											<StyledText
 												variant="montserrat-regular"
 												className="text-text-primary ml-1"
 											>
-												View Verification
+												Replace Verification
 											</StyledText>
+										</TouchableOpacity>
+									) : guest.is_verified === IsVerified.PENDING && (guest.valid_id_front && guest.valid_id_back) ? (
+										<TouchableOpacity
+											activeOpacity={0.8}
+											onPress={() =>
+												handleNavigateTo(
+													'/(profile)/settings/verify-account'
+												)
+											}
+											className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
+										>
+											<FontAwesome
+												name="id-card"
+												size={18}
+												color="#3B0270"
+												style={{ width: 28 }}
+											/>
 											<StyledText
 												variant="montserrat-regular"
-												className="text-sm ml-2 text-text-muted"
+												className="text-text-primary ml-1"
 											>
-												{guest.is_verified === IsVerified.PENDING
-													? ' (Pending)'
-													: guest.is_verified === IsVerified.VERIFIED
-													? ' (Verified)'
-													: ''}
+												See Verification Status
 											</StyledText>
-										</View>
-									</TouchableOpacity>
-								) : (
-									<TouchableOpacity
-										activeOpacity={0.8}
-										onPress={() =>
-											handleNavigateTo(
-												'/(profile)/settings/verify-account'
-											)
-										}
-										className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
-									>
-										<FontAwesome
-											name="id-card"
-											size={18}
-											color="#3B0270"
-											style={{ width: 28 }}
-										/>
-										<StyledText
-											variant="montserrat-regular"
-											className="text-text-primary ml-1"
+										</TouchableOpacity>
+									) : (
+										<TouchableOpacity
+											activeOpacity={0.8}
+											onPress={() =>
+												handleNavigateTo(
+													'/(profile)/settings/verify-account'
+												)
+											}
+											className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
 										>
-											Verify Account
-										</StyledText>
-									</TouchableOpacity>
+											<FontAwesome
+												name="id-card"
+												size={18}
+												color="#3B0270"
+												style={{ width: 28 }}
+											/>
+											<StyledText
+												variant="montserrat-regular"
+												className="text-text-primary ml-1"
+											>
+												Verify Account
+											</StyledText>
+										</TouchableOpacity>
+									)
 								)}
 
 								<TouchableOpacity
