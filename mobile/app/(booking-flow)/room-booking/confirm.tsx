@@ -94,6 +94,8 @@ export default function ConfirmRoomBookingScreen() {
 		handleSubmit,
 		formState: { errors },
 		setError,
+		trigger,
+		getValues,
 	} = useForm<FormData>({
 		mode: 'onSubmit',
 		defaultValues: {
@@ -900,12 +902,20 @@ export default function ConfirmRoomBookingScreen() {
 
 										{/* PayMongo Option */}
 										<TouchableOpacity
-											onPress={() => {
+											onPress={async () => {
 												onChange('paymongo');
-												setSelectedPaymentMethod(
-													'paymongo'
-												);
-												// Show amount modal immediately when PayMongo is selected
+												setSelectedPaymentMethod('paymongo');
+
+												const valid = await trigger([
+													'phoneNumber',
+													'numberOfGuests',
+													'arrivalTime',
+												]);
+
+												if (!valid) return;
+
+												const values = getValues();
+												setPendingFormData(values as FormData);
 												setShowPayMongoModal(true);
 											}}
 											className={`border-2 rounded-xl p-4 ${

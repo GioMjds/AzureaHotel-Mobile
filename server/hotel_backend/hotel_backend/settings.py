@@ -140,11 +140,27 @@ PASSWORD_HASHERS = [
 WSGI_APPLICATION = 'hotel_backend.wsgi.application'
 ASGI_APPLICATION = 'hotel_backend.asgi.application'
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
-    },
-}
+# Use Redis for channel layer when available (recommended for production and multi-process)
+REDIS_URL = os.getenv('REDIS_URL') or os.getenv('CHANNEL_REDIS_URL') or os.getenv('REDIS_HOST')
+if not REDIS_URL:
+    # Default to docker-compose service name
+    REDIS_URL = 'redis://redis:6379/0'
+
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -166,7 +182,6 @@ if DATABASE_URL:
     DATABASES['default'] = dj_database_url.parse(
         DATABASE_URL,
         conn_max_age=600,
-        ssl_require=not DEBUG
     )
     print("Using DATABASE_URL for DB connection")
 else:

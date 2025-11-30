@@ -5,7 +5,7 @@ import {
 	TouchableOpacity,
 	View,
 	Image,
-	ScrollView,
+	Platform,
 	ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -20,6 +20,7 @@ import useAlertStore from '@/store/AlertStore';
 import StyledAlert from '@/components/ui/StyledAlert';
 import TermsModal from '@/components/TermsModal';
 import { useGoogleOAuth } from '@/hooks/useGoogleOAuth';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const REGISTRATION_EMAIL_KEY = 'registration_email';
 const REGISTRATION_PASSWORD_KEY = 'registration_password';
@@ -92,14 +93,12 @@ export default function RegisterScreen() {
 			}
 			return;
 		}
-		
-		// Handle existing Google users (successful authentication)
+
 		if (result.success) {
 			router.replace('/(screens)');
 			return;
 		}
-		
-		// Handle errors (but not cancellation)
+
 		if (!result.success && result.error && !result.cancelled) {
 			setGoogleAuthError(result.error);
 		}
@@ -155,6 +154,7 @@ export default function RegisterScreen() {
 					variables.firstName
 				);
 			}
+
 			if (variables.lastName) {
 				await SecureStore.setItemAsync(
 					REGISTRATION_LAST_NAME_KEY,
@@ -192,7 +192,6 @@ export default function RegisterScreen() {
 		watchAllFields.password?.trim() !== '' &&
 		watchAllFields.confirmPassword?.trim() !== '';
 
-	// Check if button should be disabled
 	const isButtonDisabled = 
 		!areAllFieldsFilled || 
 		!hasAgreedToTerms || 
@@ -201,7 +200,6 @@ export default function RegisterScreen() {
 		isGoogleLoading;
 
 	const onSubmit: SubmitHandler<RegisterFormData> = async (data) => {
-		// Check if user has agreed to terms
 		if (!hasAgreedToTerms) {
 			showStyledAlert({
 				title: 'Terms Required',
@@ -240,12 +238,13 @@ export default function RegisterScreen() {
 				</View>
 
 				<SafeAreaView className="flex-1 p-6 justify-center">
-					<ScrollView
-						contentContainerStyle={{
-							flexGrow: 1,
-							justifyContent: 'center',
-						}}
-						showsVerticalScrollIndicator={false}
+					<KeyboardAwareScrollView
+						className="flex-1"
+						enableOnAndroid={true}
+						enableAutomaticScroll
+						keyboardShouldPersistTaps="handled"
+						extraScrollHeight={Platform.OS === 'ios' ? 20 : 120}
+						contentContainerStyle={{ flexGrow: 1 }}
 					>
 						{/* Main Registration Card */}
 						<View className="w-full max-w-md bg-surface-default/95 backdrop-blur-xl rounded-3xl p-8 self-center">
@@ -706,7 +705,7 @@ export default function RegisterScreen() {
 								</TouchableOpacity>
 							</View>
 						</View>
-					</ScrollView>
+					</KeyboardAwareScrollView>
 				</SafeAreaView>
 			</View>
 

@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hotel_management
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  web:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    env_file:
+      - ./server/.env
+    volumes:
+      - ./server:/app:cached
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8000:8000"
+    command: bash -lc "python manage.py migrate --noinput && daphne -b 0.0.0.0 -p 8000 hotel_backend.asgi:application"
+
+  worker:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    env_file:
+      - ./server/.env
+    volumes:
+      - ./server:/app:cached
+    depends_on:
+      - db
+      - redis
+    command: bash -lc "python manage.py migrate --noinput && python manage.py rqworker default"
+
+volumes:
+  db_data:

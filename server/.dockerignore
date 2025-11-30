@@ -1,0 +1,23 @@
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Env files and local settings (won't be copied into image)
+.env
+*.env
+
+# Git
+.git
+
+# Local virtualenv
+venv/
+env/
+
+# Editor/IDE
+.vscode/
+*.swp
+
+# Node modules (if present)
+node_modules/
