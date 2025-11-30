@@ -162,6 +162,7 @@ DATABASES = {
 
 DATABASE_URL = os.getenv('DB_URL') or os.getenv('DATABASE_URL')
 if DATABASE_URL:
+    # require SSL in production, allow no-ssl when DEBUG True
     DATABASES['default'] = dj_database_url.parse(
         DATABASE_URL,
         conn_max_age=600,

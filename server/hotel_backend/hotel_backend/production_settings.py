@@ -25,7 +25,6 @@ X_FRAME_OPTIONS = 'DENY'
 # CORS for production - Update this with your actual mobile app URL
 CORS_ALLOWED_ORIGINS = [
     os.getenv('CLIENT_URL', 'exp://192.168.1.5:8081'),  # For local dev
-    #...
 ]
 
 # Database: prefer full URL from Render (DB_URL / DATABASE_URL). Fallback to MySQL block if not present.
