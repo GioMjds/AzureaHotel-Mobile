@@ -377,35 +377,29 @@ def send_register_otp(request):
         
         purpose = "account_verification"
         cache_key = f"{email}_{purpose}"
-
+        
         if cache.get(cache_key):
             return Response({
                 "message": "An OTP has already been sent to your email. Please check your inbox.",
             }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Quick OTP generation (6 digits)
-        otp_generated = str(random.randint(100000, 999999))
+        
+        message = "Your OTP for account verification"
+        otp_generated = send_otp_to_email(email, message)
+        
+        if otp_generated is None:
+            return Response({
+                "error": {
+                    "general": "An error occurred while sending the OTP. Please try again later."
+                }
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
         OTP_EXPIRATION_TIME = 120
         cache.set(cache_key, otp_generated, OTP_EXPIRATION_TIME)
-
-        # send email in background thread (best-effort)
-        def _send_email_async(to_email, otp_code):
-            try:
-                message = "Your OTP for account verification"
-                # existing helper that sends email and returns otp (we ignore return here)
-                send_otp_to_email(to_email, message, otp_override=otp_code) if 'otp_override' in send_otp_to_email.__code__.co_varnames else send_otp_to_email(to_email, message)
-            except Exception as e:
-                logger.exception("Failed to send register OTP email async")
-
-        t = threading.Thread(target=_send_email_async, args=(email, otp_generated), daemon=True)
-        t.start()
-
-        # Return immediately. In development include OTP for easier testing.
-        response_payload = {"success": "OTP sent for account verification"}
-        if os.getenv('MODE') == 'development':
-            response_payload['otp'] = otp_generated
-
-        return Response(response_payload, status=status.HTTP_200_OK)
+        
+        return Response({
+            "success": "OTP sent for account verification",
+            'otp': otp_generated
+        }, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({
             "error": f"An error occurred while sending the OTP. Please try again later. {str(e)}",
