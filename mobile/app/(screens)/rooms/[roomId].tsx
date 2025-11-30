@@ -14,10 +14,13 @@ import { Room } from '@/types/Room.types';
 import { FontAwesome } from '@expo/vector-icons';
 import StyledText from '@/components/ui/StyledText';
 import PhotoGallery from '@/components/PhotoGallery';
+import useLastBookingCheck from '@/hooks/useLastBookingCheck';
 
 export default function GetRoomScreen() {
 	const router = useRouter();
 	const { roomId } = useLocalSearchParams();
+
+	const { isBookingLocked, bookingLockedMessage } = useLastBookingCheck();
 
 	const { data, isLoading, error } = useQuery({
 		queryKey: ['room', roomId],
@@ -339,19 +342,25 @@ export default function GetRoomScreen() {
 				<View className="px-4 py-6">
 					<TouchableOpacity
 						className={`rounded-xl py-4 ${
-							roomData.status === 'available'
+							roomData.status === 'available' && !isBookingLocked
 								? 'bg-violet-600'
 								: 'bg-neutral-400'
 						}`}
 						onPress={() => router.push(`/(booking-flow)/room-booking/${roomData.id}` as any)}
-						disabled={roomData.status !== 'available'}
+						disabled={roomData.status !== 'available' || isBookingLocked}
 					>
-						<StyledText variant='montserrat-bold' className="text-white text-center text-2xl">
-							{roomData.status === 'available'
-								? 'Book Now'
-								: 'Not Available'}
+						<StyledText variant='montserrat-bold' className="text-white text-center text-lg">
+							{roomData.status === 'available' && !isBookingLocked
+								? 'Book This Room'
+								: 'Verify your account for infinite bookings'}
 						</StyledText>
 					</TouchableOpacity>
+
+					{isBookingLocked && (
+						<StyledText variant='raleway-regular' className="text-center text-sm text-neutral-600 mt-2">
+							{bookingLockedMessage}
+						</StyledText>
+					)}
 				</View>
 			</ScrollView>
 		</View>

@@ -13,10 +13,14 @@ import { area } from '@/services/Area';
 import { Area } from '@/types/Area.types';
 import { pesoFormatter } from '@/utils/formatters';
 import PhotoGallery from '@/components/PhotoGallery';
+import useLastBookingCheck from '@/hooks/useLastBookingCheck';
+import StyledText from '@/components/ui/StyledText';
 
 export default function GetAreaScreen() {
 	const { areaId } = useLocalSearchParams();
 	const router = useRouter();
+
+	const { isBookingLocked, bookingLockedMessage } = useLastBookingCheck();
 
 	const { data, isLoading, error } = useQuery({
 		queryKey: ['area', areaId],
@@ -290,19 +294,25 @@ export default function GetAreaScreen() {
 				<View className="px-4 py-6">
 					<TouchableOpacity
 						className={`rounded-xl py-4 ${
-							areaData.status === 'available'
+							areaData.status === 'available' && !isBookingLocked
 								? 'bg-violet-600'
 								: 'bg-neutral-400'
 						}`}
-                        onPress={() => router.push(`/(booking-flow)/area-booking/${areaData.id}` as any)}
-						disabled={areaData.status !== 'available'}
+						onPress={() => router.push(`/(booking-flow)/area-booking/${areaData.id}` as any)}
+						disabled={areaData.status !== 'available' || isBookingLocked}
 					>
 						<Text className="text-white font-montserrat-bold text-center text-lg">
-							{areaData.status === 'available'
+							{areaData.status === 'available' && !isBookingLocked
 								? 'Book This Area'
-								: 'Currently Unavailable'}
+								: 'Verify your account for infinite bookings'}
 						</Text>
 					</TouchableOpacity>
+
+					{isBookingLocked && (
+						<StyledText variant='raleway-regular' className="text-center text-sm text-neutral-600 mt-2">
+							{bookingLockedMessage}
+						</StyledText>
+					)}
 				</View>
 			</ScrollView>
 		</View>
