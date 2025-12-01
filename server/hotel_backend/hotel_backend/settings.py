@@ -140,27 +140,12 @@ PASSWORD_HASHERS = [
 WSGI_APPLICATION = 'hotel_backend.wsgi.application'
 ASGI_APPLICATION = 'hotel_backend.asgi.application'
 
-# Use Redis for channel layer when available (recommended for production and multi-process)
-REDIS_URL = os.getenv('REDIS_URL') or os.getenv('CHANNEL_REDIS_URL') or os.getenv('REDIS_HOST')
-if not REDIS_URL:
-    # Default to docker-compose service name
-    REDIS_URL = 'redis://redis:6379/0'
-
-if REDIS_URL:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                'hosts': [REDIS_URL],
-            },
-        },
+# Channel Layers Configuration for Django Channels
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
     }
-else:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels.layers.InMemoryChannelLayer',
-        },
-    }
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -175,17 +160,6 @@ DATABASES = {
         'PORT': os.getenv('DB_PORT'),
     },
 }
-
-DATABASE_URL = os.getenv('DB_URL') or os.getenv('DATABASE_URL')
-if DATABASE_URL:
-    # require SSL in production, allow no-ssl when DEBUG True
-    DATABASES['default'] = dj_database_url.parse(
-        DATABASE_URL,
-        conn_max_age=600,
-    )
-    print("Using DATABASE_URL for DB connection")
-else:
-    print("Using DB_* env vars for DB connection")
 
 # Firebase configuration
 FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID')
