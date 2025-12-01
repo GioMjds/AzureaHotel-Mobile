@@ -1,4 +1,5 @@
 from django.core.mail import EmailMultiAlternatives
+from django.conf import settings
 import random
 import os
 import logging
@@ -13,11 +14,18 @@ def send_otp_to_email(email, message):
         subject = f"Azurea Hotel OTP for Account Verification"
         
         email_from = os.getenv('EMAIL_HOST_USER')
+        email_password = os.getenv('EMAIL_HOST_PASSWORD')
+        
         if not email_from:
             logger.error("EMAIL_HOST_USER environment variable is not set")
             return None
+        
+        if not email_password:
+            logger.error("EMAIL_HOST_PASSWORD environment variable is not set")
+            return None
             
         logger.info(f"Attempting to send OTP email to {email} from {email_from}")
+        logger.info(f"Email settings - HOST: {settings.EMAIL_HOST}, PORT: {settings.EMAIL_PORT}, TLS: {settings.EMAIL_USE_TLS}")
         
         otp_message = f"""
         <!DOCTYPE html>
