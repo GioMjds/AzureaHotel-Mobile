@@ -1,13 +1,24 @@
 from django.core.mail import EmailMultiAlternatives
-import random, os
+import random
+import os
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 def send_otp_to_email(email, message):
     try:
         otp = random.randint(100000, 999999)
         subject = f"Azurea Hotel OTP for Account Verification"
+        
+        email_from = os.getenv('EMAIL_HOST_USER')
+        if not email_from:
+            logger.error("EMAIL_HOST_USER environment variable is not set")
+            return None
+            
+        logger.info(f"Attempting to send OTP email to {email} from {email_from}")
+        
         otp_message = f"""
         <!DOCTYPE html>
         <html lang="en">
@@ -37,19 +48,30 @@ def send_otp_to_email(email, message):
     </body>
 </html>
 """
-        email_from = os.getenv('EMAIL_HOST_USER')
         msg = EmailMultiAlternatives(subject, message, email_from, [email])
         msg.attach_alternative(otp_message, "text/html")
         msg.send()
         
+        logger.info(f"OTP email sent successfully to {email}")
         return otp
-    except Exception:
+    except Exception as e:
+        logger.error(f"Failed to send OTP email to {email}: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return None
 
 def send_reset_password(email):
     try:
         otp = random.randint(100000, 999999)
         subject = f"Azurea Hotel Reset Password"
+        
+        email_from = os.getenv('EMAIL_HOST_USER')
+        if not email_from:
+            logger.error("EMAIL_HOST_USER environment variable is not set for reset password")
+            return None
+            
+        logger.info(f"Attempting to send reset password OTP to {email} from {email_from}")
+        
         message = f"""
         <!DOCTYPE html>
         <html lang="en">
@@ -79,11 +101,14 @@ def send_reset_password(email):
     </body>
 </html>
 """
-        email_from = os.getenv('EMAIL_HOST_USER')
         msg = EmailMultiAlternatives(subject, message, email_from, [email])
         msg.attach_alternative(message, "text/html")
         msg.send()
         
+        logger.info(f"Reset password OTP sent successfully to {email}")
         return otp
-    except Exception:
+    except Exception as e:
+        logger.error(f"Failed to send reset password email to {email}: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return None

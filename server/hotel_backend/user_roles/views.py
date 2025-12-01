@@ -349,6 +349,8 @@ def send_register_otp(request):
         password = request.data.get("password")
         confirm_password = request.data.get("confirm_password")
         
+        logger.info(f"send_register_otp called for email: {email}")
+        
         # Ensure all required fields are present
         if not first_name or not last_name or not email or not password or not confirm_password:
             return Response({
@@ -376,15 +378,34 @@ def send_register_otp(request):
         purpose = "account_verification"
         cache_key = f"{email}_{purpose}"
         
-        if cache.get(cache_key):
+        # Check cache connection
+        try:
+            existing_otp = cache.get(cache_key)
+            logger.info(f"Cache check for {cache_key}: {'exists' if existing_otp else 'empty'}")
+        except Exception as cache_error:
+            logger.error(f"Cache connection error: {str(cache_error)}")
+            return Response({
+                "error": "Cache service unavailable. Please try again later."
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        
+        if existing_otp:
             return Response({
                 "message": "An OTP has already been sent to your email. Please check your inbox.",
             }, status=status.HTTP_400_BAD_REQUEST)
         
         message = "Your OTP for account verification"
-        otp_generated = send_otp_to_email(email, message)
+        
+        try:
+            otp_generated = send_otp_to_email(email, message)
+            logger.info(f"OTP generation result for {email}: {'success' if otp_generated else 'failed'}")
+        except Exception as email_error:
+            logger.error(f"Email sending exception: {str(email_error)}")
+            return Response({
+                "error": f"Failed to send email: {str(email_error)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         if otp_generated is None:
+            logger.error(f"OTP generation returned None for {email}")
             return Response({
                 "error": {
                     "general": "An error occurred while sending the OTP. Please try again later."
@@ -392,15 +413,24 @@ def send_register_otp(request):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         OTP_EXPIRATION_TIME = 120
-        cache.set(cache_key, otp_generated, OTP_EXPIRATION_TIME)
+        
+        try:
+            cache.set(cache_key, otp_generated, OTP_EXPIRATION_TIME)
+            logger.info(f"OTP cached successfully for {email}")
+        except Exception as cache_set_error:
+            logger.error(f"Cache set error: {str(cache_set_error)}")
+            # Still return success since email was sent
         
         return Response({
             "success": "OTP sent for account verification",
-            'otp': otp_generated
+            'otp': otp_generated if os.getenv('DEBUG') == 'True' else None
         }, status=status.HTTP_200_OK)
     except Exception as e:
+        logger.error(f"send_register_otp exception: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return Response({
-            "error": f"An error occurred while sending the OTP. Please try again later. {str(e)}",
+            "error": f"An error occurred while sending the OTP. Please try again later.",
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
