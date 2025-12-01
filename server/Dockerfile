@@ -31,5 +31,5 @@ COPY . /app
 # Expose ASGI port
 EXPOSE 8000
 
-# Default command: run migrations then Daphne ASGI server
-CMD ["bash", "-lc", "python manage.py migrate --noinput && daphne -b 0.0.0.0 -p 8000 hotel_backend.asgi:application"]
+# Default command: run migrations, create admin user, then start Daphne ASGI server
+CMD ["bash", "-lc", "python manage.py migrate --noinput && python manage.py create_admin && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 hotel_backend.asgi:application"]
