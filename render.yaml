@@ -1,48 +1,52 @@
 databases:
-  - name: azureahotel-mysql
+  - name: azureahotel-db
     databaseName: hotel_management
+    user: hotel_user
     plan: free
+    region: singapore
 
 services:
+  # Django Web Service
   - type: web
     name: azureahotel-api
     runtime: python
     region: singapore
-    rootDir: server/hotel_backend
-    buildCommand: "pip install -r ../requirements.txt && python manage.py collectstatic --no-input"
-    startCommand: "sh -c 'python manage.py migrate --noinput && daphne -b 0.0.0.0 -p $PORT hotel_backend.asgi:application'"
+    plan: free
+    rootDir: server
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: |
+      cd hotel_backend && python manage.py migrate --noinput && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p $PORT hotel_backend.asgi:application
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      - key: DATABASE_URL
+        fromDatabase:
+          name: azureahotel-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: azureahotel-redis
+          type: redis
+          property: connectionString
       - key: DJANGO_SETTINGS_MODULE
-        value: hotel_backend.production_settings
-      - key: DB_HOST
-        fromDatabase:
-          name: azureahotel-mysql
-          property: host
-      - key: DB_NAME
-        fromDatabase:
-          name: azureahotel-mysql
-          property: database
-      - key: DB_USER
-        fromDatabase:
-          name: azureahotel-mysql
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: azureahotel-mysql
-          property: password
-      - key: DB_PORT
-        value: 3306
-      - key: SECRET_KEY
-        generateValue: true
+        value: hotel_backend.settings
       - key: DEBUG
         value: "False"
-      - key: CLIENT_URL
-        value: "exp://192.168.1.14:8081"
+      # Add your other env vars from the Environment tab
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
       - key: CLOUD_NAME
         sync: false
       - key: API_KEY
         sync: false
       - key: API_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: FIREBASE_PROJECT_ID
         sync: false
@@ -52,3 +56,12 @@ services:
         sync: false
       - key: PAYMONGO_TEST_SECRET_KEY
         sync: false
+
+  # Redis for Channels & Caching
+  - type: redis
+    ipAllowList:
+      - source: 0.0.0.0/0
+    name: AzureaHotel
+    plan: free
+    region: singapore
+    maxmemoryPolicy: allkeys-lru

@@ -28,8 +28,6 @@ import cloudinary
 import cloudinary.uploader
 import traceback
 import logging
-import threading
-import random
 
 logger = logging.getLogger(__name__)
 
