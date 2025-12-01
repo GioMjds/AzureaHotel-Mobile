@@ -6,7 +6,7 @@ import {
 	View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { room } from '@/services/Room';
 import { pesoFormatter } from '@/utils/formatters';
@@ -15,10 +15,19 @@ import { FontAwesome } from '@expo/vector-icons';
 import StyledText from '@/components/ui/StyledText';
 import PhotoGallery from '@/components/PhotoGallery';
 import useLastBookingCheck from '@/hooks/useLastBookingCheck';
+import useAuthStore from '@/store/AuthStore';
+import { useCallback } from 'react';
 
 export default function GetRoomScreen() {
 	const router = useRouter();
 	const { roomId } = useLocalSearchParams();
+	const fetchUser = useAuthStore((s) => s.fetchUser);
+
+	useFocusEffect(
+		useCallback(() => {
+			fetchUser();
+		}, [fetchUser])
+	);
 
 	const { isBookingLocked, bookingLockedMessage } = useLastBookingCheck();
 

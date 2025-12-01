@@ -7,7 +7,7 @@ import {
 	View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { area } from '@/services/Area';
 import { Area } from '@/types/Area.types';
@@ -15,10 +15,20 @@ import { pesoFormatter } from '@/utils/formatters';
 import PhotoGallery from '@/components/PhotoGallery';
 import useLastBookingCheck from '@/hooks/useLastBookingCheck';
 import StyledText from '@/components/ui/StyledText';
+import useAuthStore from '@/store/AuthStore';
+import { useCallback } from 'react';
 
 export default function GetAreaScreen() {
 	const { areaId } = useLocalSearchParams();
+
 	const router = useRouter();
+	const fetchUser = useAuthStore((s) => s.fetchUser);
+
+	useFocusEffect(
+		useCallback(() => {
+			fetchUser();
+		}, [fetchUser])
+	);
 
 	const { isBookingLocked, bookingLockedMessage } = useLastBookingCheck();
 

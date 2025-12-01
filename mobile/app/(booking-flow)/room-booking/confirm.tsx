@@ -33,7 +33,11 @@ import { Room } from '@/types/Room.types';
 import StyledText from '@/components/ui/StyledText';
 import StyledAlert from '@/components/ui/StyledAlert';
 import { usePaymongo } from '@/hooks/usePayMongo';
-import { convertTo24Hour, formatDateTime, validateCheckInTime } from '@/utils/formatters';
+import {
+	convertTo24Hour,
+	formatDateTime,
+	validateCheckInTime,
+} from '@/utils/formatters';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 interface FormData {
@@ -43,21 +47,26 @@ interface FormData {
 	numberOfGuests: number;
 	arrivalTime: string;
 	specialRequests: string;
-	paymentMethod: 'gcash' | 'paymongo';
+	paymentMethod: 'gcash' | 'paymongo' | 'on_site';
 }
 
 export default function ConfirmRoomBookingScreen() {
 	const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
-	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 	const [gcashProof, setGcashProof] = useState<string | null>(null);
 	const [gcashFile, setGcashFile] = useState<any>(null);
-	const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
+	const [pendingFormData, setPendingFormData] = useState<FormData | null>(
+		null
+	);
 	const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
 	const [qrModalVisible, setQrModalVisible] = useState<boolean>(false);
 	const [selectedQrImage, setSelectedQrImage] = useState<number | null>(null);
-	const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'gcash' | 'paymongo'>('gcash');
+	const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+		'gcash' | 'paymongo' | 'on_site'
+	>('gcash');
 	const [showPayMongoModal, setShowPayMongoModal] = useState<boolean>(false);
-	const [confirmedDownPayment, setConfirmedDownPayment] = useState<number | null>(null);
+	const [confirmedDownPayment, setConfirmedDownPayment] = useState<
+		number | null
+	>(null);
 	const [exitAlertVisible, setExitAlertVisible] = useState<boolean>(false);
 
 	const { alertConfig, setAlertConfig } = useAlertStore();
@@ -149,7 +158,7 @@ export default function ConfirmRoomBookingScreen() {
 				message: `Error: ${errorMessage}`,
 				buttons: [{ text: 'OK', style: 'default' }],
 			});
-		}
+		},
 	});
 
 	const formattedCheckIn = formatDateTime(checkInDate);
@@ -204,12 +213,14 @@ export default function ConfirmRoomBookingScreen() {
 		: null;
 
 	const handlePickImage = async () => {
-		const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+		const { status } =
+			await ImagePicker.requestMediaLibraryPermissionsAsync();
 
 		if (status !== 'granted') {
 			setError('paymentMethod', {
 				type: 'manual',
-				message: 'Camera roll permission is required to upload payment proof.',
+				message:
+					'Camera roll permission is required to upload payment proof.',
 			});
 			return;
 		}
@@ -279,16 +290,18 @@ export default function ConfirmRoomBookingScreen() {
 			return;
 		}
 
+		// On-site payment doesn't require proof or down payment
+
 		const cleanedValue = data.phoneNumber.replace(/[^\d+]/g, '');
 		const phPattern = /^(\+639\d{9}|09\d{9})$/;
 		if (!phPattern.test(cleanedValue)) {
 			setError('phoneNumber', {
 				type: 'pattern',
-				message: 'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
+				message:
+					'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
 			});
 			return;
 		}
-
 		if (roomData?.max_guests && data.numberOfGuests > roomData.max_guests) {
 			setError('numberOfGuests', {
 				type: 'validate',
@@ -319,13 +332,15 @@ export default function ConfirmRoomBookingScreen() {
 	const handlePayMongoModalClose = () => {
 		setShowPayMongoModal(false);
 		setConfirmedDownPayment(null);
-		setSelectedPaymentMethod('gcash');
-		control._formValues.paymentMethod = 'gcash';
+		setSelectedPaymentMethod('on_site');
+		control._formValues.paymentMethod = 'on_site';
 	};
-
 	const handleInitiatePrebooking = async (amount: number) => {
 		if (!user?.id || !roomId || !checkInDate || !checkOutDate) {
-			return { success: false, error: new Error('Missing booking or authentication data') };
+			return {
+				success: false,
+				error: new Error('Missing booking or authentication data'),
+			};
 		}
 
 		try {
@@ -335,7 +350,10 @@ export default function ConfirmRoomBookingScreen() {
 				room_id: roomId,
 				first_name: pendingFormData?.firstName || '',
 				last_name: pendingFormData?.lastName || '',
-				phone_number: (pendingFormData?.phoneNumber || '').replace(/\s+/g, ''),
+				phone_number: (pendingFormData?.phoneNumber || '').replace(
+					/\s+/g,
+					''
+				),
 				check_in: checkInDate,
 				check_out: checkOutDate,
 				total_price: parseFloat(totalPrice || '0'),
@@ -353,7 +371,8 @@ export default function ConfirmRoomBookingScreen() {
 				failedUrl: `${baseUrl}/booking/paymongo/payment-failed`,
 			});
 
-			const redirectUrl = result?.data?.data?.attributes?.redirect?.checkout_url ||
+			const redirectUrl =
+				result?.data?.data?.attributes?.redirect?.checkout_url ||
 				result?.data?.data?.attributes?.redirect?.success ||
 				undefined;
 
@@ -369,7 +388,14 @@ export default function ConfirmRoomBookingScreen() {
 	};
 
 	const handleConfirmBooking = async () => {
-		if (!roomId || !checkInDate || !checkOutDate || !totalPrice || !pendingFormData) return;
+		if (
+			!roomId ||
+			!checkInDate ||
+			!checkOutDate ||
+			!totalPrice ||
+			!pendingFormData
+		)
+			return;
 
 		setShowConfirmModal(false);
 
@@ -439,9 +465,7 @@ export default function ConfirmRoomBookingScreen() {
 		formData.append('paymentMethod', pendingFormData.paymentMethod);
 
 		if (pendingFormData.arrivalTime) {
-			const arrivalTime24h = convertTo24Hour(
-				pendingFormData.arrivalTime
-			);
+			const arrivalTime24h = convertTo24Hour(pendingFormData.arrivalTime);
 			formData.append('arrivalTime', arrivalTime24h);
 		}
 
@@ -648,16 +672,16 @@ export default function ConfirmRoomBookingScreen() {
 								Phone Number *
 							</StyledText>
 							<Controller
-									control={control}
-									name="phoneNumber"
-									rules={{
-										required: 'Phone number is required',
-										pattern: {
-											value: /^(\+639\d{9}|09\d{9})$/,
-											message:
-												'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
-										},
-									}}
+								control={control}
+								name="phoneNumber"
+								rules={{
+									required: 'Phone number is required',
+									pattern: {
+										value: /^(\+639\d{9}|09\d{9})$/,
+										message:
+											'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
+									},
+								}}
 								render={({
 									field: { onChange, onBlur, value },
 								}) => (
@@ -688,22 +712,25 @@ export default function ConfirmRoomBookingScreen() {
 								Number of Guests *
 							</StyledText>
 							<Controller
-									control={control}
-									name="numberOfGuests"
-									rules={{
-										required: 'Number of guests is required',
-										validate: (value) => {
-											const numValue =
-												parseInt(value.toString()) || 0;
-											if (numValue < 1) {
-												return 'At least 1 guest is required';
-											}
-											if (roomData?.max_guests && numValue > roomData.max_guests) {
-												return `Maximum capacity is ${roomData.max_guests} guests`;
-											}
-											return true;
-										},
-									}}
+								control={control}
+								name="numberOfGuests"
+								rules={{
+									required: 'Number of guests is required',
+									validate: (value) => {
+										const numValue =
+											parseInt(value.toString()) || 0;
+										if (numValue < 1) {
+											return 'At least 1 guest is required';
+										}
+										if (
+											roomData?.max_guests &&
+											numValue > roomData.max_guests
+										) {
+											return `Maximum capacity is ${roomData.max_guests} guests`;
+										}
+										return true;
+									},
+								}}
 								render={({
 									field: { onChange, onBlur, value },
 								}) => (
@@ -904,7 +931,9 @@ export default function ConfirmRoomBookingScreen() {
 										<TouchableOpacity
 											onPress={async () => {
 												onChange('paymongo');
-												setSelectedPaymentMethod('paymongo');
+												setSelectedPaymentMethod(
+													'paymongo'
+												);
 
 												const valid = await trigger([
 													'phoneNumber',
@@ -915,7 +944,9 @@ export default function ConfirmRoomBookingScreen() {
 												if (!valid) return;
 
 												const values = getValues();
-												setPendingFormData(values as FormData);
+												setPendingFormData(
+													values as FormData
+												);
 												setShowPayMongoModal(true);
 											}}
 											className={`border-2 rounded-xl p-4 ${
@@ -958,10 +989,87 @@ export default function ConfirmRoomBookingScreen() {
 												/>
 											</View>
 										</TouchableOpacity>
+
+										{/* On-Site Payment Option */}
+										<TouchableOpacity
+											onPress={() => {
+												onChange('on_site');
+												setSelectedPaymentMethod(
+													'on_site'
+												);
+											}}
+											className={`border-2 rounded-xl p-4 my-1 ${
+												value === 'on_site'
+													? 'border-brand-primary bg-brand-accent'
+													: 'border-border-focus'
+											}`}
+										>
+											<View className="flex-row items-center justify-between">
+												<View className="flex-row items-center flex-1">
+													<View
+														className={`w-5 h-5 rounded-full border-2 mr-3 items-center justify-center ${
+															value === 'on_site'
+																? 'border-brand-primary bg-brand-primary'
+																: 'border-border-focus'
+														}`}
+													>
+														{value ===
+															'on_site' && (
+															<View className="w-2.5 h-2.5 rounded-full bg-white" />
+														)}
+													</View>
+													<View className="flex-1">
+														<StyledText className="text-text-primary font-montserrat-bold text-base">
+															Pay On-Site
+														</StyledText>
+														<StyledText
+															variant="raleway-regular"
+															className="text-text-muted text-sm mt-1"
+														>
+															Pay the full amount
+															upon check-in
+														</StyledText>
+													</View>
+												</View>
+												<Ionicons
+													name="business-outline"
+													size={24}
+													color="#6F00FF"
+												/>
+											</View>
+										</TouchableOpacity>
 									</View>
 								)}
 							/>
 						</View>
+
+						{/* On-Site Payment Disclaimer */}
+						{selectedPaymentMethod === 'on_site' && (
+							<View className="bg-feedback-warning-light border border-feedback-warning-DEFAULT rounded-xl p-4 mb-4">
+								<View className="flex-row items-start">
+									<Ionicons
+										name="warning-outline"
+										size={20}
+										color="#D97706"
+										style={{ marginRight: 8, marginTop: 2 }}
+									/>
+									<View className="flex-1">
+										<StyledText
+											variant="montserrat-bold"
+											className="text-feedback-warning-dark text-sm mb-1"
+										>
+											Disclaimer:
+										</StyledText>
+										<StyledText
+											variant="montserrat-regular"
+											className="text-feedback-warning-dark text-xs leading-5"
+										>
+											Your reservation is subject to availability and may be taken by another guest if full payment is completed online by someone else prior to your payment.
+										</StyledText>
+									</View>
+								</View>
+							</View>
+						)}
 
 						{/* GCash Payment Proof (only show when GCash is selected) */}
 						{selectedPaymentMethod === 'gcash' && (
@@ -1212,6 +1320,7 @@ export default function ConfirmRoomBookingScreen() {
 						}
 						className={`rounded-2xl py-4 px-6 mb-8 ${
 							selectedPaymentMethod === 'paymongo' ||
+							selectedPaymentMethod === 'on_site' ||
 							(selectedPaymentMethod === 'gcash' && gcashFile)
 								? 'bg-brand-primary'
 								: 'bg-neutral-300'
@@ -1220,7 +1329,9 @@ export default function ConfirmRoomBookingScreen() {
 						<StyledText className="text-center font-montserrat-bold text-lg text-text-inverse">
 							{selectedPaymentMethod === 'paymongo'
 								? 'Proceed to Payment'
-								: 'Complete Booking'}
+								: selectedPaymentMethod === 'on_site'
+									? 'Reserve & Pay at Hotel'
+									: 'Complete Booking'}
 						</StyledText>
 					</TouchableOpacity>
 				</View>
@@ -1239,7 +1350,7 @@ export default function ConfirmRoomBookingScreen() {
 
 			{/* Loading Overlay */}
 			<ConfirmingBooking
-				isVisible={isSubmitting || createBookingMutation.isPending}
+				isVisible={createBookingMutation.isPending}
 				message="Securing your reservation and processing payment..."
 			/>
 
@@ -1356,7 +1467,7 @@ export default function ConfirmRoomBookingScreen() {
 			/>
 
 			{/* Confirm Exit Booking */}
-			<StyledAlert 
+			<StyledAlert
 				visible={exitAlertVisible}
 				type="warning"
 				title="Exit Booking"

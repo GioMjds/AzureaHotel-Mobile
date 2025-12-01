@@ -22,6 +22,7 @@ class Bookings(models.Model):
     PAYMENT_METHOD_CHOICES = [
         ('physical', 'Physical Payment'),
         ('gcash', 'GCash'),
+        ('on_site', 'On-Site')
     ]
     user = models.ForeignKey(CustomUsers, on_delete=models.CASCADE, related_name='bookings')
     room = models.ForeignKey(Rooms, on_delete=models.CASCADE, related_name='bookings', null=True, blank=True)

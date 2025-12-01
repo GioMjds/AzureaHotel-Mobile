@@ -15,7 +15,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useForm, Controller } from 'react-hook-form';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import useAuthStore from '@/store/AuthStore';
 import useAlertStore from '@/store/AlertStore';
 import { booking } from '@/services/Booking';
@@ -36,12 +35,11 @@ interface FormData {
 	phoneNumber: string;
 	numberOfGuests: number;
 	specialRequests: string;
-	paymentMethod: 'gcash' | 'paymongo';
+	paymentMethod: 'gcash' | 'paymongo' | 'on_site';
 }
 
 export default function ConfirmAreaBookingScreen() {
 	const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
-	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 	const [gcashProof, setGcashProof] = useState<string | null>(null);
 	const [gcashFile, setGcashFile] = useState<any>(null);
 	const [pendingFormData, setPendingFormData] = useState<FormData | null>(
@@ -50,7 +48,7 @@ export default function ConfirmAreaBookingScreen() {
 	const [qrModalVisible, setQrModalVisible] = useState<boolean>(false);
 	const [selectedQrImage, setSelectedQrImage] = useState<number | null>(null);
 	const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
-		'gcash' | 'paymongo'
+		'gcash' | 'paymongo' | 'on_site'
 	>('gcash');
 	const [showPayMongoModal, setShowPayMongoModal] = useState<boolean>(false);
 	const [confirmedDownPayment, setConfirmedDownPayment] = useState<
@@ -130,7 +128,7 @@ export default function ConfirmAreaBookingScreen() {
 				'An error occurred while processing your booking. Please try again.',
 				[{ text: 'OK', style: 'default' }]
 			);
-		}
+		},
 	});
 
 	const showAlert = (
@@ -186,7 +184,8 @@ export default function ConfirmAreaBookingScreen() {
 		if (status !== 'granted') {
 			setError('paymentMethod', {
 				type: 'manual',
-				message: 'Camera roll permission is required to upload payment proof.',
+				message:
+					'Camera roll permission is required to upload payment proof.',
 			});
 			return;
 		}
@@ -240,7 +239,8 @@ export default function ConfirmAreaBookingScreen() {
 		if (!phPattern.test(cleanedValue)) {
 			setError('phoneNumber', {
 				type: 'pattern',
-				message: 'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
+				message:
+					'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
 			});
 			return;
 		}
@@ -273,14 +273,16 @@ export default function ConfirmAreaBookingScreen() {
 	const handlePayMongoModalClose = () => {
 		setShowPayMongoModal(false);
 		setConfirmedDownPayment(null);
-		setSelectedPaymentMethod('gcash');
-		control._formValues.paymentMethod = 'gcash';
+		setSelectedPaymentMethod('on_site');
+		control._formValues.paymentMethod = 'on_site';
 	};
 
-	// Handler passed to modal to create prebooking/source and return checkout URL.
 	const handleInitiatePrebooking = async (amount: number) => {
 		if (!user?.id || !areaId || !startTime || !endTime) {
-			return { success: false, error: new Error('Missing booking or authentication data') };
+			return {
+				success: false,
+				error: new Error('Missing booking or authentication data'),
+			};
 		}
 
 		try {
@@ -290,7 +292,10 @@ export default function ConfirmAreaBookingScreen() {
 				area_id: areaId,
 				first_name: pendingFormData?.firstName || '',
 				last_name: pendingFormData?.lastName || '',
-				phone_number: (pendingFormData?.phoneNumber || '').replace(/\s+/g, ''),
+				phone_number: (pendingFormData?.phoneNumber || '').replace(
+					/\s+/g,
+					''
+				),
 				start_time: new Date(startTime).toISOString(),
 				end_time: new Date(endTime).toISOString(),
 				total_price: parseFloat(totalPrice || '0'),
@@ -305,7 +310,8 @@ export default function ConfirmAreaBookingScreen() {
 				failedUrl: `${baseUrl}/booking/paymongo/payment-failed`,
 			});
 
-			const redirectUrl = result?.data?.data?.attributes?.redirect?.checkout_url ||
+			const redirectUrl =
+				result?.data?.data?.attributes?.redirect?.checkout_url ||
 				result?.data?.data?.attributes?.redirect?.success ||
 				undefined;
 
@@ -321,7 +327,14 @@ export default function ConfirmAreaBookingScreen() {
 	};
 
 	const handleConfirmBooking = async () => {
-		if (!areaId || !startTime || !endTime || !totalPrice || !pendingFormData) return;
+		if (
+			!areaId ||
+			!startTime ||
+			!endTime ||
+			!totalPrice ||
+			!pendingFormData
+		)
+			return;
 
 		setShowConfirmModal(false);
 
@@ -617,7 +630,10 @@ export default function ConfirmAreaBookingScreen() {
 										if (numValue < 1) {
 											return 'At least 1 guest is required';
 										}
-										if (areaData?.capacity && numValue > areaData.capacity) {
+										if (
+											areaData?.capacity &&
+											numValue > areaData.capacity
+										) {
 											return `Maximum capacity is ${areaData.capacity} guests`;
 										}
 										return true;
@@ -727,7 +743,9 @@ export default function ConfirmAreaBookingScreen() {
 										<TouchableOpacity
 											onPress={async () => {
 												onChange('paymongo');
-												setSelectedPaymentMethod('paymongo');
+												setSelectedPaymentMethod(
+													'paymongo'
+												);
 												const valid = await trigger([
 													'phoneNumber',
 													'numberOfGuests',
@@ -736,7 +754,9 @@ export default function ConfirmAreaBookingScreen() {
 												if (!valid) return;
 
 												const values = getValues();
-												setPendingFormData(values as FormData);
+												setPendingFormData(
+													values as FormData
+												);
 
 												setShowPayMongoModal(true);
 											}}
@@ -780,10 +800,87 @@ export default function ConfirmAreaBookingScreen() {
 												/>
 											</View>
 										</TouchableOpacity>
+
+										{/* On-Site Payment Option */}
+										<TouchableOpacity
+											onPress={() => {
+												onChange('on_site');
+												setSelectedPaymentMethod(
+													'on_site'
+												);
+											}}
+											className={`border-2 rounded-xl p-4 my-1 ${
+												value === 'on_site'
+													? 'border-brand-primary bg-brand-accent'
+													: 'border-border-focus'
+											}`}
+										>
+											<View className="flex-row items-center justify-between">
+												<View className="flex-row items-center flex-1">
+													<View
+														className={`w-5 h-5 rounded-full border-2 mr-3 items-center justify-center ${
+															value === 'on_site'
+																? 'border-brand-primary bg-brand-primary'
+																: 'border-border-focus'
+														}`}
+													>
+														{value ===
+															'on_site' && (
+															<View className="w-2.5 h-2.5 rounded-full bg-white" />
+														)}
+													</View>
+													<View className="flex-1">
+														<StyledText className="text-text-primary font-montserrat-bold text-base">
+															Pay On-Site
+														</StyledText>
+														<StyledText
+															variant="raleway-regular"
+															className="text-text-muted text-sm mt-1"
+														>
+															Pay the full amount
+															upon arrival
+														</StyledText>
+													</View>
+												</View>
+												<Ionicons
+													name="business-outline"
+													size={24}
+													color="#6F00FF"
+												/>
+											</View>
+										</TouchableOpacity>
 									</View>
 								)}
 							/>
 						</View>
+
+						{/* On-Site Payment Disclaimer */}
+						{selectedPaymentMethod === 'on_site' && (
+							<View className="bg-feedback-warning-light border border-feedback-warning-DEFAULT rounded-xl p-4 mb-4">
+								<View className="flex-row items-start">
+									<Ionicons
+										name="warning-outline"
+										size={20}
+										color="#D97706"
+										style={{ marginRight: 8, marginTop: 2 }}
+									/>
+									<View className="flex-1">
+										<StyledText
+											variant="montserrat-bold"
+											className="text-feedback-warning-dark text-sm mb-1"
+										>
+											Disclaimer:
+										</StyledText>
+										<StyledText
+											variant="montserrat-regular"
+											className="text-feedback-warning-dark text-xs leading-5"
+										>
+											Your reservation is subject to availability and may be taken by another guest if full payment is completed online by someone else prior to your payment.
+										</StyledText>
+									</View>
+								</View>
+							</View>
+						)}
 
 						{/* GCash Payment Proof (only show when GCash is selected) */}
 						{selectedPaymentMethod === 'gcash' && (
@@ -1000,6 +1097,7 @@ export default function ConfirmAreaBookingScreen() {
 						}
 						className={`rounded-2xl py-4 px-6 mb-8 ${
 							selectedPaymentMethod === 'paymongo' ||
+							selectedPaymentMethod === 'on_site' ||
 							(selectedPaymentMethod === 'gcash' && gcashFile)
 								? 'bg-brand-primary'
 								: 'bg-neutral-300'
@@ -1008,7 +1106,9 @@ export default function ConfirmAreaBookingScreen() {
 						<StyledText className="text-center font-montserrat-bold text-lg text-text-inverse">
 							{selectedPaymentMethod === 'paymongo'
 								? 'Proceed to Payment'
-								: 'Complete Booking'}
+								: selectedPaymentMethod === 'on_site'
+									? 'Reserve & Pay at Venue'
+									: 'Complete Booking'}
 						</StyledText>
 					</TouchableOpacity>
 				</View>
@@ -1027,7 +1127,7 @@ export default function ConfirmAreaBookingScreen() {
 
 			{/* Loading Overlay - Checks both Manual state (PayMongo) and Mutation state (Standard) */}
 			<ConfirmingBooking
-				isVisible={isSubmitting || createBookingMutation.isPending}
+				isVisible={createBookingMutation.isPending}
 				message="Securing your reservation and processing payment..."
 			/>
 

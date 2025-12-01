@@ -12,7 +12,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { booking } from '@/services/Booking';
 import { UserBooking } from '@/types/Bookings.types';
-import { pesoFormatter, formatDate } from '@/utils/formatters';
+import { pesoFormatter, formatDate, formatTime } from '@/utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
 import CancellationModal from '@/components/ui/CancellationModal';
 import StyledAlert from '@/components/ui/StyledAlert';
@@ -103,7 +103,6 @@ export default function BookingDetailsScreen() {
 		if (bookingData?.status === 'pending') {
 			setCancellationModal(true);
 		} else {
-			// Use styled alert for confirmation
 			showStyledAlert({
 				title: 'Cancel Booking',
 				message: 'Are you sure you want to cancel this booking?',
@@ -554,6 +553,21 @@ export default function BookingDetailsScreen() {
 													)
 												: 'N/A'}
 										</StyledText>
+										{!isAreaBooking && bookingData.time_of_arrival && (
+											<View className="flex-row items-center mt-2">
+												<Ionicons
+													name="time-outline"
+													size={16}
+													color="#6F00FF"
+												/>
+												<StyledText
+													variant="montserrat-regular"
+													className="text-text-secondary text-sm ml-2"
+												>
+													Arrival Time: {formatTime(bookingData.time_of_arrival)}
+												</StyledText>
+											</View>
+										)}
 									</View>
 								</View>
 
