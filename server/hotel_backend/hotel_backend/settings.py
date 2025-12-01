@@ -165,26 +165,6 @@ else:
         },
     }
 
-# Redis configuration for Channels
-REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379')
-
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [REDIS_URL],
-        },
-    }
-}
-
-# Django-RQ configuration
-RQ_QUEUES = {
-    'default': {
-        'URL': REDIS_URL,
-        'DEFAULT_TIMEOUT': 360,
-    },
-}
-
 # Firebase configuration
 FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID')
 FIREBASE_PRIVATE_KEY_ID = os.getenv('FIREBASE_PRIVATE_KEY_ID')
@@ -250,7 +230,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 MEDIA_URL = '/media/'
 
@@ -284,14 +264,25 @@ cloudinary.config(
     api_secret=os.getenv('API_SECRET')
 )
 
-# Cache settings
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
-        'TIMEOUT': 300,
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379')
+
+if REDIS_URL and 'localhost' not in REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+            'TIMEOUT': 300,
+            'KEY_PREFIX': 'azurea',
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+            'TIMEOUT': 300,
+        }
+    }
 
 CACHE_MIDDLEWARE_ALIAS = 'default'
 CACHE_MIDDLEWARE_SECONDS = 600
