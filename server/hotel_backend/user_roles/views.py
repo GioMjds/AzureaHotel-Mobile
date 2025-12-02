@@ -276,9 +276,24 @@ def auth_logout(request):
     try:
         logout(request)
         response = Response({'message': 'User logged out successfully'}, status=status.HTTP_200_OK)
-        response.delete_cookie('access_token')
-        response.delete_cookie('refresh_token')
-        response.delete_cookie('firebase_uid')
+        
+        # Get the same cookie settings used when setting cookies
+        cookie_settings = get_cookie_settings()
+        
+        # Delete cookies with matching settings (required for cross-origin cookies)
+        response.delete_cookie(
+            'access_token',
+            samesite=cookie_settings['samesite'],
+        )
+        response.delete_cookie(
+            'refresh_token',
+            samesite=cookie_settings['samesite'],
+        )
+        response.delete_cookie(
+            'firebase_uid',
+            samesite=cookie_settings['samesite'],
+        )
+        
         return response
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
