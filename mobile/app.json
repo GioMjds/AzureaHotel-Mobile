@@ -61,7 +61,8 @@
           "savePhotosPermission": "Allow Azurea Hotel to save GCash QR codes to your photo library.",
           "isAccessMediaLocationEnabled": true
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
