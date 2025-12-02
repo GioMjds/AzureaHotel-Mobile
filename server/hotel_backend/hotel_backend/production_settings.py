@@ -1,8 +1,17 @@
 from .settings import *
 import os
 import dj_database_url
+import cloudinary
 
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
+
+# Ensure Cloudinary always uses HTTPS in production
+cloudinary.config(
+    cloud_name=os.getenv('CLOUD_NAME'),
+    api_key=os.getenv('API_KEY'),
+    api_secret=os.getenv('API_SECRET'),
+    secure=True  # Always use HTTPS URLs for images (required for mobile apps)
+)
 
 # Get the Render service URL dynamically
 RENDER_EXTERNAL_URL = os.getenv('RENDER_EXTERNAL_URL', '')
