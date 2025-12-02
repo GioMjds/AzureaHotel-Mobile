@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate, logout, login
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
@@ -30,6 +31,21 @@ import traceback
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def get_cookie_settings():
+    """
+    Returns cookie settings based on the environment.
+    In production (DEBUG=False), cookies need secure=True and samesite='None'
+    for cross-origin requests over HTTPS.
+    """
+    is_production = not getattr(settings, 'DEBUG', True)
+    
+    return {
+        'httponly': True,
+        'secure': is_production,  # True in production (HTTPS required)
+        'samesite': 'None' if is_production else 'Lax',  # 'None' allows cross-site cookies
+    }
 
 def save_google_profile_image_to_cloudinary(image_url):
     try:
@@ -500,21 +516,19 @@ def verify_otp(request):
                 "is_google": is_google_auth
             }, status=status.HTTP_200_OK)
             
+            cookie_settings = get_cookie_settings()
+            
             response.set_cookie(
                 key="access_token",
                 value=str(refresh.access_token),
-                httponly=True,
-                secure=False,
-                samesite='Lax',
-                max_age=timedelta(days=1)
+                max_age=timedelta(days=1),
+                **cookie_settings
             )
             response.set_cookie(
                 key="refresh_token",
                 value=str(refresh),
-                httponly=True,
-                secure=False,
-                samesite='Lax',
-                max_age=timedelta(days=7)
+                max_age=timedelta(days=7),
+                **cookie_settings
             )
             return response
         else:
@@ -662,22 +676,20 @@ def reset_password(request):
                 'profile_image': user.profile_image.url if user.profile_image else "",
             }, status=status.HTTP_200_OK)
             
+            cookie_settings = get_cookie_settings()
+            
             response.set_cookie(
                 key="access_token",
                 value=str(refresh.access_token),
-                httponly=True,
-                secure=False,
-                samesite='Lax',
-                max_age=timedelta(days=1)
+                max_age=timedelta(days=1),
+                **cookie_settings
             )
             
             response.set_cookie(
                 key="refresh_token",
                 value=str(refresh),
-                httponly=True,
-                secure=False,
-                samesite='Lax',
-                max_age=timedelta(days=7)
+                max_age=timedelta(days=7),
+                **cookie_settings
             )
             
             return response
@@ -772,22 +784,20 @@ def google_auth(request):
             
             response = Response(response_data, status=status.HTTP_200_OK)
             
+            cookie_settings = get_cookie_settings()
+            
             response.set_cookie(
                 key="access_token",
                 value=access_token,
-                httponly=True,
-                secure=False,
-                samesite='Lax',
-                max_age=timedelta(days=1)
+                max_age=timedelta(days=1),
+                **cookie_settings
             )
             
             response.set_cookie(
                 key="refresh_token",
                 value=refresh_token,
-                httponly=True,
-                secure=False,
-                samesite='Lax',
-                max_age=timedelta(days=7)
+                max_age=timedelta(days=7),
+                **cookie_settings
             )
             
             return response
@@ -904,22 +914,20 @@ def user_login(request):
         
         response = Response(response_data, status=status.HTTP_200_OK)
         
+        cookie_settings = get_cookie_settings()
+        
         response.set_cookie(
             key="access_token",
             value=str(token.access_token),
-            httponly=True,
-            secure=False,
-            samesite='Lax',
-            max_age=timedelta(days=30)
+            max_age=timedelta(days=30),
+            **cookie_settings
         )
         
         response.set_cookie(
             key="refresh_token",
             value=str(token),
-            httponly=True,
-            secure=False,
-            samesite='Lax',
-            max_age=timedelta(weeks=54)
+            max_age=timedelta(weeks=54),
+            **cookie_settings
         )
         return response
     except Exception as e:
@@ -949,7 +957,7 @@ def admin_login(request):
         
         token = RefreshToken.for_user(auth_user)
         
-        return Response({
+        response = Response({
             'message': f"{auth_user.first_name} {auth_user.last_name} successfully logged in.",
             'user': {
                 'id': auth_user.id,
@@ -959,6 +967,24 @@ def admin_login(request):
             'access_token': str(token.access_token),
             'refresh_token': str(token),
         }, status=status.HTTP_200_OK)
+        
+        cookie_settings = get_cookie_settings()
+        
+        response.set_cookie(
+            key="access_token",
+            value=str(token.access_token),
+            max_age=timedelta(days=30),
+            **cookie_settings
+        )
+
+        response.set_cookie(
+            key="refresh_token",
+            value=str(token),
+            max_age=timedelta(weeks=54),
+            **cookie_settings
+        )
+
+        return response
     except Exception as e:
         return Response({
             'error': str(e)

@@ -22,10 +22,23 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-# CORS for production - Update this with your actual mobile app URL
+# Cookie settings for cross-origin requests (web app on different domain)
+SESSION_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SAMESITE = 'None'
+
+# CORS for production - Include web app origins
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
-    os.getenv('CLIENT_URL', 'exp://192.168.1.5:8081'),  # For local dev
+    os.getenv('CLIENT_URL', 'exp://192.168.1.5:8081'),  # For mobile dev
+    'https://azurea-hotel.vercel.app',  # Production web app (if on Vercel)
+    'http://localhost:5173',  # Local web development
+    'http://localhost:3000',  # Alternative local port
 ]
+
+# Add dynamic web app URL if provided
+WEB_APP_URL = os.getenv('WEB_APP_URL', '')
+if WEB_APP_URL and WEB_APP_URL not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(WEB_APP_URL)
 
 # Database: prefer full URL from Render (DB_URL / DATABASE_URL). Fallback to MySQL block if not present.
 DATABASE_URL = os.getenv('DB_URL') or os.getenv('DATABASE_URL')
