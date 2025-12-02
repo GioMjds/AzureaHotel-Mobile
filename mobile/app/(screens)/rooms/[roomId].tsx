@@ -1,15 +1,16 @@
 import {
 	ActivityIndicator,
-	Image,
 	ScrollView,
 	TouchableOpacity,
 	View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { room } from '@/services/Room';
 import { pesoFormatter } from '@/utils/formatters';
+import { getCloudinaryUrl } from '@/utils/cloudinary';
 import { Room } from '@/types/Room.types';
 import { FontAwesome } from '@expo/vector-icons';
 import StyledText from '@/components/ui/StyledText';
@@ -91,12 +92,14 @@ export default function GetRoomScreen() {
 				<View className="h-64 bg-neutral-100">
 					<View className="w-full h-64 bg-neutral-100 mr-4">
 						<Image
-							source={{ uri: roomData.images[0]?.room_image }}
+							source={{ uri: getCloudinaryUrl(roomData.images[0]?.room_image) }}
 							className="w-full h-full"
-							resizeMode="cover"
+							contentFit="cover"
+							transition={200}
+							placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
 						/>
 					</View>
-					{/* Status Badge */}
+					{/* Status Badge */}}
 					<View className="absolute top-4 left-4">
 						<View
 							className={`px-3 py-2 rounded-full ${
@@ -294,23 +297,24 @@ export default function GetRoomScreen() {
 									key={review.id}
 									className="bg-neutral-50 rounded-lg p-4 mr-4 w-80 border border-neutral-100"
 								>
-									{/* User Info & Rating */}
-									<View className="flex-row items-center mb-3">
-										<View className="w-10 h-10 bg-violet-200 rounded-full items-center justify-center mr-3">
-											{review.user_profile_image ? (
-												<Image
-													source={{
-														uri: review.user_profile_image,
-													}}
-													className="w-14 h-14 rounded-full"
-													resizeMode="cover"
-												/>
-											) : (
-												<StyledText variant='montserrat-bold' className="text-violet-700 text-lg">
-													{review.user_name}
-												</StyledText>
-											)}
-										</View>
+										{/* User Info & Rating */}
+										<View className="flex-row items-center mb-3">
+											<View className="w-10 h-10 bg-violet-200 rounded-full items-center justify-center mr-3">
+												{review.user_profile_image ? (
+													<Image
+														source={{
+															uri: getCloudinaryUrl(review.user_profile_image),
+														}}
+														className="w-14 h-14 rounded-full"
+														contentFit="cover"
+														transition={200}
+													/>
+												) : (
+													<StyledText variant='montserrat-bold' className="text-violet-700 text-lg">
+														{review.user_name}
+													</StyledText>
+												)}
+											</View>
 										<View className="flex-1">
 											<StyledText variant='montserrat-bold' className="text-neutral-800 text-md ml-2">
 												{review.user_name}

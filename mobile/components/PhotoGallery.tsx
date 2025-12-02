@@ -1,8 +1,10 @@
-import { View, Image, ScrollView, TouchableOpacity, Text, Dimensions } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Text, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { useState, useRef } from 'react';
 import { AreaImage } from '@/types/Area.types';
 import { RoomImage } from '@/types/Room.types';
 import { FontAwesome } from '@expo/vector-icons';
+import { getCloudinaryUrl } from '@/utils/cloudinary';
 
 interface PhotoGalleryProps {
 	images: AreaImage[] | RoomImage[];
@@ -73,13 +75,16 @@ const PhotoGallery = ({
                     <View key={image.id} style={{ width: screenWidth }} className="h-full">
                         <Image
                             source={{
-                                uri:
+                                uri: getCloudinaryUrl(
                                     imageKey === 'area_image'
                                         ? (image as AreaImage).area_image
-                                        : (image as RoomImage).room_image,
+                                        : (image as RoomImage).room_image
+                                ),
                             }}
                             className="w-full h-full"
-                            resizeMode="cover"
+                            contentFit="cover"
+                            transition={200}
+                            placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
                         />
                     </View>
                 ))}

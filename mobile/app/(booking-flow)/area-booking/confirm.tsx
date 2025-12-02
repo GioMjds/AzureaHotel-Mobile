@@ -11,6 +11,7 @@ import {
 	BackHandler,
 	Platform,
 } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -19,6 +20,7 @@ import useAuthStore from '@/store/AuthStore';
 import useAlertStore from '@/store/AlertStore';
 import { booking } from '@/services/Booking';
 import { calculateAreaPricing } from '@/utils/pricing';
+import { getCloudinaryUrl } from '@/utils/cloudinary';
 import ConfirmBookingModal from '@/components/bookings/ConfirmBookingModal';
 import ConfirmingBooking from '@/components/ui/ConfirmingBooking';
 import PayMongoAmountModal from '@/components/bookings/PayMongoAmountModal';
@@ -451,12 +453,14 @@ export default function ConfirmAreaBookingScreen() {
 					{/* Area Info Card */}
 					{areaData && (
 						<View className="bg-surface-default rounded-2xl shadow-lg mb-6 overflow-hidden border border-border-focus">
-							<Image
+							<ExpoImage
 								source={{
-									uri: areaData.images?.[0].area_image,
+									uri: getCloudinaryUrl(areaData.images?.[0]?.area_image),
 								}}
 								className="w-full h-48"
-								resizeMode="cover"
+								contentFit="cover"
+								transition={200}
+								placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
 							/>
 							<View className="p-4">
 								<StyledText className="text-text-primary font-playfair-semibold text-4xl mb-3">

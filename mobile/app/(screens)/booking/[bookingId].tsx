@@ -4,15 +4,16 @@ import {
 	ScrollView,
 	TouchableOpacity,
 	View,
-	Image,
 	RefreshControl,
 	Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { booking } from '@/services/Booking';
 import { UserBooking } from '@/types/Bookings.types';
 import { pesoFormatter, formatDate, formatTime } from '@/utils/formatters';
+import { getCloudinaryUrl } from '@/utils/cloudinary';
 import { Ionicons } from '@expo/vector-icons';
 import CancellationModal from '@/components/ui/CancellationModal';
 import StyledAlert from '@/components/ui/StyledAlert';
@@ -322,9 +323,11 @@ export default function BookingDetailsScreen() {
 					{propertyImage && (
 						<View className="relative">
 							<Image
-								source={{ uri: propertyImage }}
+								source={{ uri: getCloudinaryUrl(propertyImage) }}
 								className="w-full h-64"
-								resizeMode="cover"
+								contentFit="cover"
+								transition={200}
+								placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
 							/>
 							<View className="absolute top-4 left-4 flex-row">
 								<View className="bg-brand-primary px-4 py-2 rounded-full">
@@ -655,7 +658,8 @@ export default function BookingDetailsScreen() {
 													uri: bookingData.payment_proof,
 												}}
 												className="w-full h-48 rounded-lg"
-												resizeMode="cover"
+												contentFit="cover"
+												transition={200}
 												accessibilityLabel="GCash payment proof"
 											/>
 										</TouchableOpacity>

@@ -22,6 +22,7 @@ import useAlertStore from '@/store/AlertStore';
 import * as ImagePicker from 'expo-image-picker';
 import OfflineBanner from '@/components/ui/OfflineBanner';
 import { useNetwork } from '@/components/NetworkProvider';
+import { getCloudinaryUrl } from '@/utils/cloudinary';
 
 interface HeaderProps {
 	headerLabel: string;
@@ -233,7 +234,7 @@ const Header = ({ headerLabel }: HeaderProps) => {
 							accessibilityState={{ disabled: isOnProfileRoute || !!isOffline }}
 						>
 							<Image
-								source={{ uri: guest.profile_image, cache: 'default' }}
+								source={{ uri: getCloudinaryUrl(guest.profile_image), cache: 'default' }}
 								className="w-14 h-14 rounded-full border-2 border-gray-400"
 								style={isOffline 
 									? { backgroundColor: 'rgba(0, 0, 0, 0.3)', borderColor: '#9ca3af' } 

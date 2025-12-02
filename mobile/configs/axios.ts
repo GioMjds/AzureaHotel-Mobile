@@ -33,7 +33,6 @@ export class ApiClient {
                 'Content-Type': 'application/json',
                 ...config.headers,
             },
-            withCredentials: true,
         });
 
         this.setupInterceptors();
@@ -42,8 +41,6 @@ export class ApiClient {
     private setupInterceptors(): void {
         this.axiosInstance.interceptors.request.use(
             async (config) => {
-                config.withCredentials = true;
-                
                 // Don't add auth header for public endpoints
                 const publicEndpoints = [
                     '/api/auth/login',
@@ -143,36 +140,34 @@ export class ApiClient {
     }
 
     async get<T = any>(url: string, config?: RequestConfig): Promise<T> {
-        return this.axiosInstance.get<T>(url, { ...config, withCredentials: true }) as Promise<T>;
+        return this.axiosInstance.get<T>(url, { ...config }) as Promise<T>;
     }
 
     async post<T = any>(url: string, data?: any, config?: RequestConfig): Promise<T> {
-        return this.axiosInstance.post<T>(url, data, { ...config, withCredentials: true }) as Promise<T>;
+        return this.axiosInstance.post<T>(url, data, { ...config }) as Promise<T>;
     }
 
     async put<T = any>(url: string, data?: any, config?: RequestConfig): Promise<T> {
-        return this.axiosInstance.put<T>(url, data, { ...config, withCredentials: true }) as Promise<T>;
+        return this.axiosInstance.put<T>(url, data, { ...config }) as Promise<T>;
     }
 
     async patch<T = any>(url: string, data?: any, config?: RequestConfig): Promise<T> {
-        return this.axiosInstance.patch<T>(url, data, { ...config, withCredentials: true }) as Promise<T>;
+        return this.axiosInstance.patch<T>(url, data, { ...config }) as Promise<T>;
     }
 
     async delete<T = any>(url: string, config?: RequestConfig): Promise<T> {
-        return this.axiosInstance.delete<T>(url, { ...config, withCredentials: true }) as Promise<T>;
+        return this.axiosInstance.delete<T>(url, { ...config }) as Promise<T>;
     }
 
     withAuth(token: string): RequestConfig {
         return {
             headers: { Authorization: `Bearer ${token}` },
-            withCredentials: true,
         }
     }
 
     withParams(params: Record<string, any>): RequestConfig {
         return { 
             params,
-            withCredentials: true,
         }
     }
 }

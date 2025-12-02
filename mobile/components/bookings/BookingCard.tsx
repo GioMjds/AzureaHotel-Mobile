@@ -1,12 +1,14 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
-import { View, Image, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { UserBooking } from '@/types/Bookings.types';
 import {
 	formatDate,
 	pesoFormatter,
 	getStatusStyle,
 } from '@/utils/formatters';
+import { getCloudinaryUrl } from '@/utils/cloudinary';
 import StyledText from '@/components/ui/StyledText';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 
@@ -76,9 +78,11 @@ const BookingCard = ({
 					{/* Left image */}
 					<View className="relative">
 						<Image
-							source={{ uri: propertyImage }}
+							source={{ uri: getCloudinaryUrl(propertyImage) }}
 							className="w-24 h-32 rounded-lg mr-4"
-							resizeMode="cover"
+							contentFit="cover"
+							transition={200}
+							placeholder={{ uri: 'https://via.placeholder.com/100x150?text=Loading...' }}
 						/>
 					</View>
 

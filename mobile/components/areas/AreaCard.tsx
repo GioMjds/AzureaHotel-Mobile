@@ -1,6 +1,8 @@
-import { Image, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Area } from '@/types/Area.types';
 import { pesoFormatter } from '@/utils/formatters';
+import { getCloudinaryUrl } from '@/utils/cloudinary';
 import { Link } from 'expo-router';
 import StyledText from '@/components/ui/StyledText';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,9 +21,12 @@ const AreaCard = ({ item }: AreaCardProps) => {
 			<View className="h-48 bg-neutral-100 relative">
 				{item.images && item.images.length > 0 && (
 					<Image
-						source={{ uri: item.images[0].area_image }}
+						source={{ uri: getCloudinaryUrl(item.images[0]?.area_image) }}
 						className="w-full h-full"
-						resizeMode="cover"
+						contentFit="cover"
+						transition={200}
+						placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
+						onError={() => console.log('Image load error for area:', item.area_name)}
 					/>
 				)}
 

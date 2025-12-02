@@ -22,12 +22,13 @@ import {
 	TouchableOpacity,
 	ScrollView,
 	ActivityIndicator,
-	Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import useAuthStore from '@/store/AuthStore';
 import useAlertStore from '@/store/AlertStore';
 import { GetRoomById, GetRoomBookings } from '@/types/Room.types';
 import { calculateRoomPricing, formatPrice } from '@/utils/pricing';
+import { getCloudinaryUrl } from '@/utils/cloudinary';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { booking } from '@/services/Booking';
 import StyledAlert from '@/components/ui/StyledAlert';
@@ -564,14 +565,18 @@ export default function RoomBookingCalendar() {
 						<View className="bg-surface-default rounded-2xl shadow-lg mb-6 overflow-hidden border border-border-focus">
 							<Image
 								source={{
-									uri:
+									uri: getCloudinaryUrl(
 										Array.isArray(roomData.images) &&
 										roomData.images.length > 0
 											? roomData.images[0].room_image
-											: 'https://via.placeholder.com/300x200?text=Room+Image',
+											: null,
+										'https://via.placeholder.com/300x200?text=Room+Image'
+									),
 								}}
 								className="w-full h-48"
-								resizeMode="cover"
+								contentFit="cover"
+								transition={200}
+								placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
 							/>
 
 							<View className="p-4">

@@ -1,17 +1,18 @@
 import {
 	ActivityIndicator,
-	Image,
 	ScrollView,
 	Text,
 	TouchableOpacity,
 	View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { area } from '@/services/Area';
 import { Area } from '@/types/Area.types';
 import { pesoFormatter } from '@/utils/formatters';
+import { getCloudinaryUrl } from '@/utils/cloudinary';
 import PhotoGallery from '@/components/PhotoGallery';
 import useLastBookingCheck from '@/hooks/useLastBookingCheck';
 import StyledText from '@/components/ui/StyledText';
@@ -87,9 +88,11 @@ export default function GetAreaScreen() {
 									className="w-full h-64 bg-neutral-100"
 								>
 									<Image
-										source={{ uri: image.area_image }}
+										source={{ uri: getCloudinaryUrl(image.area_image) }}
 										className="w-full h-full"
-										resizeMode="cover"
+										contentFit="cover"
+										transition={200}
+										placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
 									/>
 								</View>
 							))}
@@ -247,23 +250,24 @@ export default function GetAreaScreen() {
 									key={review.id}
 									className="bg-neutral-50 rounded-lg p-4 mr-4 w-80 border border-neutral-100"
 								>
-									{/* User Info & Rating */}
-									<View className="flex-row items-center mb-3">
-										<View className="w-10 h-10 bg-violet-200 rounded-full items-center justify-center mr-3">
-											{review.user_profile_image ? (
-												<Image
-													source={{
-														uri: review.user_profile_image,
-													}}
-													className="w-14 h-14 rounded-full"
-													resizeMode="cover"
-												/>
-											) : (
-												<Text className="text-violet-700 font-montserrat-bold text-lg">
-													{review.user_name}
-												</Text>
-											)}
-										</View>
+										{/* User Info & Rating */}
+										<View className="flex-row items-center mb-3">
+											<View className="w-10 h-10 bg-violet-200 rounded-full items-center justify-center mr-3">
+												{review.user_profile_image ? (
+													<Image
+														source={{
+															uri: getCloudinaryUrl(review.user_profile_image),
+														}}
+														className="w-14 h-14 rounded-full"
+														contentFit="cover"
+														transition={200}
+													/>
+												) : (
+													<Text className="text-violet-700 font-montserrat-bold text-lg">
+														{review.user_name}
+													</Text>
+												)}
+											</View>
 										<View className="flex-1">
 											<Text className="text-neutral-800 font-montserrat-bold text-md ml-2">
 												{review.user_name}

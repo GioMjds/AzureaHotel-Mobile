@@ -20,12 +20,13 @@ import {
 	TouchableOpacity,
 	ScrollView,
 	ActivityIndicator,
-	Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import useAuthStore from '@/store/AuthStore';
 import useAlertStore from '@/store/AlertStore';
 import { GetAreaById, GetAreaBookings } from '@/types/Area.types';
 import { calculateAreaPricing } from '@/utils/pricing';
+import { getCloudinaryUrl } from '@/utils/cloudinary';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { booking } from '@/services/Booking';
 import StyledAlert from '@/components/ui/StyledAlert';
@@ -476,9 +477,11 @@ export default function AreaBookingCalendar() {
 					{areaData && (
 						<View className="bg-surface-default rounded-2xl shadow-lg mb-6 overflow-hidden border border-border-focus">
 							<Image
-								source={{ uri: areaData.images[0].area_image }}
+								source={{ uri: getCloudinaryUrl(areaData.images[0]?.area_image) }}
 								className="w-full h-48"
-								resizeMode="cover"
+								contentFit="cover"
+								transition={200}
+								placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
 							/>
 
 							<View className="p-4">
