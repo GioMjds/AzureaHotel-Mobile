@@ -4,8 +4,8 @@ import {
 	Text,
 	TouchableOpacity,
 	View,
+	Image,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -259,8 +259,7 @@ export default function GetAreaScreen() {
 															uri: getCloudinaryUrl(review.user_profile_image),
 														}}
 														className="w-14 h-14 rounded-full"
-														contentFit="cover"
-														transition={200}
+														resizeMode="cover"
 													/>
 												) : (
 													<Text className="text-violet-700 font-montserrat-bold text-lg">

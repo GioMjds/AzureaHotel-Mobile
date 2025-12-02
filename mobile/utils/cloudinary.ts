@@ -7,12 +7,34 @@
 const DEFAULT_PLACEHOLDER = 'https://res.cloudinary.com/demo/image/upload/v1/samples/landscapes/nature-mountains';
 
 /**
+ * Converts AVIF/WebP images to a more compatible format for React Native
+ * Some devices/emulators may not support AVIF format
+ */
+function ensureCompatibleFormat(url: string): string {
+    // If it's a Cloudinary URL and ends with .avif, convert to auto format
+    if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
+        // Check if URL already has transformations
+        const hasTransformations = /\/upload\/[a-z]_/.test(url);
+        
+        if (!hasTransformations) {
+            // Add format auto transformation for best compatibility
+            return url.replace('/upload/', '/upload/f_auto,q_auto/');
+        } else if (url.endsWith('.avif')) {
+            // Replace .avif extension with .jpg for compatibility
+            return url.replace('.avif', '.jpg');
+        }
+    }
+    return url;
+}
+
+/**
  * Ensures a Cloudinary URL is properly formatted for expo-image
  * Handles edge cases like:
  * - Missing protocol (http:// or https://)
  * - Null/undefined URLs
  * - Empty strings
  * - Non-Cloudinary URLs
+ * - AVIF format conversion for better device compatibility
  * 
  * @param url - The image URL from the API
  * @param placeholder - Optional custom placeholder URL
@@ -27,35 +49,33 @@ export function getCloudinaryUrl(
         return placeholder || DEFAULT_PLACEHOLDER;
     }
 
-    // If URL already has https://, return as-is
+    let processedUrl = url;
+
+    // If URL already has https://, use it
     if (url.startsWith('https://')) {
-        return url;
+        processedUrl = url;
     }
-
     // If URL has http://, convert to https://
-    if (url.startsWith('http://')) {
-        return url.replace('http://', 'https://');
+    else if (url.startsWith('http://')) {
+        processedUrl = url.replace('http://', 'https://');
     }
-
     // If URL starts with //, add https:
-    if (url.startsWith('//')) {
-        return `https:${url}`;
+    else if (url.startsWith('//')) {
+        processedUrl = `https:${url}`;
     }
-
     // If it's a Cloudinary path without protocol (starts with res.cloudinary.com)
-    if (url.startsWith('res.cloudinary.com')) {
-        return `https://${url}`;
+    else if (url.startsWith('res.cloudinary.com')) {
+        processedUrl = `https://${url}`;
     }
-
-    // If it's just a path, assume it's a Cloudinary path
-    // This handles cases where the backend returns just the path portion
-    if (url.startsWith('/')) {
-        // Return placeholder for invalid paths
+    // If it's just a path, assume it's invalid
+    else if (url.startsWith('/')) {
         return placeholder || DEFAULT_PLACEHOLDER;
     }
 
-    // Return the URL as-is (might be a valid URL format we didn't anticipate)
-    return url;
+    // Ensure compatible format (convert AVIF to auto format)
+    const finalUrl = ensureCompatibleFormat(processedUrl);
+
+    return finalUrl;
 }
 
 /**

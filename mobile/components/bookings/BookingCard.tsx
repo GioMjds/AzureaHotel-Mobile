@@ -1,7 +1,6 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
-import { View, TouchableOpacity } from 'react-native';
-import { Image } from 'expo-image';
+import { View, TouchableOpacity, Image } from 'react-native';
 import { UserBooking } from '@/types/Bookings.types';
 import {
 	formatDate,
@@ -80,9 +79,8 @@ const BookingCard = ({
 						<Image
 							source={{ uri: getCloudinaryUrl(propertyImage) }}
 							className="w-24 h-32 rounded-lg mr-4"
-							contentFit="cover"
-							transition={200}
-							placeholder={{ uri: 'https://via.placeholder.com/100x150?text=Loading...' }}
+							resizeMode="cover"
+							defaultSource={require('@/assets/images/logo.png')}
 						/>
 					</View>
 

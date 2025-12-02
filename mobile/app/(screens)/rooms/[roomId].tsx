@@ -3,8 +3,8 @@ import {
 	ScrollView,
 	TouchableOpacity,
 	View,
+	Image,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -306,8 +306,7 @@ export default function GetRoomScreen() {
 															uri: getCloudinaryUrl(review.user_profile_image),
 														}}
 														className="w-14 h-14 rounded-full"
-														contentFit="cover"
-														transition={200}
+														resizeMode="cover"
 													/>
 												) : (
 													<StyledText variant='montserrat-bold' className="text-violet-700 text-lg">

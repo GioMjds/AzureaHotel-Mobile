@@ -22,8 +22,8 @@ import {
 	TouchableOpacity,
 	ScrollView,
 	ActivityIndicator,
+	Image,
 } from 'react-native';
-import { Image } from 'expo-image';
 import useAuthStore from '@/store/AuthStore';
 import useAlertStore from '@/store/AlertStore';
 import { GetRoomById, GetRoomBookings } from '@/types/Room.types';
@@ -574,9 +574,8 @@ export default function RoomBookingCalendar() {
 									),
 								}}
 								className="w-full h-48"
-								contentFit="cover"
-								transition={200}
-								placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
+								resizeMode="cover"
+								defaultSource={require('@/assets/images/logo.png')}
 							/>
 
 							<View className="p-4">

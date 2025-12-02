@@ -11,7 +11,6 @@ import {
 	BackHandler,
 	Platform,
 } from 'react-native';
-import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -453,14 +452,13 @@ export default function ConfirmAreaBookingScreen() {
 					{/* Area Info Card */}
 					{areaData && (
 						<View className="bg-surface-default rounded-2xl shadow-lg mb-6 overflow-hidden border border-border-focus">
-							<ExpoImage
+							<Image
 								source={{
 									uri: getCloudinaryUrl(areaData.images?.[0]?.area_image),
 								}}
 								className="w-full h-48"
-								contentFit="cover"
-								transition={200}
-								placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
+								resizeMode="cover"
+								defaultSource={require('@/assets/images/logo.png')}
 							/>
 							<View className="p-4">
 								<StyledText className="text-text-primary font-playfair-semibold text-4xl mb-3">

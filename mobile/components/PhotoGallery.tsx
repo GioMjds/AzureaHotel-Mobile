@@ -1,5 +1,4 @@
-import { View, ScrollView, TouchableOpacity, Text, Dimensions } from 'react-native';
-import { Image } from 'expo-image';
+import { View, ScrollView, TouchableOpacity, Text, Dimensions, Image } from 'react-native';
 import { useState, useRef } from 'react';
 import { AreaImage } from '@/types/Area.types';
 import { RoomImage } from '@/types/Room.types';
@@ -82,9 +81,8 @@ const PhotoGallery = ({
                                 ),
                             }}
                             className="w-full h-full"
-                            contentFit="cover"
-                            transition={200}
-                            placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
+                            resizeMode="cover"
+                            defaultSource={require('@/assets/images/logo.png')}
                         />
                     </View>
                 ))}

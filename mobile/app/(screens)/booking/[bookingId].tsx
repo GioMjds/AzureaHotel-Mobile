@@ -6,8 +6,8 @@ import {
 	View,
 	RefreshControl,
 	Linking,
+	Image,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { booking } from '@/services/Booking';
@@ -325,9 +325,8 @@ export default function BookingDetailsScreen() {
 							<Image
 								source={{ uri: getCloudinaryUrl(propertyImage) }}
 								className="w-full h-64"
-								contentFit="cover"
-								transition={200}
-								placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
+								resizeMode="cover"
+								defaultSource={require('@/assets/images/logo.png')}
 							/>
 							<View className="absolute top-4 left-4 flex-row">
 								<View className="bg-brand-primary px-4 py-2 rounded-full">

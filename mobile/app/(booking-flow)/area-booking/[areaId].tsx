@@ -20,8 +20,8 @@ import {
 	TouchableOpacity,
 	ScrollView,
 	ActivityIndicator,
+	Image,
 } from 'react-native';
-import { Image } from 'expo-image';
 import useAuthStore from '@/store/AuthStore';
 import useAlertStore from '@/store/AlertStore';
 import { GetAreaById, GetAreaBookings } from '@/types/Area.types';
@@ -479,9 +479,8 @@ export default function AreaBookingCalendar() {
 							<Image
 								source={{ uri: getCloudinaryUrl(areaData.images[0]?.area_image) }}
 								className="w-full h-48"
-								contentFit="cover"
-								transition={200}
-								placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
+								resizeMode="cover"
+								defaultSource={require('@/assets/images/logo.png')}
 							/>
 
 							<View className="p-4">

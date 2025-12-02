@@ -1,5 +1,4 @@
-import { TouchableOpacity, View } from 'react-native';
-import { Image } from 'expo-image';
+import { TouchableOpacity, View, Image } from 'react-native';
 import { Area } from '@/types/Area.types';
 import { pesoFormatter } from '@/utils/formatters';
 import { getCloudinaryUrl } from '@/utils/cloudinary';
@@ -19,14 +18,18 @@ const AreaCard = ({ item }: AreaCardProps) => {
 		<View className="bg-surface-default rounded-2xl shadow-lg mx-4 mb-6 overflow-hidden border border-border-subtle">
 			{/* Area Image with Overlay Gradient */}
 			<View className="h-48 bg-neutral-100 relative">
-				{item.images && item.images.length > 0 && (
+				{item.images && item.images.length > 0 ? (
 					<Image
 						source={{ uri: getCloudinaryUrl(item.images[0]?.area_image) }}
 						className="w-full h-full"
-						contentFit="cover"
-						transition={200}
-						placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
-						onError={() => console.log('Image load error for area:', item.area_name)}
+						resizeMode="cover"
+						defaultSource={require('@/assets/images/logo.png')}
+					/>
+				) : (
+					<Image
+						source={require('@/assets/images/logo.png')}
+						className="w-full h-full"
+						resizeMode="contain"
 					/>
 				)}
 
