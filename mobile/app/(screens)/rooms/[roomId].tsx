@@ -94,12 +94,9 @@ export default function GetRoomScreen() {
 						<Image
 							source={{ uri: getCloudinaryUrl(roomData.images[0]?.room_image) }}
 							className="w-full h-full"
-							contentFit="cover"
-							transition={200}
-							placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
 						/>
 					</View>
-					{/* Status Badge */}}
+					{/* Status Badge */}
 					<View className="absolute top-4 left-4">
 						<View
 							className={`px-3 py-2 rounded-full ${

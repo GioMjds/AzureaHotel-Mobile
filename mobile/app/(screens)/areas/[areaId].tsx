@@ -90,9 +90,6 @@ export default function GetAreaScreen() {
 									<Image
 										source={{ uri: getCloudinaryUrl(image.area_image) }}
 										className="w-full h-full"
-										contentFit="cover"
-										transition={200}
-										placeholder={{ uri: 'https://via.placeholder.com/400x300?text=Loading...' }}
 									/>
 								</View>
 							))}
