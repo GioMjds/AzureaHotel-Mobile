@@ -71,6 +71,45 @@ export default function GetAreaScreen() {
 
 	const areaData: Area = data.data;
 
+	const PWD_DISCOUNT_PERCENT = 20;
+
+	// Calculate which discount is better: admin discount or PWD 20%
+	const getBestDiscount = () => {
+		if (!areaData) return { finalPrice: 0, discountPercent: 0, hasDiscount: false, discountLabel: '' };
+		
+		const adminDiscountPrice = areaData.discounted_price_numeric;
+		const pwdDiscountPrice = areaData.senior_discounted_price;
+		
+		// If admin discount exists and is better (higher %) than PWD discount
+		if (adminDiscountPrice && areaData.discount_percent > PWD_DISCOUNT_PERCENT) {
+			return {
+				finalPrice: adminDiscountPrice,
+				discountPercent: areaData.discount_percent,
+				hasDiscount: true,
+				discountLabel: `${areaData.discount_percent}% OFF`,
+			};
+		}
+		
+		// PWD discount is better or admin discount doesn't exist
+		if (pwdDiscountPrice) {
+			return {
+				finalPrice: pwdDiscountPrice,
+				discountPercent: PWD_DISCOUNT_PERCENT,
+				hasDiscount: true,
+				discountLabel: `${PWD_DISCOUNT_PERCENT}% PWD`,
+			};
+		}
+		
+		return {
+			finalPrice: areaData.price_per_hour_numeric,
+			discountPercent: 0,
+			hasDiscount: false,
+			discountLabel: '',
+		};
+	};
+
+	const bestDiscount = getBestDiscount();
+
 	return (
 		<View className="flex-1 bg-neutral-50">
 			<ScrollView
@@ -112,10 +151,10 @@ export default function GetAreaScreen() {
 					</View>
 
 					{/* Discount Badge */}
-					{areaData.discount_percent > 0 && (
-						<View className="absolute top-4 right-4 bg-feedback-error-DEFAULT rounded-full px-3 py-2">
+					{bestDiscount.hasDiscount && (
+						<View className={`absolute top-4 right-4 rounded-full px-3 py-2 ${bestDiscount.discountPercent === PWD_DISCOUNT_PERCENT ? 'bg-feedback-info-DEFAULT' : 'bg-feedback-error-DEFAULT'}`}>
 							<Text className="text-white font-montserrat-bold text-sm">
-								{areaData.discount_percent}% OFF
+								{bestDiscount.discountLabel}
 							</Text>
 						</View>
 					)}
@@ -185,7 +224,7 @@ export default function GetAreaScreen() {
 					<View className="border-t border-neutral-200 pt-6">
 						<View className="flex-row items-center justify-between">
 							<View>
-								{areaData.discounted_price_numeric ? (
+								{bestDiscount.hasDiscount ? (
 									<View>
 										<Text className="text-neutral-400 font-montserrat-bold text-lg line-through">
 											{pesoFormatter.format(
@@ -194,7 +233,7 @@ export default function GetAreaScreen() {
 										</Text>
 										<Text className="text-violet-600 font-montserrat-bold text-3xl">
 											{pesoFormatter.format(
-												areaData.discounted_price_numeric
+												bestDiscount.finalPrice
 											)}
 										</Text>
 									</View>

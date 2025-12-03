@@ -11,9 +11,7 @@ export default function AreasScreen() {
 	
 	const { data, isLoading, error } = useQuery({
 		queryKey: ['areas'],
-		queryFn: async () => {
-			return await area.getAreas();
-		},
+		queryFn: area.getAreas
 	});
 
 	if (isLoading) {

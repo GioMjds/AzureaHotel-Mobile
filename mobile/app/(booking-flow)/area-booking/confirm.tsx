@@ -18,7 +18,7 @@ import { useForm, Controller } from 'react-hook-form';
 import useAuthStore from '@/store/AuthStore';
 import useAlertStore from '@/store/AlertStore';
 import { booking } from '@/services/Booking';
-import { calculateAreaPricing } from '@/utils/pricing';
+import { calculateAreaPricing, getDiscountLabel } from '@/utils/pricing';
 import { getCloudinaryUrl } from '@/utils/cloudinary';
 import ConfirmBookingModal from '@/components/bookings/ConfirmBookingModal';
 import ConfirmingBooking from '@/components/ui/ConfirmingBooking';
@@ -101,6 +101,22 @@ export default function ConfirmAreaBookingScreen() {
 	});
 
 	const areaData: Area = areaResponse?.data;
+
+	// Calculate pricing with discount info for display
+	const pricingResult = areaData
+		? calculateAreaPricing({
+				areaData: {
+					...areaData,
+					price_per_hour: areaData.price_per_hour || '0',
+					discounted_price: areaData.discounted_price || undefined,
+					senior_discounted_price: areaData.senior_discounted_price || undefined,
+				} as any,
+				userDetails: user
+					? { ...user, username: user.email || `user_${user.id}` }
+					: null,
+				hours: 1,
+			})
+		: null;
 
 	const createBookingMutation = useMutation({
 		mutationFn: (data: any) => booking.createAreaBooking(data),
@@ -1085,6 +1101,25 @@ export default function ConfirmAreaBookingScreen() {
 												confirmedDownPayment
 											).toLocaleString()}
 											) to be paid upon arrival
+										</StyledText>
+									</View>
+								)}
+
+							{/* Discount breakdown */}
+							{pricingResult &&
+								pricingResult.discountType !== 'none' && (
+									<View className="mt-3 p-3 bg-brand-primary rounded-lg">
+										<StyledText className="text-text-inverse font-montserrat mb-1">
+											{getDiscountLabel(
+												pricingResult.discountType,
+												pricingResult.discountPercent
+											)}
+										</StyledText>
+										<StyledText className="text-text-inverse font-montserrat text-sm">
+											Price/hour:{' '}
+											₱{pricingResult.finalPrice.toLocaleString()}{' '}
+											• Original/hour:{' '}
+											₱{pricingResult.originalPrice.toLocaleString()}
 										</StyledText>
 									</View>
 								)}

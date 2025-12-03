@@ -430,6 +430,7 @@ export default function RoomBookingCalendar() {
 	const renderRoomCardPriceDisplay = () => {
 		if (!roomData) return null;
 
+		const PWD_DISCOUNT_PERCENT = 20;
 		const isSeniorOrPwd = user?.is_senior_or_pwd;
 		const parsePrice = (val: string | number | null | undefined) => {
 			if (!val) return null;
@@ -444,35 +445,36 @@ export default function RoomBookingCalendar() {
 		const originalPrice = parsePrice(roomData.price_per_night || roomData.room_price) || 0;
 		const adminDiscounted = parsePrice(roomData.discounted_price_numeric || roomData.discounted_price);
 		const seniorDiscounted = parsePrice(roomData.senior_discounted_price);
+		const adminDiscountPercent = roomData.discount_percent || 0;
 
 		let displayDiscountedPrice: number | null = null;
 		let displayDiscountPercent = 0;
+		let discountLabel = '';
 
 		if (isSeniorOrPwd) {
-			const availableDiscounts = [];
-			if (adminDiscounted !== null && adminDiscounted < originalPrice) {
-				availableDiscounts.push({
-					price: adminDiscounted,
-					percent: Math.round(((originalPrice - adminDiscounted) / originalPrice) * 100),
-				});
-			}
-			if (seniorDiscounted !== null && seniorDiscounted < originalPrice) {
-				availableDiscounts.push({
-					price: seniorDiscounted,
-					percent: Math.round(((originalPrice - seniorDiscounted) / originalPrice) * 100),
-				});
-			}
-			if (availableDiscounts.length > 0) {
-				const bestDiscount = availableDiscounts.reduce((best, current) =>
-					current.price < best.price ? current : best
-				);
-				displayDiscountedPrice = bestDiscount.price;
-				displayDiscountPercent = bestDiscount.percent;
+			// Compare admin discount vs PWD 20% discount - pick the better one
+			if (adminDiscounted !== null && adminDiscountPercent > PWD_DISCOUNT_PERCENT) {
+				// Admin discount is better
+				displayDiscountedPrice = adminDiscounted;
+				displayDiscountPercent = adminDiscountPercent;
+				discountLabel = `${adminDiscountPercent}% OFF`;
+			} else if (seniorDiscounted !== null && seniorDiscounted < originalPrice) {
+				// PWD discount is better or admin discount doesn't exist
+				displayDiscountedPrice = seniorDiscounted;
+				displayDiscountPercent = PWD_DISCOUNT_PERCENT;
+				discountLabel = `${PWD_DISCOUNT_PERCENT}% PWD`;
+			} else if (adminDiscounted !== null && adminDiscounted < originalPrice) {
+				// Fallback to admin discount if PWD discount not available
+				displayDiscountedPrice = adminDiscounted;
+				displayDiscountPercent = adminDiscountPercent;
+				discountLabel = `${adminDiscountPercent}% OFF`;
 			}
 		} else {
+			// Non-PWD user: only show admin discount if available
 			if (adminDiscounted !== null && adminDiscounted < originalPrice) {
 				displayDiscountedPrice = adminDiscounted;
-				displayDiscountPercent = Math.round(((originalPrice - adminDiscounted) / originalPrice) * 100);
+				displayDiscountPercent = adminDiscountPercent;
+				discountLabel = `${adminDiscountPercent}% OFF`;
 			}
 		}
 
@@ -483,9 +485,9 @@ export default function RoomBookingCalendar() {
 						<Text className="text-neutral-500 line-through text-lg font-montserrat">
 							{formatPrice(originalPrice)}/night
 						</Text>
-						<View className="bg-feedback-success-light px-2 py-1 rounded-full">
-							<Text className="text-feedback-success-dark font-montserrat-bold text-sm">
-								{displayDiscountPercent}% OFF
+						<View className={`px-2 py-1 rounded-full ${discountLabel.includes('PWD') ? 'bg-feedback-info-light' : 'bg-feedback-success-light'}`}>
+							<Text className={`font-montserrat-bold text-sm ${discountLabel.includes('PWD') ? 'text-feedback-info-dark' : 'text-feedback-success-dark'}`}>
+								{discountLabel}
 							</Text>
 						</View>
 					</View>

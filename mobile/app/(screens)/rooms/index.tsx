@@ -11,9 +11,7 @@ export default function RoomsScreen() {
 	
 	const { data, isLoading, error } = useQuery({
 		queryKey: ['rooms'],
-		queryFn: async () => {
-			return await room.getRooms();
-		},
+		queryFn: room.getRooms
 	});
 
 	if (isLoading) {

@@ -70,6 +70,45 @@ export default function GetRoomScreen() {
 
 	const roomData: Room = data?.data;
 
+	const PWD_DISCOUNT_PERCENT = 20;
+
+	// Calculate which discount is better: admin discount or PWD 20%
+	const getBestDiscount = () => {
+		if (!roomData) return { finalPrice: 0, discountPercent: 0, hasDiscount: false, discountLabel: '' };
+		
+		const adminDiscountPrice = roomData.discounted_price_numeric;
+		const pwdDiscountPrice = roomData.senior_discounted_price;
+		
+		// If admin discount exists and is better (higher %) than PWD discount
+		if (adminDiscountPrice && roomData.discount_percent > PWD_DISCOUNT_PERCENT) {
+			return {
+				finalPrice: adminDiscountPrice,
+				discountPercent: roomData.discount_percent,
+				hasDiscount: true,
+				discountLabel: `${roomData.discount_percent}% OFF`,
+			};
+		}
+		
+		// PWD discount is better or admin discount doesn't exist
+		if (pwdDiscountPrice) {
+			return {
+				finalPrice: pwdDiscountPrice,
+				discountPercent: PWD_DISCOUNT_PERCENT,
+				hasDiscount: true,
+				discountLabel: `${PWD_DISCOUNT_PERCENT}% PWD`,
+			};
+		}
+		
+		return {
+			finalPrice: roomData.price_per_night,
+			discountPercent: 0,
+			hasDiscount: false,
+			discountLabel: '',
+		};
+	};
+
+	const bestDiscount = getBestDiscount();
+
 	if (!roomData) {
 		return (
 			<SafeAreaView className="flex-1 bg-neutral-50">
@@ -112,10 +151,10 @@ export default function GetRoomScreen() {
 					</View>
 
 					{/* Discount Badge */}
-					{roomData.discount_percent > 0 && (
-						<View className="absolute top-4 right-4 bg-feedback-error-DEFAULT rounded-full px-3 py-2">
+					{bestDiscount.hasDiscount && (
+						<View className={`absolute top-4 right-4 rounded-full px-3 py-2 ${bestDiscount.discountPercent === PWD_DISCOUNT_PERCENT ? 'bg-feedback-info-DEFAULT' : 'bg-feedback-error-DEFAULT'}`}>
 							<StyledText variant='montserrat-bold' className="text-white text-sm">
-								{roomData.discount_percent}% OFF
+								{bestDiscount.discountLabel}
 							</StyledText>
 						</View>
 					)}
@@ -229,7 +268,7 @@ export default function GetRoomScreen() {
 					<View className="border-t border-neutral-200 pt-6">
 						<View className="flex-row items-center justify-between">
 							<View>
-								{roomData.discounted_price_numeric ? (
+								{bestDiscount.hasDiscount ? (
 									<View>
 										<StyledText variant='montserrat-bold' className="text-neutral-400 text-lg line-through">
 											{pesoFormatter.format(
@@ -238,7 +277,7 @@ export default function GetRoomScreen() {
 										</StyledText>
 										<StyledText variant='montserrat-bold' className="text-violet-600 text-3xl">
 											{pesoFormatter.format(
-												roomData.discounted_price_numeric
+												bestDiscount.finalPrice
 											)}
 										</StyledText>
 									</View>

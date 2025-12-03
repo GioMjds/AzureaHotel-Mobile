@@ -1,14 +1,12 @@
 import random
 import os
 import logging
-import resend
+from django.core.mail import EmailMultiAlternatives
 from dotenv import load_dotenv
 
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-# Initialize Resend with API key
-resend.api_key = os.getenv('RESEND_API_KEY')
 
 def get_otp_html_template(email, otp, title, description):
     """Generate HTML template for OTP emails"""
@@ -50,18 +48,19 @@ def get_otp_html_template(email, otp, title, description):
 
 
 def send_otp_to_email(email, message):
-    """Send OTP for account verification using Resend API"""
+    """Send OTP for account verification using Gmail SMTP"""
     try:
         otp = random.randint(100000, 999999)
         
-        resend_api_key = os.getenv('RESEND_API_KEY')
-        email_from = os.getenv('EMAIL_FROM', 'Azurea Hotel <onboarding@resend.dev>')
-        
-        if not resend_api_key:
-            logger.error("RESEND_API_KEY environment variable is not set")
+        email_from = os.getenv('EMAIL_HOST_USER')
+        if not email_from:
+            logger.error("EMAIL_HOST_USER environment variable is not set")
             return None
             
-        logger.info(f"Attempting to send OTP email to {email} via Resend API")
+        logger.info(f"Attempting to send OTP email to {email} via Gmail SMTP")
+        
+        subject = "Azurea Hotel - Account Verification OTP"
+        text_content = f"Your OTP for account verification is: {otp}. Valid for 2 minutes."
         
         html_content = get_otp_html_template(
             email=email,
@@ -70,21 +69,12 @@ def send_otp_to_email(email, message):
             description="Thank you for choosing Azurea Hotel Management. Use the following OTP to complete your account verification. OTP is valid for "
         )
         
-        params = {
-            "from": email_from,
-            "to": [email],
-            "subject": "Azurea Hotel - Account Verification OTP",
-            "html": html_content,
-        }
+        msg = EmailMultiAlternatives(subject, text_content, email_from, [email])
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
         
-        response = resend.Emails.send(params)
-        
-        if response and response.get('id'):
-            logger.info(f"OTP email sent successfully to {email}. Message ID: {response.get('id')}")
-            return otp
-        else:
-            logger.error(f"Failed to send OTP email to {email}. Response: {response}")
-            return None
+        logger.info(f"OTP email sent successfully to {email}")
+        return otp
             
     except Exception as e:
         logger.error(f"Failed to send OTP email to {email}: {str(e)}")
@@ -94,18 +84,19 @@ def send_otp_to_email(email, message):
 
 
 def send_reset_password(email):
-    """Send OTP for password reset using Resend API"""
+    """Send OTP for password reset using Gmail SMTP"""
     try:
         otp = random.randint(100000, 999999)
         
-        resend_api_key = os.getenv('RESEND_API_KEY')
-        email_from = os.getenv('EMAIL_FROM', 'Azurea Hotel <onboarding@resend.dev>')
-        
-        if not resend_api_key:
-            logger.error("RESEND_API_KEY environment variable is not set")
+        email_from = os.getenv('EMAIL_HOST_USER')
+        if not email_from:
+            logger.error("EMAIL_HOST_USER environment variable is not set")
             return None
             
-        logger.info(f"Attempting to send reset password OTP to {email} via Resend API")
+        logger.info(f"Attempting to send reset password OTP to {email} via Gmail SMTP")
+        
+        subject = "Azurea Hotel - Password Reset OTP"
+        text_content = f"Your OTP for password reset is: {otp}. Valid for 2 minutes."
         
         html_content = get_otp_html_template(
             email=email,
@@ -114,21 +105,12 @@ def send_reset_password(email):
             description="Thank you for choosing Azurea Hotel Management. Use the following OTP to reset your password. OTP is valid for "
         )
         
-        params = {
-            "from": email_from,
-            "to": [email],
-            "subject": "Azurea Hotel - Password Reset OTP",
-            "html": html_content,
-        }
+        msg = EmailMultiAlternatives(subject, text_content, email_from, [email])
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
         
-        response = resend.Emails.send(params)
-        
-        if response and response.get('id'):
-            logger.info(f"Reset password OTP sent successfully to {email}. Message ID: {response.get('id')}")
-            return otp
-        else:
-            logger.error(f"Failed to send reset password OTP to {email}. Response: {response}")
-            return None
+        logger.info(f"Reset password OTP sent successfully to {email}")
+        return otp
             
     except Exception as e:
         logger.error(f"Failed to send reset password email to {email}: {str(e)}")

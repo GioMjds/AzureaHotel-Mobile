@@ -287,6 +287,7 @@ export default function AreaBookingCalendar() {
 	const renderPriceDisplay = () => {
 		if (!areaData) return null;
 
+		const PWD_DISCOUNT_PERCENT = 20;
 		const isSeniorOrPwd = user?.is_senior_or_pwd;
 		const parsePrice = (val: string | number | null | undefined) => {
 			if (!val) return null;
@@ -300,35 +301,36 @@ export default function AreaBookingCalendar() {
 		const originalPrice = parsePrice(areaData.price_per_hour) || 0;
 		const adminDiscounted = parsePrice(areaData.discounted_price);
 		const seniorDiscounted = parsePrice(areaData.senior_discounted_price);
+		const adminDiscountPercent = areaData.discount_percent ?? 0;
 
 		let displayDiscountedPrice: number | null = null;
 		let displayDiscountPercent = 0;
+		let discountLabel = '';
 
 		if (isSeniorOrPwd) {
-			const availableDiscounts = [];
-			if (adminDiscounted !== null && adminDiscounted < originalPrice) {
-				availableDiscounts.push({
-					price: adminDiscounted,
-					percent: areaData.discount_percent ?? 0,
-				});
-			}
-			if (seniorDiscounted !== null && seniorDiscounted < originalPrice) {
-				availableDiscounts.push({
-					price: seniorDiscounted,
-					percent: 20,
-				});
-			}
-			if (availableDiscounts.length > 0) {
-				const bestDiscount = availableDiscounts.reduce((best, current) =>
-					current.price < best.price ? current : best
-				);
-				displayDiscountedPrice = bestDiscount.price;
-				displayDiscountPercent = bestDiscount.percent;
+			// Compare admin discount vs PWD 20% discount - pick the better one
+			if (adminDiscounted !== null && adminDiscountPercent > PWD_DISCOUNT_PERCENT) {
+				// Admin discount is better
+				displayDiscountedPrice = adminDiscounted;
+				displayDiscountPercent = adminDiscountPercent;
+				discountLabel = `${adminDiscountPercent}% OFF`;
+			} else if (seniorDiscounted !== null && seniorDiscounted < originalPrice) {
+				// PWD discount is better or admin discount doesn't exist
+				displayDiscountedPrice = seniorDiscounted;
+				displayDiscountPercent = PWD_DISCOUNT_PERCENT;
+				discountLabel = `${PWD_DISCOUNT_PERCENT}% PWD`;
+			} else if (adminDiscounted !== null && adminDiscounted < originalPrice) {
+				// Fallback to admin discount if PWD discount not available
+				displayDiscountedPrice = adminDiscounted;
+				displayDiscountPercent = adminDiscountPercent;
+				discountLabel = `${adminDiscountPercent}% OFF`;
 			}
 		} else {
+			// Non-PWD user: only show admin discount if available
 			if (adminDiscounted !== null && adminDiscounted < originalPrice) {
 				displayDiscountedPrice = adminDiscounted;
-				displayDiscountPercent = areaData.discount_percent ?? 0;
+				displayDiscountPercent = adminDiscountPercent;
+				discountLabel = `${adminDiscountPercent}% OFF`;
 			}
 		}
 
@@ -342,8 +344,8 @@ export default function AreaBookingCalendar() {
 						<Text className="text-text-secondary font-montserrat-bold text-xl">
 							₱{displayDiscountedPrice.toLocaleString()}
 						</Text>
-						<Text className="text-feedback-success-DEFAULT font-montserrat-bold text-sm ml-1">
-							-{displayDiscountPercent}% OFF
+						<Text className={`font-montserrat-bold text-sm ml-1 ${discountLabel.includes('PWD') ? 'text-feedback-info-DEFAULT' : 'text-feedback-success-DEFAULT'}`}>
+							-{discountLabel}
 						</Text>
 					</View>
 				</>

@@ -11,8 +11,45 @@ interface AreaCardProps {
 	item: Area;
 }
 
+const PWD_DISCOUNT_PERCENT = 20;
+
 const AreaCard = ({ item }: AreaCardProps) => {
 	const { isOffline } = useNetwork();
+
+	// Calculate which discount is better: admin discount or PWD 20%
+	const getBestDiscount = () => {
+		const adminDiscountPrice = item.discounted_price_numeric;
+		const pwdDiscountPrice = item.senior_discounted_price;
+		
+		// If admin discount exists and is better (lower price) than PWD discount
+		if (adminDiscountPrice && item.discount_percent > PWD_DISCOUNT_PERCENT) {
+			return {
+				finalPrice: adminDiscountPrice,
+				discountPercent: item.discount_percent,
+				hasDiscount: true,
+				discountLabel: `${item.discount_percent}% OFF`,
+			};
+		}
+		
+		// PWD discount is better or admin discount doesn't exist
+		if (pwdDiscountPrice) {
+			return {
+				finalPrice: pwdDiscountPrice,
+				discountPercent: PWD_DISCOUNT_PERCENT,
+				hasDiscount: true,
+				discountLabel: `${PWD_DISCOUNT_PERCENT}% PWD`,
+			};
+		}
+		
+		return {
+			finalPrice: item.price_per_hour_numeric,
+			discountPercent: 0,
+			hasDiscount: false,
+			discountLabel: '',
+		};
+	};
+
+	const bestDiscount = getBestDiscount();
 
 	return (
 		<View className="bg-surface-default rounded-2xl shadow-lg mx-4 mb-6 overflow-hidden border border-border-subtle">
@@ -52,13 +89,13 @@ const AreaCard = ({ item }: AreaCardProps) => {
 					</View>
 
 					{/* Discount Badge */}
-					{item.discount_percent > 0 && (
-						<View className="bg-feedback-error-DEFAULT ml-2 rounded-full px-4 py-2 shadow-md">
+					{bestDiscount.hasDiscount && (
+						<View className={`ml-2 rounded-full px-4 py-2 shadow-md ${bestDiscount.discountPercent === PWD_DISCOUNT_PERCENT ? 'bg-feedback-info-DEFAULT' : 'bg-feedback-error-DEFAULT'}`}>
 							<StyledText
 								variant="montserrat-bold"
 								className="text-white text-xs tracking-wide"
 							>
-								-{item.discount_percent}% OFF
+								-{bestDiscount.discountLabel}
 							</StyledText>
 						</View>
 					)}
@@ -122,7 +159,7 @@ const AreaCard = ({ item }: AreaCardProps) => {
 				<View className="flex-row items-center justify-between">
 					{/* Pricing */}
 					<View className="flex-1">
-						{item.discounted_price_numeric ? (
+						{bestDiscount.hasDiscount ? (
 							<View>
 								<StyledText
 									variant="montserrat-regular"
@@ -138,7 +175,7 @@ const AreaCard = ({ item }: AreaCardProps) => {
 										className="text-brand-primary text-3xl"
 									>
 										{pesoFormatter.format(
-											item.discounted_price_numeric
+											bestDiscount.finalPrice
 										)}
 									</StyledText>
 								</View>
