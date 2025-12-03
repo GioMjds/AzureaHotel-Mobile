@@ -95,6 +95,8 @@ export const calculateRoomPricing = ({
 	}
 
 	const isSeniorOrPwd = userDetails?.is_senior_or_pwd;
+	// Check if user is eligible for PWD discount (verified AND is_senior_or_pwd)
+	const isEligibleForPwdDiscount = userDetails?.is_verified === 'verified' && isSeniorOrPwd === true;
 
 	// Get available discounts from backend
 	const adminDiscounted = parsePrice(
@@ -131,8 +133,8 @@ export const calculateRoomPricing = ({
 		});
 	}
 
-	// Senior/PWD discount (only if user is eligible)
-	if (isSeniorOrPwd && seniorDiscounted && seniorDiscounted < originalPrice) {
+	// Senior/PWD discount (only if user is verified AND is_senior_or_pwd)
+	if (isEligibleForPwdDiscount && seniorDiscounted && seniorDiscounted < originalPrice) {
 		availableDiscounts.push({
 			price: seniorDiscounted,
 			type: 'senior',
@@ -206,6 +208,8 @@ export const calculateAreaPricing = ({
 	}
 
 	const isSeniorOrPwd = userDetails?.is_senior_or_pwd;
+	// Check if user is eligible for PWD discount (verified AND is_senior_or_pwd)
+	const isEligibleForPwdDiscount = userDetails?.is_verified === 'verified' && isSeniorOrPwd === true;
 
 	// Get available discounts from backend
 	const adminDiscounted = parsePrice(
@@ -232,8 +236,8 @@ export const calculateAreaPricing = ({
 		});
 	}
 
-	// Senior/PWD discount (only if user is eligible)
-	if (isSeniorOrPwd && seniorDiscounted && seniorDiscounted < originalPrice) {
+	// Senior/PWD discount (only if user is verified AND is_senior_or_pwd)
+	if (isEligibleForPwdDiscount && seniorDiscounted && seniorDiscounted < originalPrice) {
 		availableDiscounts.push({
 			price: seniorDiscounted,
 			type: 'senior',

@@ -6,6 +6,7 @@ import { Link } from 'expo-router';
 import StyledText from '@/components/ui/StyledText';
 import { Ionicons } from '@expo/vector-icons';
 import { useNetwork } from '../NetworkProvider';
+import useAuthStore from '@/store/AuthStore';
 
 interface RoomCardProps {
 	item: Room;
@@ -15,13 +16,17 @@ const PWD_DISCOUNT_PERCENT = 20;
 
 const RoomCard = ({ item }: RoomCardProps) => {
 	const { isOffline } = useNetwork();
+	const user = useAuthStore((s) => s.user);
 
-	// Calculate which discount is better: admin discount or PWD 20%
+	// Check if user is eligible for PWD discount (verified AND is_senior_or_pwd)
+	const isEligibleForPwdDiscount = user?.is_verified === 'verified' && user?.is_senior_or_pwd === true;
+
+	// Calculate which discount is better: admin discount or PWD 20% (only for eligible users)
 	const getBestDiscount = () => {
 		const adminDiscountPrice = item.discounted_price_numeric;
 		const pwdDiscountPrice = item.senior_discounted_price;
 		
-		// If admin discount exists and is better (lower price) than PWD discount
+		// If admin discount exists and is better (higher %) than PWD discount, show it to everyone
 		if (adminDiscountPrice && item.discount_percent > PWD_DISCOUNT_PERCENT) {
 			return {
 				finalPrice: adminDiscountPrice,
@@ -31,13 +36,23 @@ const RoomCard = ({ item }: RoomCardProps) => {
 			};
 		}
 		
-		// PWD discount is better or admin discount doesn't exist
-		if (pwdDiscountPrice) {
+		// PWD discount is only available for verified PWD/Senior users
+		if (isEligibleForPwdDiscount && pwdDiscountPrice) {
 			return {
 				finalPrice: pwdDiscountPrice,
 				discountPercent: PWD_DISCOUNT_PERCENT,
 				hasDiscount: true,
 				discountLabel: `${PWD_DISCOUNT_PERCENT}% PWD`,
+			};
+		}
+
+		// Fallback to admin discount if it exists (but is <= PWD discount)
+		if (adminDiscountPrice && item.discount_percent > 0) {
+			return {
+				finalPrice: adminDiscountPrice,
+				discountPercent: item.discount_percent,
+				hasDiscount: true,
+				discountLabel: `${item.discount_percent}% OFF`,
 			};
 		}
 		

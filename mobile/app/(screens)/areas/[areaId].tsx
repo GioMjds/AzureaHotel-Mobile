@@ -24,6 +24,7 @@ export default function GetAreaScreen() {
 
 	const router = useRouter();
 	const fetchUser = useAuthStore((s) => s.fetchUser);
+	const user = useAuthStore((s) => s.user);
 
 	useFocusEffect(
 		useCallback(() => {
@@ -72,15 +73,15 @@ export default function GetAreaScreen() {
 	const areaData: Area = data.data;
 
 	const PWD_DISCOUNT_PERCENT = 20;
+	
+	const isEligibleForPwdDiscount = user?.is_verified === 'verified' && user?.is_senior_or_pwd === true;
 
-	// Calculate which discount is better: admin discount or PWD 20%
 	const getBestDiscount = () => {
 		if (!areaData) return { finalPrice: 0, discountPercent: 0, hasDiscount: false, discountLabel: '' };
 		
 		const adminDiscountPrice = areaData.discounted_price_numeric;
 		const pwdDiscountPrice = areaData.senior_discounted_price;
 		
-		// If admin discount exists and is better (higher %) than PWD discount
 		if (adminDiscountPrice && areaData.discount_percent > PWD_DISCOUNT_PERCENT) {
 			return {
 				finalPrice: adminDiscountPrice,
@@ -90,13 +91,23 @@ export default function GetAreaScreen() {
 			};
 		}
 		
-		// PWD discount is better or admin discount doesn't exist
-		if (pwdDiscountPrice) {
+		// PWD discount is only available for verified PWD/Senior users
+		if (isEligibleForPwdDiscount && pwdDiscountPrice) {
 			return {
 				finalPrice: pwdDiscountPrice,
 				discountPercent: PWD_DISCOUNT_PERCENT,
 				hasDiscount: true,
 				discountLabel: `${PWD_DISCOUNT_PERCENT}% PWD`,
+			};
+		}
+
+		// Fallback to admin discount if it exists (but is <= PWD discount)
+		if (adminDiscountPrice && areaData.discount_percent > 0) {
+			return {
+				finalPrice: adminDiscountPrice,
+				discountPercent: areaData.discount_percent,
+				hasDiscount: true,
+				discountLabel: `${areaData.discount_percent}% OFF`,
 			};
 		}
 		

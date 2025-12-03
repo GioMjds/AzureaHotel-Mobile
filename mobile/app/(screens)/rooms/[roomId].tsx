@@ -23,6 +23,7 @@ export default function GetRoomScreen() {
 	const router = useRouter();
 	const { roomId } = useLocalSearchParams();
 	const fetchUser = useAuthStore((s) => s.fetchUser);
+	const user = useAuthStore((s) => s.user);
 
 	useFocusEffect(
 		useCallback(() => {
@@ -71,15 +72,18 @@ export default function GetRoomScreen() {
 	const roomData: Room = data?.data;
 
 	const PWD_DISCOUNT_PERCENT = 20;
+	
+	// Check if user is eligible for PWD discount (verified AND is_senior_or_pwd)
+	const isEligibleForPwdDiscount = user?.is_verified === 'verified' && user?.is_senior_or_pwd === true;
 
-	// Calculate which discount is better: admin discount or PWD 20%
+	// Calculate which discount is better: admin discount or PWD 20% (only for eligible users)
 	const getBestDiscount = () => {
 		if (!roomData) return { finalPrice: 0, discountPercent: 0, hasDiscount: false, discountLabel: '' };
 		
 		const adminDiscountPrice = roomData.discounted_price_numeric;
 		const pwdDiscountPrice = roomData.senior_discounted_price;
 		
-		// If admin discount exists and is better (higher %) than PWD discount
+		// If admin discount exists and is better (higher %) than PWD discount, show it to everyone
 		if (adminDiscountPrice && roomData.discount_percent > PWD_DISCOUNT_PERCENT) {
 			return {
 				finalPrice: adminDiscountPrice,
@@ -89,13 +93,23 @@ export default function GetRoomScreen() {
 			};
 		}
 		
-		// PWD discount is better or admin discount doesn't exist
-		if (pwdDiscountPrice) {
+		// PWD discount is only available for verified PWD/Senior users
+		if (isEligibleForPwdDiscount && pwdDiscountPrice) {
 			return {
 				finalPrice: pwdDiscountPrice,
 				discountPercent: PWD_DISCOUNT_PERCENT,
 				hasDiscount: true,
 				discountLabel: `${PWD_DISCOUNT_PERCENT}% PWD`,
+			};
+		}
+
+		// Fallback to admin discount if it exists (but is <= PWD discount)
+		if (adminDiscountPrice && roomData.discount_percent > 0) {
+			return {
+				finalPrice: adminDiscountPrice,
+				discountPercent: roomData.discount_percent,
+				hasDiscount: true,
+				discountLabel: `${roomData.discount_percent}% OFF`,
 			};
 		}
 		

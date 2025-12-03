@@ -288,7 +288,8 @@ export default function AreaBookingCalendar() {
 		if (!areaData) return null;
 
 		const PWD_DISCOUNT_PERCENT = 20;
-		const isSeniorOrPwd = user?.is_senior_or_pwd;
+		// Check if user is eligible for PWD discount (verified AND is_senior_or_pwd)
+		const isEligibleForPwdDiscount = user?.is_verified === 'verified' && user?.is_senior_or_pwd === true;
 		const parsePrice = (val: string | number | null | undefined) => {
 			if (!val) return null;
 			if (typeof val === 'number') return val;
@@ -307,7 +308,7 @@ export default function AreaBookingCalendar() {
 		let displayDiscountPercent = 0;
 		let discountLabel = '';
 
-		if (isSeniorOrPwd) {
+		if (isEligibleForPwdDiscount) {
 			// Compare admin discount vs PWD 20% discount - pick the better one
 			if (adminDiscounted !== null && adminDiscountPercent > PWD_DISCOUNT_PERCENT) {
 				// Admin discount is better
