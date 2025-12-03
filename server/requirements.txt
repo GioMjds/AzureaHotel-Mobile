@@ -91,3 +91,4 @@ whitenoise==6.11.0
 zope.interface==8.1.1
 channels-redis==4.0.0
 resend==2.19.0
+sendgrid==6.11.0
