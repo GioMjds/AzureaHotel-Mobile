@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
 	Text,
 	TextInput,
 	TouchableOpacity,
 	View,
-	ScrollView,
 	ActivityIndicator,
 	Modal,
 	ToastAndroid,
@@ -16,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useForgotPassword } from '@/hooks/useForgotPassword';
 import useAlertStore from '@/store/AlertStore';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import StyledAlert from '@/components/ui/StyledAlert';
 
 interface EmailFormData {
@@ -151,12 +151,14 @@ export default function ForgotPassScreen() {
 			</View>
 
 			<SafeAreaView className="flex-1 p-6 justify-center">
-				<ScrollView
+				<KeyboardAwareScrollView
 					contentContainerStyle={{
 						flexGrow: 1,
 						justifyContent: 'center',
 					}}
 					showsVerticalScrollIndicator={false}
+					enableOnAndroid={true}
+					extraScrollHeight={20}
 				>
 					{/* Main Card */}
 					<View className="w-full max-w-md bg-surface-default/95 backdrop-blur-xl rounded-3xl p-8 self-center shadow-2xl border border-border-subtle">
@@ -268,7 +270,7 @@ export default function ForgotPassScreen() {
 							</TouchableOpacity>
 						</View>
 					</View>
-				</ScrollView>
+				</KeyboardAwareScrollView>
 			</SafeAreaView>
 
 			{/* OTP Verification Modal */}
