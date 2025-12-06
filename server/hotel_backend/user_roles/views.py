@@ -1078,27 +1078,37 @@ def update_user_details(request, id):
             }, status=status.HTTP_403_FORBIDDEN)
             
         user = CustomUsers.objects.get(id=id)
-        data = request.data.get('data', [])
         
-        if len(data) >= 3:
-            user.first_name = data[0]
-            user.last_name = data[1]
-            user.email = data[2]
-            
-            if user.email != user.username:
-                user.username = user.email
-                
-            user.save()
-            
-            serializer = CustomUserSerializer(user)
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+        
+        if not first_name or not last_name:
             return Response({
-                'message': 'Profile updated successfully',
-                'data': serializer.data
-            }, status=status.HTTP_200_OK)
-        else:
-            return Response({
-                'error': 'Insufficient data provided'
+                'error': 'First name and last name are required'
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check 90-day restriction for name changes
+        if user.name_last_updated:
+            from datetime import date
+            days_since_update = (date.today() - user.name_last_updated).days
+            if days_since_update < 90:
+                days_remaining = 90 - days_since_update
+                return Response({
+                    'error': f'You can only change your name once every 90 days. Please try again in {days_remaining} days.',
+                    'days_remaining': days_remaining
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Update name fields
+        user.first_name = first_name.strip()
+        user.last_name = last_name.strip()
+        user.name_last_updated = date.today()
+        user.save()
+        
+        serializer = CustomUserSerializer(user)
+        return Response({
+            'message': 'Name updated successfully',
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
             
     except CustomUsers.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)

@@ -38,6 +38,7 @@ class CustomUsers(AbstractUser):
     is_archived = models.BooleanField(default=False)
     profile_image = CloudinaryField('profile_image', null=True, blank=True)
     last_booking_date = models.DateField(null=True, blank=True)
+    name_last_updated = models.DateField(null=True, blank=True)
     valid_id_type = models.CharField(max_length=60, null=True, blank=True, choices=VALID_ID_CHOICES)
     valid_id_front = CloudinaryField('valid_id_front', null=True, blank=True)
     valid_id_back = CloudinaryField('valid_id_back', null=True, blank=True)

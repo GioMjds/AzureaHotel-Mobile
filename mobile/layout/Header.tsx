@@ -12,6 +12,7 @@ import {
 	Pressable,
 	Modal,
 	ActivityIndicator,
+	TextInput,
 } from 'react-native';
 import NotificationBell from '@/components/ui/NotificationBell';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,10 +29,16 @@ interface HeaderProps {
 	headerLabel: string;
 }
 
+const NAME_EDIT_COOLDOWN_DAYS = 90;
+
 const Header = ({ headerLabel }: HeaderProps) => {
 	const [isDropdownOpen, setDropdownOpen] = useState<boolean>(false);
 	const [isUploadingImage, setUploadingImage] = useState<boolean>(false);
 	const [isLogoutAlertOpen, setLogoutAlertOpen] = useState<boolean>(false);
+	const [isEditNameModalOpen, setEditNameModalOpen] = useState<boolean>(false);
+	const [editFirstName, setEditFirstName] = useState<string>('');
+	const [editLastName, setEditLastName] = useState<string>('');
+	const [isUpdatingName, setUpdatingName] = useState<boolean>(false);
 
 	const { user, logout } = useAuth();
 	const { isOffline } = useNetwork();
@@ -199,6 +206,118 @@ const Header = ({ headerLabel }: HeaderProps) => {
 		}
 	}, [logout]);
 
+	// Calculate days remaining until name can be edited
+	const getDaysUntilNameEdit = useCallback((nameLastUpdated: string | null): number | null => {
+		if (!nameLastUpdated) return null; // Can edit immediately
+		const lastUpdated = new Date(nameLastUpdated);
+		const now = new Date();
+		const diffTime = now.getTime() - lastUpdated.getTime();
+		const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+		const remaining = NAME_EDIT_COOLDOWN_DAYS - diffDays;
+		return remaining > 0 ? remaining : null;
+	}, []);
+
+	const openEditNameModal = useCallback(() => {
+		if (!data) return;
+		const guest = data.data;
+		const daysRemaining = getDaysUntilNameEdit(guest.name_last_updated);
+		
+		if (daysRemaining !== null) {
+			setDropdownOpen(false);
+			showAlert(
+				'warning',
+				'Cannot Edit Name',
+				`You can only change your name once every ${NAME_EDIT_COOLDOWN_DAYS} days. Please try again in ${daysRemaining} day${daysRemaining === 1 ? '' : 's'}.`,
+				[
+					{
+						text: 'OK',
+						style: 'default',
+						onPress: () => setAlertConfig({ ...alertConfig, visible: false }),
+					},
+				]
+			);
+			return;
+		}
+		
+		setEditFirstName(guest.first_name);
+		setEditLastName(guest.last_name);
+		setDropdownOpen(false);
+		setEditNameModalOpen(true);
+	}, [data, getDaysUntilNameEdit, showAlert, alertConfig, setAlertConfig]);
+
+	const closeEditNameModal = useCallback(() => {
+		setEditNameModalOpen(false);
+		setEditFirstName('');
+		setEditLastName('');
+	}, []);
+
+	const handleUpdateName = useCallback(async () => {
+		if (!user?.id) return;
+		
+		const trimmedFirst = editFirstName.trim();
+		const trimmedLast = editLastName.trim();
+		
+		if (!trimmedFirst || !trimmedLast) {
+			showAlert(
+				'warning',
+				'Invalid Input',
+				'First name and last name are required.',
+				[
+					{
+						text: 'OK',
+						style: 'default',
+						onPress: () => setAlertConfig({ ...alertConfig, visible: false }),
+					},
+				]
+			);
+			return;
+		}
+		
+		try {
+			setUpdatingName(true);
+			await auth.updateUserDetails(user.id, trimmedFirst, trimmedLast);
+			
+			// Refresh profile query
+			queryClient.invalidateQueries({
+				queryKey: ['userProfile', user.id],
+			});
+			
+			setEditNameModalOpen(false);
+			setEditFirstName('');
+			setEditLastName('');
+			
+			showAlert(
+				'success',
+				'Success',
+				'Your name has been updated successfully.',
+				[
+					{
+						text: 'OK',
+						style: 'default',
+						onPress: () => setAlertConfig({ ...alertConfig, visible: false }),
+					},
+				]
+			);
+		} catch (error: any) {
+			console.warn('Failed to update name', error);
+			const errorMessage = error?.response?.data?.error || error?.message || 'Could not update name.';
+			showAlert(
+				'error',
+				'Update Failed',
+				errorMessage,
+				[
+					{
+						text: 'OK',
+						style: 'default',
+						onPress: () => setAlertConfig({ ...alertConfig, visible: false }),
+					},
+				]
+			);
+		} finally {
+			setUpdatingName(false);
+		}
+	}, [user?.id, editFirstName, editLastName, queryClient, showAlert, alertConfig, setAlertConfig]);
+
 	if (!data) return null;
 
 	const guest = data.data;
@@ -307,6 +426,25 @@ const Header = ({ headerLabel }: HeaderProps) => {
 											Change Profile Image
 										</StyledText>
 									)}
+								</TouchableOpacity>
+
+								<TouchableOpacity
+									activeOpacity={0.8}
+									onPress={openEditNameModal}
+									className="flex-row items-center p-2 rounded-lg bg-interactive-ghost-hover"
+								>
+									<FontAwesome
+										name="pencil"
+										size={18}
+										color="#6F00FF"
+										style={{ width: 28 }}
+									/>
+									<StyledText
+										variant="montserrat-regular"
+										className="text-text-primary ml-1"
+									>
+										Edit Name
+									</StyledText>
 								</TouchableOpacity>
 
 								<TouchableOpacity
@@ -455,6 +593,106 @@ const Header = ({ headerLabel }: HeaderProps) => {
 					]}
 					onClose={closeLogoutAlert}
 				/>
+
+				{/* Edit Name Modal */}
+				<Modal
+					visible={isEditNameModalOpen}
+					transparent
+					onRequestClose={closeEditNameModal}
+					animationType="fade"
+				>
+					<Pressable
+						style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
+						onPress={closeEditNameModal}
+					>
+						<View className="flex-1 justify-center items-center px-6">
+							<Pressable
+								className="bg-background-elevated rounded-2xl p-6 w-full max-w-md"
+								onPress={(e) => e.stopPropagation()}
+							>
+								<StyledText
+									variant="playfair-bold"
+									className="text-text-primary text-2xl text-center mb-2"
+								>
+									Edit Name
+								</StyledText>
+								<StyledText
+									variant="montserrat-regular"
+									className="text-text-muted text-sm text-center mb-6"
+								>
+									You can only change your name once every {NAME_EDIT_COOLDOWN_DAYS} days.
+								</StyledText>
+
+								<View className="mb-4">
+									<StyledText
+										variant="montserrat-regular"
+										className="text-text-primary text-sm mb-2"
+									>
+										First Name
+									</StyledText>
+									<TextInput
+										value={editFirstName}
+										onChangeText={setEditFirstName}
+										placeholder="Enter first name"
+										placeholderTextColor="#A78BFA"
+										className="bg-white border border-border-default rounded-xl px-4 py-3 text-text-primary"
+										style={{ fontFamily: 'Montserrat_400Regular' }}
+										editable={!isUpdatingName}
+									/>
+								</View>
+
+								<View className="mb-6">
+									<StyledText
+										variant="montserrat-regular"
+										className="text-text-primary text-sm mb-2"
+									>
+										Last Name
+									</StyledText>
+									<TextInput
+										value={editLastName}
+										onChangeText={setEditLastName}
+										placeholder="Enter last name"
+										placeholderTextColor="#A78BFA"
+										className="bg-white border border-border-default rounded-xl px-4 py-3 text-text-primary"
+										style={{ fontFamily: 'Montserrat_400Regular' }}
+										editable={!isUpdatingName}
+									/>
+								</View>
+
+								<View className="flex-row space-x-3">
+									<TouchableOpacity
+										onPress={closeEditNameModal}
+										disabled={isUpdatingName}
+										className="flex-1 bg-neutral-200 py-3 rounded-xl"
+									>
+										<StyledText
+											variant="montserrat-bold"
+											className="text-text-primary text-center text-base"
+										>
+											Cancel
+										</StyledText>
+									</TouchableOpacity>
+									<TouchableOpacity
+										onPress={handleUpdateName}
+										disabled={isUpdatingName}
+										className="flex-1 bg-brand-primary py-3 rounded-xl flex-row justify-center items-center"
+									>
+										{isUpdatingName ? (
+											<ActivityIndicator size="small" color="#FFF" />
+										) : (
+											<StyledText
+												variant="montserrat-bold"
+												className="text-white text-center text-base"
+											>
+												Save
+											</StyledText>
+										)}
+									</TouchableOpacity>
+								</View>
+							</Pressable>
+						</View>
+					</Pressable>
+				</Modal>
 			</View>
 			</SafeAreaView>
 

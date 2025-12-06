@@ -24,6 +24,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'valid_id_rejection_reason',
             'last_booking_date',
             'is_senior_or_pwd',
+            'name_last_updated',
         ]
         extra_kwargs = { 'password': { 'write_only': True } }
         

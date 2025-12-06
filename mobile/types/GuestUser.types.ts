@@ -18,6 +18,7 @@ export interface Guest {
     valid_id_rejection_reason: string | null;
     last_booking_date: string | null;
     is_senior_or_pwd: boolean;
+    name_last_updated: string | null;
 }
 
 export interface GuestResponse {

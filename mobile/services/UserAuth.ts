@@ -152,6 +152,13 @@ class UserAuthService {
 		});
 	}
 
+	async updateUserDetails(userId: number, firstName: string, lastName: string) {
+		return await httpClient.put(ApiRoutes.UPDATE_USER_DETAILS(userId), {
+			first_name: firstName,
+			last_name: lastName,
+		});
+	}
+
 	// Google OAuth Login / Register - Returns either auth response or verification required
 	async googleAuth(code: string): Promise<GoogleAuthResponse | GoogleAuthVerificationResponse> {
 		return await httpClient.post(ApiRoutes.GOOGLE_AUTH, {
