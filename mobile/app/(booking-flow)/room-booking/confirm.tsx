@@ -738,7 +738,7 @@ export default function ConfirmRoomBookingScreen() {
 								}) => (
 									<TextInput
 										value={
-											value > 0 ? value.toString() : ''
+											value && value > 0 ? value.toString() : ''
 										}
 										onChangeText={(text) => {
 											const numValue =
@@ -802,7 +802,7 @@ export default function ConfirmRoomBookingScreen() {
 											<StyledText
 												className={`font-montserrat ${value ? 'text-text-primary' : 'text-text-muted'}`}
 											>
-												{formatTimeDisplay(value)}
+												{formatTimeDisplay(value || '')}
 											</StyledText>
 											<Ionicons
 												name="time-outline"
@@ -889,7 +889,7 @@ export default function ConfirmRoomBookingScreen() {
 													'gcash'
 												);
 											}}
-											className={`border-2 rounded-xl p-4 ${
+											className={`border-2 rounded-xl my-2 p-4 ${
 												value === 'gcash'
 													? 'border-brand-primary bg-brand-accent'
 													: 'border-border-focus'
@@ -951,7 +951,7 @@ export default function ConfirmRoomBookingScreen() {
 												);
 												setShowPayMongoModal(true);
 											}}
-											className={`border-2 rounded-xl p-4 ${
+											className={`border-2 rounded-xl my-2 p-4 ${
 												value === 'paymongo'
 													? 'border-brand-primary bg-brand-accent'
 													: 'border-border-focus'
@@ -1000,7 +1000,7 @@ export default function ConfirmRoomBookingScreen() {
 													'on_site'
 												);
 											}}
-											className={`border-2 rounded-xl p-4 my-1 ${
+											className={`border-2 rounded-xl my-2 p-4 ${
 												value === 'on_site'
 													? 'border-brand-primary bg-brand-accent'
 													: 'border-border-focus'
@@ -1328,12 +1328,8 @@ export default function ConfirmRoomBookingScreen() {
 								: 'bg-neutral-300'
 						}`}
 					>
-						<StyledText className="text-center font-montserrat-bold text-lg text-text-inverse">
-							{selectedPaymentMethod === 'paymongo'
-								? 'Proceed to Payment'
-								: selectedPaymentMethod === 'on_site'
-									? 'Reserve & Pay at Hotel'
-									: 'Complete Booking'}
+						<StyledText variant='montserrat-bold' className="text-center text-lg text-text-inverse">
+							Complete Booking
 						</StyledText>
 					</TouchableOpacity>
 				</View>

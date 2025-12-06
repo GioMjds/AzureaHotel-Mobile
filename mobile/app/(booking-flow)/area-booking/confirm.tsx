@@ -662,7 +662,7 @@ export default function ConfirmAreaBookingScreen() {
 								}) => (
 									<TextInput
 										value={
-											value > 0 ? value.toString() : ''
+											value && value > 0 ? value.toString() : ''
 										}
 										onChangeText={(text) => {
 											const numValue =
@@ -1140,12 +1140,8 @@ export default function ConfirmAreaBookingScreen() {
 								: 'bg-neutral-300'
 						}`}
 					>
-						<StyledText className="text-center font-montserrat-bold text-lg text-text-inverse">
-							{selectedPaymentMethod === 'paymongo'
-								? 'Proceed to Payment'
-								: selectedPaymentMethod === 'on_site'
-									? 'Reserve & Pay at Venue'
-									: 'Complete Booking'}
+						<StyledText variant='montserrat-bold' className="text-center text-lg text-text-inverse">
+							Complete Booking
 						</StyledText>
 					</TouchableOpacity>
 				</View>
