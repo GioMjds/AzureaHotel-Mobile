@@ -1076,7 +1076,7 @@ def update_user_details(request, id):
             return Response({
                 'error': 'You are not authorized to update this profile'
             }, status=status.HTTP_403_FORBIDDEN)
-            
+
         user = CustomUsers.objects.get(id=id)
         
         first_name = request.data.get('first_name')
@@ -1088,8 +1088,8 @@ def update_user_details(request, id):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Check 90-day restriction for name changes
+        from datetime import date
         if user.name_last_updated:
-            from datetime import date
             days_since_update = (date.today() - user.name_last_updated).days
             if days_since_update < 90:
                 days_remaining = 90 - days_since_update

@@ -311,6 +311,7 @@ def edit_room(request, room_id):
             except (ValueError, TypeError):
                 filtered_data['max_guests'] = 2
         serializer = RoomSerializer(room, data=filtered_data, partial=True)
+        data = filtered_data  # Use filtered_data as data for consistency below
     else:
         data = request.data.copy()
         if 'room_price' in data and isinstance(data['room_price'], str):
@@ -333,8 +334,8 @@ def edit_room(request, room_id):
                 data['discount_percent'] = discount
             except (ValueError, TypeError):
                 data['discount_percent'] = 0
+        serializer = RoomSerializer(room, data=data, partial=True)
 
-    serializer = RoomSerializer(room, data=data, partial=True)
     existing_image_url = request.data.getlist('existing_images', [])
     new_images = request.FILES.getlist('images', [])
     
