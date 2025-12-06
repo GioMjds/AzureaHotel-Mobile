@@ -73,6 +73,7 @@
     },
     "extra": {
       "router": {},
+      "privacyPolicyUrl": "https://giomjds.github.io/AzureaHotel-Mobile/",
       "eas": {
         "projectId": "a84d9bf4-b0da-4a46-b59c-07952582952b"
       }
