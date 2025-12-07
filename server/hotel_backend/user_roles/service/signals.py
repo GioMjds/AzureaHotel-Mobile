@@ -109,6 +109,13 @@ def booking_status_changed(sender, instance, created, **kwargs):
 def booking_deleted(sender, instance, **kwargs):
     """Handle booking deletion"""
     try:
+        # Determine property name first
+        property_name = "Your booking"
+        if instance.room:
+            property_name = f"Room {instance.room.room_name}"
+        elif instance.area:
+            property_name = f"Area {instance.area.area_name}"
+        
         firebase_service.send_user_notification(
             user_id=instance.user.id,
             notification_data={
@@ -133,13 +140,6 @@ def booking_deleted(sender, instance, **kwargs):
                 is_available=True,
                 current_bookings=[]
             )
-            
-        # Notify admin dashboard
-        property_name = ""
-        if instance.room:
-            property_name = f"Room {instance.room.room_name}"
-        elif instance.area:
-            property_name = f"Area {instance.area.area_name}"
             
         firebase_service.broadcast_admin_notification(
             message=f"({property_name}) has been deleted",

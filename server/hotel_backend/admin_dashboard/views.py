@@ -368,6 +368,20 @@ def edit_room(request, room_id):
 @permission_classes([IsAuthenticated])
 def delete_room(request, room_id):
     try:
+        # Check if user is authenticated
+        if not request.user.is_authenticated:
+            return Response({
+                "error": "Authentication required",
+                "message": "Please log in to perform this action."
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Check if user is admin
+        if request.user.role != 'admin':
+            return Response({
+                "error": "Permission denied",
+                "message": "Only administrators can delete rooms."
+            }, status=status.HTTP_403_FORBIDDEN)
+        
         room = Rooms.objects.get(id=room_id)        
         active_bookings = Bookings.objects.filter(
             room=room,
@@ -380,14 +394,22 @@ def delete_room(request, room_id):
                 "message": "This room has active or reserved bookings and cannot be deleted."
             }, status=status.HTTP_400_BAD_REQUEST)
         
+        room_name = room.room_name
         room.delete()
+        
+        logger.info(f"Admin {request.user.email} deleted room: {room_name} (ID: {room_id})")
+
         return Response({
-            "message": "Room deleted successfully"
+            "message": f"Room '{room_name}' deleted successfully"
         }, status=status.HTTP_200_OK)
     except Rooms.DoesNotExist:
-        return Response({"error": "Room not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({
+            "error": "Room not found",
+            "message": f"Room with ID {room_id} does not exist."
+        }, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        logger.error(f"Error deleting room {room_id}: {str(e)}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Areas
 @api_view(['GET'])
@@ -569,8 +591,24 @@ def edit_area(request, area_id):
 @permission_classes([IsAuthenticated])
 def delete_area(request, area_id):
     try:
+        # Check if user is authenticated
+        if not request.user.is_authenticated:
+            return Response({
+                "error": "Authentication required",
+                "message": "Please log in to perform this action."
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Check if user is admin
+        if request.user.role != 'admin':
+            return Response({
+                "error": "Permission denied",
+                "message": "Only administrators can delete areas."
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Get the area
         area = Areas.objects.get(id=area_id)
         
+        # Check for active bookings
         active_bookings = Bookings.objects.filter(
             area=area,
             status__in=['reserved', 'confirmed', 'checked_in']
@@ -582,17 +620,21 @@ def delete_area(request, area_id):
                 "message": "This area has active or reserved bookings and cannot be deleted."
             }, status=status.HTTP_400_BAD_REQUEST)
         
+        area_name = area.area_name
         area.delete()
+
         return Response({
-            "message": "Area deleted successfully"
+            "message": f"Area '{area_name}' deleted successfully"
         }, status=status.HTTP_200_OK)
     except Areas.DoesNotExist:
         return Response({
-            "error": "Area not found"
+            "error": "Area not found",
+            "message": f"Area with ID {area_id} does not exist."
         }, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({
-            "error": str(e)
+            "error": "Failed to delete area",
+            "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # CRUD Amenities

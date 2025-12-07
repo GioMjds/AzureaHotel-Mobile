@@ -29,6 +29,7 @@ def decode_customer_jwt(token):
 
 class CookieJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
+        # First, check for Authorization header
         header = self.get_header(request)
         
         if header is not None:
@@ -36,16 +37,17 @@ class CookieJWTAuthentication(JWTAuthentication):
         else:
             raw_token = None
         
+        # If no Authorization header, check cookies
         if raw_token is None:
             raw_token = request.COOKIES.get('access_token')
             
         if raw_token is None:
             return None
-        # Validate token safely: if validation fails (expired/invalid), treat as anonymous
+            
+        # Validate token
         try:
             validated_token = self.get_validated_token(raw_token)
-        except Exception:
-            # Do not raise here; allow public endpoints to be accessed even if cookie token is invalid
+            return self.get_user(validated_token), validated_token
+        except Exception as e:
+            # Token is invalid/expired - return None to allow DRF to handle it
             return None
-
-        return self.get_user(validated_token), validated_token
