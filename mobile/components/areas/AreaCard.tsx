@@ -18,15 +18,12 @@ const AreaCard = ({ item }: AreaCardProps) => {
 	const { isOffline } = useNetwork();
 	const user = useAuthStore((s) => s.user);
 
-	// Check if user is eligible for PWD discount (verified AND is_senior_or_pwd)
 	const isEligibleForPwdDiscount = user?.is_verified === 'verified' && user?.is_senior_or_pwd === true;
 
-	// Calculate which discount is better: admin discount or PWD 20% (only for eligible users)
 	const getBestDiscount = () => {
 		const adminDiscountPrice = item.discounted_price_numeric;
 		const pwdDiscountPrice = item.senior_discounted_price;
-		
-		// If admin discount exists and is better (higher %) than PWD discount, show it to everyone
+
 		if (adminDiscountPrice && item.discount_percent > PWD_DISCOUNT_PERCENT) {
 			return {
 				finalPrice: adminDiscountPrice,

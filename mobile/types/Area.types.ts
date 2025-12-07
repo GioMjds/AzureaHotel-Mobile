@@ -24,6 +24,12 @@ export interface Area {
 
 export interface FetchAreaResponse {
     data: Area[];
+    pagination: {
+        total_pages: number;
+        current_page: number;
+        total_items: number;
+        page_size: number;
+    };
 }
 
 export interface GetAreaById {

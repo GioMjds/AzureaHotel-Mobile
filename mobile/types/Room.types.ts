@@ -28,6 +28,12 @@ export interface Room {
 
 export interface FetchRoomResponse {
     data: Room[];
+    pagination: {
+        total_pages: number;
+        current_page: number;
+        total_items: number;
+        page_size: number;
+    };
 }
 
 export interface GetRoomById {

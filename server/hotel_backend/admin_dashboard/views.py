@@ -13,9 +13,8 @@ from user_roles.models import CustomUsers, Notification
 from user_roles.serializers import CustomUserSerializer
 from user_roles.views import create_booking_notification
 from user_roles.service.firebase import firebase_service
-from firebase_admin import db as firebase_db
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models import Q, Sum, Count, Avg, Max
+from django.db.models import Q, Sum
 from datetime import datetime, date, timedelta
 from .email.booking import send_booking_confirmation_email, send_booking_rejection_email, send_checkout_e_receipt
 from channels.layers import get_channel_layer

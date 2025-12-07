@@ -355,3 +355,24 @@ export const validateCheckInTime = (timeString: string) => {
 		return false;
 	}
 };
+
+export const bookMessage = (
+	status: string, 
+	isBookingLocked: boolean, 
+	accountVerified: boolean
+) => {
+	// Check booking lock first (non-verified users with existing booking)
+	if (isBookingLocked && !accountVerified) {
+		return 'Verify your account for infinite bookings';
+	}
+
+	// Check status
+	switch (status) {
+		case 'available':
+			return 'Book This Area';
+		case 'maintenance':
+			return 'Under Maintenance';
+		default:
+			return 'Unavailable';
+	}
+};

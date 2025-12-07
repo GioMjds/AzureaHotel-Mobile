@@ -11,7 +11,7 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { area } from '@/services/Area';
 import { Area } from '@/types/Area.types';
-import { pesoFormatter } from '@/utils/formatters';
+import { pesoFormatter, bookMessage } from '@/utils/formatters';
 import { getCloudinaryUrl } from '@/utils/cloudinary';
 import PhotoGallery from '@/components/PhotoGallery';
 import useLastBookingCheck from '@/hooks/useLastBookingCheck';
@@ -119,7 +119,24 @@ export default function GetAreaScreen() {
 		};
 	};
 
+	const isUserVerified = user?.is_verified === 'verified';
+
 	const bestDiscount = getBestDiscount();
+
+	if (!areaData) {
+		return (
+			<SafeAreaView className="flex-1 bg-neutral-50">
+				<View className="flex-1 justify-center items-center px-6">
+					<Text className="text-red-500 font-montserrat-bold text-lg text-center">
+						Area not found
+					</Text>
+					<Text className="text-neutral-600 font-montserrat mt-2 text-center">
+						The area you are looking for does not exist
+					</Text>
+				</View>
+			</SafeAreaView>
+		);
+	}
 
 	return (
 		<View className="flex-1 bg-neutral-50">
@@ -362,9 +379,7 @@ export default function GetAreaScreen() {
 						disabled={areaData.status !== 'available' || isBookingLocked}
 					>
 						<Text className="text-white font-montserrat-bold text-center text-lg">
-							{areaData.status === 'available' && !isBookingLocked
-								? 'Book This Area'
-								: 'Verify your account for infinite bookings'}
+							{bookMessage(areaData.status, !isBookingLocked, isUserVerified)}
 						</Text>
 					</TouchableOpacity>
 

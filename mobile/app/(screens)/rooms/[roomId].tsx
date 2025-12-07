@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { room } from '@/services/Room';
-import { pesoFormatter } from '@/utils/formatters';
+import { bookMessage, pesoFormatter } from '@/utils/formatters';
 import { getCloudinaryUrl } from '@/utils/cloudinary';
 import { Room } from '@/types/Room.types';
 import { FontAwesome } from '@expo/vector-icons';
@@ -73,17 +73,14 @@ export default function GetRoomScreen() {
 
 	const PWD_DISCOUNT_PERCENT = 20;
 	
-	// Check if user is eligible for PWD discount (verified AND is_senior_or_pwd)
 	const isEligibleForPwdDiscount = user?.is_verified === 'verified' && user?.is_senior_or_pwd === true;
 
-	// Calculate which discount is better: admin discount or PWD 20% (only for eligible users)
 	const getBestDiscount = () => {
 		if (!roomData) return { finalPrice: 0, discountPercent: 0, hasDiscount: false, discountLabel: '' };
 		
 		const adminDiscountPrice = roomData.discounted_price_numeric;
 		const pwdDiscountPrice = roomData.senior_discounted_price;
 		
-		// If admin discount exists and is better (higher %) than PWD discount, show it to everyone
 		if (adminDiscountPrice && roomData.discount_percent > PWD_DISCOUNT_PERCENT) {
 			return {
 				finalPrice: adminDiscountPrice,
@@ -120,6 +117,8 @@ export default function GetRoomScreen() {
 			discountLabel: '',
 		};
 	};
+
+	const isUserVerified = user?.is_verified === 'verified';
 
 	const bestDiscount = getBestDiscount();
 
@@ -412,9 +411,7 @@ export default function GetRoomScreen() {
 						disabled={roomData.status !== 'available' || isBookingLocked}
 					>
 						<StyledText variant='montserrat-bold' className="text-white text-center text-lg">
-							{roomData.status === 'available' && !isBookingLocked
-								? 'Book This Room'
-								: 'Verify your account for infinite bookings'}
+							{bookMessage(roomData.status, !isBookingLocked, isUserVerified)}
 						</StyledText>
 					</TouchableOpacity>
 

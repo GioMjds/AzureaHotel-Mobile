@@ -21,6 +21,7 @@ from asgiref.sync import async_to_sync
 from io import BytesIO
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from datetime import date
 from .service.firebase import firebase_service
 import os
 import uuid
@@ -1086,10 +1087,8 @@ def update_user_details(request, id):
             return Response({
                 'error': 'First name and last name are required'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Check 90-day restriction for name changes
+
         if user.name_last_updated:
-            from datetime import date
             days_since_update = (date.today() - user.name_last_updated).days
             if days_since_update < 90:
                 days_remaining = 90 - days_since_update
@@ -1097,19 +1096,18 @@ def update_user_details(request, id):
                     'error': f'You can only change your name once every 90 days. Please try again in {days_remaining} days.',
                     'days_remaining': days_remaining
                 }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Update name fields
+
         user.first_name = first_name.strip()
         user.last_name = last_name.strip()
         user.name_last_updated = date.today()
-        user.save()
+        user.save()        
         
         serializer = CustomUserSerializer(user)
         return Response({
             'message': 'Name updated successfully',
             'data': serializer.data
         }, status=status.HTTP_200_OK)
-            
+
     except CustomUsers.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
@@ -1119,7 +1117,7 @@ def update_user_details(request, id):
 def get_guest_bookings(request):
     try:
         user = request.user
-        bookings = Bookings.objects.filter(user=user).exclude(status='cancelled').order_by('-created_at')
+        bookings = Bookings.objects.filter(user=user).order_by('-created_at')
 
         status_filter = request.query_params.get('status', '')
         

@@ -5,7 +5,6 @@ import {
 	TouchableOpacity,
 	View,
 	RefreshControl,
-	Linking,
 	Image,
 } from 'react-native';
 import { useState } from 'react';
@@ -77,7 +76,7 @@ export default function BookingDetailsScreen() {
 				type: 'success',
 				title: 'Cancellation Submitted',
 				message:
-					'Your cancellation request has been submitted successfully.',
+					'You cancelled your booking successfully.',
 				buttons: [
 					{
 						text: 'OK',
@@ -651,17 +650,14 @@ export default function BookingDetailsScreen() {
 										>
 											Payment Proof
 										</StyledText>
-										<TouchableOpacity>
+										<View>
 											<Image
 												source={{
 													uri: bookingData.payment_proof,
 												}}
 												className="w-full h-48 rounded-lg"
-												contentFit="cover"
-												transition={200}
-												accessibilityLabel="GCash payment proof"
 											/>
-										</TouchableOpacity>
+										</View>
 									</View>
 								)}
 							</View>

@@ -1,18 +1,49 @@
-import { ActivityIndicator, FlatList, Text, View } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { ActivityIndicator, FlatList, Text, View, TextInput, TouchableOpacity } from 'react-native';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { area } from '@/services/Area';
 import AreaCard from '@/components/areas/AreaCard';
 import { Area } from '@/types/Area.types';
 import { useNetwork } from '@/components/NetworkProvider';
 import { Ionicons } from '@expo/vector-icons';
+import { useState, useMemo } from 'react';
 
 export default function AreasScreen() {
 	const { isOffline } = useNetwork();
+	const [searchQuery, setSearchQuery] = useState('');
 	
-	const { data, isLoading, error } = useQuery({
+	const { 
+		data, 
+		isLoading, 
+		error,
+		fetchNextPage,
+		hasNextPage,
+		isFetchingNextPage
+	} = useInfiniteQuery({
 		queryKey: ['areas'],
-		queryFn: area.getAreas
+		queryFn: ({ pageParam = 1 }) => area.getAreas(pageParam),
+		getNextPageParam: (lastPage) => {
+			if (lastPage.pagination.current_page < lastPage.pagination.total_pages) {
+				return lastPage.pagination.current_page + 1;
+			}
+			return undefined;
+		},
+		initialPageParam: 1,
 	});
+
+	const allAreas = useMemo(() => {
+		if (!data?.pages) return [];
+		return data.pages.flatMap(page => page.data);
+	}, [data]);
+
+	const filteredAreas = useMemo(() => {
+		if (!searchQuery.trim()) return allAreas;
+		
+		const query = searchQuery.toLowerCase();
+		return allAreas.filter((area: Area) => 
+			area.area_name.toLowerCase().includes(query) ||
+			area.description.toLowerCase().includes(query)
+		);
+	}, [allAreas, searchQuery]);
 
 	if (isLoading) {
 		return (
@@ -54,17 +85,66 @@ export default function AreasScreen() {
 
 	return (
 		<View className="flex-1 bg-background">
+			{/* Search Bar */}
+			<View className="px-4 pt-4 pb-2 bg-background-elevated border-b border-border-subtle">
+				<View className="relative">
+					<TextInput
+						className="bg-input-background border border-input-border rounded-full px-12 py-3 font-montserrat text-text-primary"
+						placeholder="Search areas..."
+						placeholderTextColor="#E9B3FB"
+						value={searchQuery}
+						onChangeText={setSearchQuery}
+					/>
+					<Ionicons 
+						name="search" 
+						size={20} 
+						color="#6F00FF" 
+						style={{ position: 'absolute', left: 16, top: 12 }}
+					/>
+					{searchQuery.length > 0 && (
+						<TouchableOpacity 
+							onPress={() => setSearchQuery('')}
+							style={{ position: 'absolute', right: 16, top: 12 }}
+						>
+							<Ionicons name="close-circle" size={20} color="#6F00FF" />
+						</TouchableOpacity>
+					)}
+				</View>
+				{searchQuery.length > 0 && (
+					<Text className="text-text-muted font-raleway text-xs mt-2">
+						{filteredAreas.length} area{filteredAreas.length !== 1 ? 's' : ''} found
+					</Text>
+				)}
+			</View>
+
 			{/* Areas List */}
 			<FlatList
-				data={data?.data as Area[]}
+				data={filteredAreas}
 				renderItem={({ item }) => <AreaCard item={item} />}
 				keyExtractor={(item) => item.id.toString()}
 				contentContainerStyle={{ paddingTop: 16, paddingBottom: 120 }}
 				showsVerticalScrollIndicator={false}
+				onEndReached={() => {
+					if (hasNextPage && !isFetchingNextPage && !searchQuery) {
+						fetchNextPage();
+					}
+				}}
+				onEndReachedThreshold={0.5}
+				ListFooterComponent={() => {
+					if (isFetchingNextPage) {
+						return (
+							<View className="py-4">
+								<ActivityIndicator size="small" color="#8b5cf6" />
+							</View>
+						);
+					}
+					return null;
+				}}
 				ListEmptyComponent={
 					<View className="flex-1 justify-center items-center mt-10">
-						<Text className="text-neutral-600 font-montserrat text-center">
-							No areas available.
+						<Ionicons name="business-outline" size={48} color="#E9B3FB" />
+						<Text className="text-neutral-600 font-montserrat text-center mt-4">
+							{searchQuery ? 'No areas match your search' : 'No areas available.'}
 						</Text>
 					</View>
 				}
