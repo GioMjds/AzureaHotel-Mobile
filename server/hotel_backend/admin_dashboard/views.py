@@ -492,18 +492,57 @@ def edit_area(request, area_id):
         area = Areas.objects.get(id=area_id)
     except Areas.DoesNotExist:
         return Response({"error": "Area not found"}, status=status.HTTP_404_NOT_FOUND)
-    data = request.data.copy()
-
-    if 'discount_percent' in data:
-        try:
-            discount = int(data['discount_percent'])
-            if discount < 0 or discount > 99:
-                return Response({"error": {"discount_percent": "Discount must be between 0 and 99."}}, status=status.HTTP_400_BAD_REQUEST)
-            data['discount_percent'] = discount
-        except (ValueError, TypeError):
-            data['discount_percent'] = 0
     
-    serializer = AreaSerializer(area, data=data, partial=True)
+    # Check if area has active bookings
+    has_active_bookings = Bookings.objects.filter(
+        area=area,
+        status__in=['reserved', 'confirmed', 'checked_in']
+    ).exists()
+    
+    if has_active_bookings:
+        # Only allow certain fields to be edited when there are active bookings
+        allowed_fields = ['description', 'status', 'discount_percent']
+        filtered_data = {k: v for k, v in request.data.items() if k in allowed_fields}
+        
+        # Validate discount_percent
+        if 'discount_percent' in filtered_data:
+            try:
+                discount = int(filtered_data['discount_percent'])
+                if discount < 0 or discount > 99:
+                    return Response({"error": {"discount_percent": "Discount must be between 0 and 99."}}, status=status.HTTP_400_BAD_REQUEST)
+                filtered_data['discount_percent'] = discount
+            except (ValueError, TypeError):
+                filtered_data['discount_percent'] = 0
+        
+        # Prevent status change to maintenance when there are active bookings
+        if 'status' in filtered_data and filtered_data['status'] == 'maintenance':
+            return Response({
+                "error": "Cannot change status to maintenance when there are active or reserved bookings",
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = AreaSerializer(area, data=filtered_data, partial=True)
+        data = filtered_data
+    else:
+        data = request.data.copy()
+        
+        if 'price_per_hour' in data and isinstance(data['price_per_hour'], str):
+            try:
+                price_str = data['price_per_hour'].replace('₱', '').replace(',', '')
+                data['price_per_hour'] = float(price_str)
+            except (ValueError, TypeError):
+                pass
+        
+        if 'discount_percent' in data:
+            try:
+                discount = int(data['discount_percent'])
+                if discount < 0 or discount > 99:
+                    return Response({"error": {"discount_percent": "Discount must be between 0 and 99."}}, status=status.HTTP_400_BAD_REQUEST)
+                data['discount_percent'] = discount
+            except (ValueError, TypeError):
+                data['discount_percent'] = 0
+        
+        serializer = AreaSerializer(area, data=data, partial=True)
+    
     existing_image_urls = request.data.getlist('existing_images', [])
     new_images = request.FILES.getlist('images', [])
     

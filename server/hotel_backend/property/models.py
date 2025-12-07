@@ -48,6 +48,18 @@ class Rooms(models.Model):
     
     class Meta:
         db_table = 'rooms'
+    
+    def has_active_bookings(self):
+        """Check if room has any active bookings (reserved, confirmed, or checked_in)"""
+        return self.bookings.filter(
+            status__in=['reserved', 'confirmed', 'checked_in']
+        ).exists()
+    
+    def get_active_bookings_count(self):
+        """Get count of active bookings for this room"""
+        return self.bookings.filter(
+            status__in=['reserved', 'confirmed', 'checked_in']
+        ).count()
 
 class RoomImages(models.Model):
     room = models.ForeignKey(Rooms, related_name='images', on_delete=models.CASCADE)
@@ -75,6 +87,18 @@ class Areas(models.Model):
     
     class Meta:
         db_table = 'areas'
+    
+    def has_active_bookings(self):
+        """Check if area has any active bookings (reserved, confirmed, or checked_in)"""
+        return self.area_bookings.filter(
+            status__in=['reserved', 'confirmed', 'checked_in']
+        ).exists()
+    
+    def get_active_bookings_count(self):
+        """Get count of active bookings for this area"""
+        return self.area_bookings.filter(
+            status__in=['reserved', 'confirmed', 'checked_in']
+        ).count()
 
 class AreaImages(models.Model):
     area = models.ForeignKey(Areas, related_name='images', on_delete=models.CASCADE)

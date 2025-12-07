@@ -34,6 +34,7 @@ class RoomSerializer(serializers.ModelSerializer):
     images = RoomImagesSerializer(many=True, read_only=True)
     senior_discounted_price = serializers.SerializerMethodField()
     reviews = serializers.SerializerMethodField()
+    has_active_bookings = serializers.SerializerMethodField()
     
     class Meta:
         model = Rooms
@@ -53,6 +54,7 @@ class RoomSerializer(serializers.ModelSerializer):
             'amenities',
             'average_rating',
             'reviews',
+            'has_active_bookings',
         ]
         
     def get_reviews(self, obj):
@@ -104,6 +106,10 @@ class RoomSerializer(serializers.ModelSerializer):
             return discounted  # Return numeric value instead of formatted string
         except Exception:
             return None
+    
+    def get_has_active_bookings(self, obj):
+        """Check if room has active bookings (reserved, confirmed, or checked_in)"""
+        return obj.has_active_bookings()
 
 class AreaSerializer(serializers.ModelSerializer):
     average_rating = serializers.SerializerMethodField()
@@ -111,6 +117,7 @@ class AreaSerializer(serializers.ModelSerializer):
     images = AreaImagesSerializer(many=True, read_only=True)
     senior_discounted_price = serializers.SerializerMethodField()
     reviews = serializers.SerializerMethodField()
+    has_active_bookings = serializers.SerializerMethodField()
     
     class Meta:
         model = Areas
@@ -127,6 +134,7 @@ class AreaSerializer(serializers.ModelSerializer):
             'senior_discounted_price',
             'average_rating',
             'reviews',
+            'has_active_bookings',
         ]
         
     def get_reviews(self, obj):
@@ -178,3 +186,7 @@ class AreaSerializer(serializers.ModelSerializer):
             return discounted  # Return numeric value instead of formatted string
         except Exception:
             return None
+    
+    def get_has_active_bookings(self, obj):
+        """Check if area has active bookings (reserved, confirmed, or checked_in)"""
+        return obj.has_active_bookings()
