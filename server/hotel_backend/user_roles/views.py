@@ -894,6 +894,7 @@ def user_login(request):
             'username': auth_user.username,
             'first_name': auth_user.first_name,
             'last_name': auth_user.last_name,
+            'role': auth_user.role,
             'profile_image': auth_user.profile_image.url if auth_user.profile_image else "",
             'is_verified': user.is_verified,
             'last_booking_date': user.last_booking_date,
@@ -910,7 +911,7 @@ def user_login(request):
                         'email': auth_user.email,
                         'username': auth_user.username,
                         'is_verified': user.is_verified,
-                        'role': 'guest',
+                        'role': auth_user.role,
                         'django_user_id': auth_user.id
                     }
                 )
@@ -954,12 +955,74 @@ def admin_login(request):
     try:
         email = request.data.get('email')
         password = request.data.get('password')
-        
+
         if not email or not password:
             return Response({'error': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        # Allow env-based admin credentials to log in even if the DB admin record is missing
+        admin_email = os.getenv('ADMIN_EMAIL')
+        admin_password = os.getenv('ADMIN_PASS')
+        admin_name = os.getenv('ADMIN_USER_NAME', 'Admin User')
+
+        if admin_email and admin_password and email == admin_email and password == admin_password:
+            name_parts = admin_name.strip('"').split(' ', 1)
+            first_name = name_parts[0] if name_parts else 'Admin'
+            last_name = name_parts[1] if len(name_parts) > 1 else 'User'
+
+            auth_user, _ = CustomUsers.objects.get_or_create(
+                email=admin_email,
+                defaults={
+                    'username': admin_email.split('@')[0],
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'role': 'admin',
+                    'is_staff': True,
+                    'is_superuser': True,
+                    'is_verified': True,
+                }
+            )
+
+            # Ensure admin flags and password stay in sync with env values
+            auth_user.role = 'admin'
+            auth_user.is_staff = True
+            auth_user.is_superuser = True
+            auth_user.is_verified = True
+            auth_user.set_password(admin_password)
+            auth_user.save()
+
+            token = RefreshToken.for_user(auth_user)
+
+            response = Response({
+                'message': f"{auth_user.first_name} {auth_user.last_name} successfully logged in.",
+                'user': {
+                    'id': auth_user.id,
+                    'email': auth_user.email,
+                    'role': auth_user.role,
+                },
+                'access_token': str(token.access_token),
+                'refresh_token': str(token),
+            }, status=status.HTTP_200_OK)
+
+            cookie_settings = get_cookie_settings()
+
+            response.set_cookie(
+                key="access_token",
+                value=str(token.access_token),
+                max_age=timedelta(days=30),
+                **cookie_settings
+            )
+
+            response.set_cookie(
+                key="refresh_token",
+                value=str(token),
+                max_age=timedelta(weeks=54),
+                **cookie_settings
+            )
+
+            return response
+
         user = CustomUsers.objects.filter(email=email, role='admin').first()
-        
+
         if user is None:
             return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
         
@@ -967,12 +1030,12 @@ def admin_login(request):
             return Response({'error': 'Your password is incorrect.'}, status=status.HTTP_401_UNAUTHORIZED)
 
         auth_user = authenticate(request, username=email, password=password)
-        
+
         if auth_user is None:
             return Response({'error': 'Your password is incorrect.'}, status=status.HTTP_401_UNAUTHORIZED)
-        
+
         token = RefreshToken.for_user(auth_user)
-        
+
         response = Response({
             'message': f"{auth_user.first_name} {auth_user.last_name} successfully logged in.",
             'user': {

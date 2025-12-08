@@ -3,8 +3,7 @@ from django.core.validators import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view
 from property.models import Areas, Rooms, Amenities, RoomImages, AreaImages
 from property.serializers import AreaSerializer, RoomSerializer, AmenitySerializer
 from booking.models import Bookings, Transactions
@@ -19,12 +18,25 @@ from datetime import datetime, date, timedelta
 from .email.booking import send_booking_confirmation_email, send_booking_rejection_email, send_checkout_e_receipt
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from django.db.models import Sum, Count, Avg
 import traceback
 import io
 import logging
 
 logger = logging.getLogger(__name__)
-from django.db.models import Sum, Count, Avg
+
+
+def _ensure_authenticated(request):
+    """Return a 401 response when request.user is anonymous."""
+    if not getattr(request, 'user', None) or not request.user.is_authenticated:
+        return Response(
+            {
+                'error': 'Authentication required',
+                'message': 'Please log in to perform this action.'
+            },
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    return None
 
 def convert_tempfile_to_inmemory(file):
     if hasattr(file, 'temporary_file_path'):
@@ -59,7 +71,6 @@ def notify_user_for_verification(user, notification_type, message):
         return
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def dashboard_stats(request):
     try:
         month = int(request.query_params.get('month', timezone.now().month))
@@ -176,7 +187,6 @@ def dashboard_stats(request):
 
 # Rooms
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def fetch_rooms(request):
     try:
         rooms = Rooms.objects.all().order_by('id')
@@ -209,7 +219,6 @@ def fetch_rooms(request):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def add_new_room(request):
     try:
         data = request.data.copy()
@@ -263,7 +272,6 @@ def add_new_room(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def show_room_details(request, room_id):
     try:
         room = Rooms.objects.get(id=room_id)
@@ -277,7 +285,6 @@ def show_room_details(request, room_id):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def edit_room(request, room_id):
     try:
         room = Rooms.objects.get(id=room_id)
@@ -365,24 +372,14 @@ def edit_room(request, room_id):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
 def delete_room(request, room_id):
+    auth_error = _ensure_authenticated(request)
+    if auth_error:
+        return auth_error
+    
     try:
-        # Check if user is authenticated
-        if not request.user.is_authenticated:
-            return Response({
-                "error": "Authentication required",
-                "message": "Please log in to perform this action."
-            }, status=status.HTTP_401_UNAUTHORIZED)
+        room = Rooms.objects.get(id=room_id)
         
-        # Check if user is admin
-        if request.user.role != 'admin':
-            return Response({
-                "error": "Permission denied",
-                "message": "Only administrators can delete rooms."
-            }, status=status.HTTP_403_FORBIDDEN)
-        
-        room = Rooms.objects.get(id=room_id)        
         active_bookings = Bookings.objects.filter(
             room=room,
             status__in=['reserved', 'confirmed', 'checked_in']
@@ -396,24 +393,20 @@ def delete_room(request, room_id):
         
         room_name = room.room_name
         room.delete()
-        
-        logger.info(f"Admin {request.user.email} deleted room: {room_name} (ID: {room_id})")
 
         return Response({
             "message": f"Room '{room_name}' deleted successfully"
         }, status=status.HTTP_200_OK)
-    except Rooms.DoesNotExist:
+    except Rooms.DoesNotExist as e:
         return Response({
             "error": "Room not found",
             "message": f"Room with ID {room_id} does not exist."
         }, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        logger.error(f"Error deleting room {room_id}: {str(e)}")
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Areas
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def fetch_areas(request):
     try:
         areas = Areas.objects.all().order_by('id')
@@ -446,7 +439,6 @@ def fetch_areas(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def add_new_area(request):
     try:
         data = request.data.copy()
@@ -489,7 +481,6 @@ def add_new_area(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def show_area_details(request, area_id):
     try:
         area = Areas.objects.get(id=area_id)
@@ -507,7 +498,6 @@ def show_area_details(request, area_id):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def edit_area(request, area_id):
     try:
         area = Areas.objects.get(id=area_id)
@@ -588,7 +578,6 @@ def edit_area(request, area_id):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
 def delete_area(request, area_id):
     try:
         # Check if user is authenticated
@@ -639,7 +628,6 @@ def delete_area(request, area_id):
 
 # CRUD Amenities
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def fetch_amenities(request):
     try:
         amenities = Amenities.objects.all().order_by('id')
@@ -666,7 +654,6 @@ def fetch_amenities(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def create_amenity(request):
     try:
         serializer = AmenitySerializer(data=request.data)
@@ -689,7 +676,6 @@ def create_amenity(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def retreive_amenity(request, pk):
     try:
         amenity = Amenities.objects.get(pk=pk)
@@ -707,7 +693,6 @@ def retreive_amenity(request, pk):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def update_amenity(request, pk):
     try:
         amenity = Amenities.objects.get(pk=pk)
@@ -736,7 +721,6 @@ def update_amenity(request, pk):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
 def delete_amenity(request, pk):
     try:
         amenity = Amenities.objects.get(pk=pk)
@@ -754,7 +738,6 @@ def delete_amenity(request, pk):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def admin_bookings(request):
     try:
         exclude_statuses = [
@@ -799,7 +782,6 @@ def admin_bookings(request):
         return Response({"error": str(e), "traceback": traceback.format_exc()}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def booking_detail(request, booking_id):
     try:
         booking = Bookings.objects.get(id=booking_id)
@@ -818,7 +800,6 @@ def booking_detail(request, booking_id):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def update_booking_status(request, booking_id):
     try:
         booking = Bookings.objects.get(id=booking_id)
@@ -962,7 +943,6 @@ def update_booking_status(request, booking_id):
     }, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def record_payment(request, booking_id):
     try:
         booking = Bookings.objects.get(id=booking_id)
@@ -1001,7 +981,6 @@ def record_payment(request, booking_id):
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def booking_status_counts(request):
     try:
         month = int(request.query_params.get('month'))
@@ -1041,7 +1020,6 @@ def booking_status_counts(request):
 
 # CRUD Users
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def fetch_all_users(request):
     try:
         users = CustomUsers.objects.filter(role="guest", is_archived=False)
@@ -1071,7 +1049,6 @@ def fetch_all_users(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def show_user_details(request, user_id):
     try:
         user = CustomUsers.objects.get(id=user_id, is_staff=False, is_superuser=False)
@@ -1085,7 +1062,6 @@ def show_user_details(request, user_id):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def manage_user(request, user_id):
     if request.method == 'PUT':
         try:
@@ -1183,7 +1159,6 @@ def manage_user(request, user_id):
     return Response({'error': 'Invalid request method'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def archive_user(request, user_id):
     try:
         users = CustomUsers.objects.get(id=user_id)
@@ -1196,7 +1171,6 @@ def archive_user(request, user_id):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def approve_valid_id(request, user_id):
     try:
         user = CustomUsers.objects.get(id=user_id)
@@ -1240,7 +1214,6 @@ def approve_valid_id(request, user_id):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def reject_valid_id(request, user_id):
     try:
         user = CustomUsers.objects.get(id=user_id)
@@ -1271,7 +1244,6 @@ def reject_valid_id(request, user_id):
 
 # Archive Users
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def fetch_archived_users(request):
     try:
         users = CustomUsers.objects.filter(role='guest', is_archived=True)
@@ -1300,7 +1272,6 @@ def fetch_archived_users(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def restore_user(request, user_id):
     try:
         user = CustomUsers.objects.get(id=user_id)
@@ -1315,7 +1286,6 @@ def restore_user(request, user_id):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def daily_revenue(request):
     try:
         month = int(request.query_params.get('month', timezone.now().month))
@@ -1354,7 +1324,7 @@ def daily_revenue(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+
 def daily_bookings(request):
     try:
         month = int(request.query_params.get('month', timezone.now().month))
@@ -1392,7 +1362,7 @@ def daily_bookings(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+
 def daily_occupancy(request):
     try:
         month = int(request.query_params.get('month', timezone.now().month))
@@ -1440,7 +1410,7 @@ def daily_occupancy(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+
 def daily_checkins_checkouts(request):
     try:
         month = int(request.query_params.get('month', timezone.now().month))
@@ -1485,7 +1455,7 @@ def daily_checkins_checkouts(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+
 def daily_cancellations(request):
     try:
         month = int(request.query_params.get('month', timezone.now().month))
@@ -1522,7 +1492,7 @@ def daily_cancellations(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+
 def area_revenue(request):
     try:
         month = int(request.query_params.get('month', timezone.now().month))
@@ -1564,7 +1534,7 @@ def area_revenue(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+
 def area_bookings(request):
     try:
         month = int(request.query_params.get('month', timezone.now().month))
@@ -1605,7 +1575,6 @@ def area_bookings(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def room_revenue(request):
     try:
         month = int(request.query_params.get('month', timezone.now().month))
@@ -1647,7 +1616,6 @@ def room_revenue(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def room_bookings(request):
     try:
         month = int(request.query_params.get('month', timezone.now().month))
@@ -1688,7 +1656,6 @@ def room_bookings(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def daily_no_shows_rejected(request):
     try:
         month = int(request.query_params.get('month', timezone.now().month))
@@ -1739,7 +1706,6 @@ def daily_no_shows_rejected(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def monthly_report(request):
     try:
         month = int(request.query_params.get('month', timezone.now().month))
