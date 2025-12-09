@@ -28,6 +28,9 @@ RUN pip install --no-cache-dir -r ./requirements.txt
 # Copy project
 COPY . /app
 
+# Change to Django project directory
+WORKDIR /app/hotel_backend
+
 # Expose ASGI port (Render uses $PORT env var)
 EXPOSE 8000
 

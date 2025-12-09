@@ -192,7 +192,7 @@ def fetch_rooms(request):
         rooms = Rooms.objects.all().order_by('id')
         
         page = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 9)
+        page_size = request.query_params.get('page_size', 10)
         paginator = Paginator(rooms, page_size)
         
         try:
@@ -412,7 +412,7 @@ def fetch_areas(request):
         areas = Areas.objects.all().order_by('id')
         
         page = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 9)
+        page_size = request.query_params.get('page_size', 10)
         paginator = Paginator(areas, page_size)
 
         try:
@@ -631,10 +631,11 @@ def delete_area(request, area_id):
 def fetch_amenities(request):
     try:
         amenities = Amenities.objects.all().order_by('id')
-        page = request.query_params.get('page')
-        page_size = request.query_params.get('page_size')
-        
+
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('page_size', 20)
         paginator = Paginator(amenities, page_size)
+
         try:
             amenities_page = paginator.page(page)
         except PageNotAnInteger:
@@ -757,7 +758,7 @@ def admin_bookings(request):
             bookings = bookings.exclude(status__in=exclude_statuses)
         
         page = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 9)
+        page_size = request.query_params.get('page_size', 10)
         paginator = Paginator(bookings, page_size)
         
         try:
@@ -1024,8 +1025,8 @@ def fetch_all_users(request):
     try:
         users = CustomUsers.objects.filter(role="guest", is_archived=False)
         
-        page = request.query_params.get('page')
-        page_size = request.query_params.get('page_size')
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('page_size', 10)
         paginator = Paginator(users, page_size)
         
         try:
@@ -1247,8 +1248,8 @@ def reject_valid_id(request, user_id):
 def fetch_archived_users(request):
     try:
         users = CustomUsers.objects.filter(role='guest', is_archived=True)
-        page = request.query_params.get('page')
-        page_size = request.query_params.get('page_size')
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('page_size', 10)
         paginator = Paginator(users, page_size)
         
         try:
@@ -1362,7 +1363,6 @@ def daily_bookings(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-
 def daily_occupancy(request):
     try:
         month = int(request.query_params.get('month', timezone.now().month))

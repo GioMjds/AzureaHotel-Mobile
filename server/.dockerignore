@@ -3,21 +3,52 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
+*.log
 
 # Env files and local settings (won't be copied into image)
 .env
 *.env
+.env.*
 
 # Git
 .git
+.gitignore
 
 # Local virtualenv
 venv/
 env/
+ENV/
+env.bak/
+venv.bak/
 
 # Editor/IDE
 .vscode/
+.idea/
 *.swp
+*.swo
+*~
 
 # Node modules (if present)
 node_modules/
+
+# Database files (if any local DBs)
+*.db
+*.sqlite
+*.sqlite3
+
+# Static files (will be generated)
+staticfiles/
+static/
+media/
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+
+# Documentation
+docs/
+*.md
+README*
