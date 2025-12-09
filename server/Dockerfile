@@ -14,7 +14,7 @@ RUN apt-get update \
        default-libmysqlclient-dev \
        libssl-dev \
        libffi-dev \
-       netcat \
+       netcat-openbsd \
        curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -28,8 +28,9 @@ RUN pip install --no-cache-dir -r ./requirements.txt
 # Copy project
 COPY . /app
 
-# Expose ASGI port
+# Expose ASGI port (Render uses $PORT env var)
 EXPOSE 8000
 
 # Default command: run migrations, create admin user, then start Daphne ASGI server
-CMD ["bash", "-lc", "python manage.py migrate --noinput && python manage.py create_admin && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 hotel_backend.asgi:application"]
+# Uses PORT env var for Render compatibility, defaults to 8000 for local Docker
+CMD ["bash", "-lc", "python manage.py migrate --noinput && python manage.py create_admin && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p ${PORT:-8000} hotel_backend.asgi:application"]
