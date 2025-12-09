@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'cloudinary_storage',
     'cloudinary',
+    'background_task',
     'booking',
     'property',
     'user_roles',
@@ -340,5 +341,17 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        'admin_dashboard': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
+
+# Django Background Tasks settings
+# Maximum number of times a task can fail before giving up
+BACKGROUND_TASK_RUN_ASYNC = True
+MAX_ATTEMPTS = 3
+# How many tasks to run at a time (per process_tasks call)
+BACKGROUND_TASK_ASYNC_THREADS = 2

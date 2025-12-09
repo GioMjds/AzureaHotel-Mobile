@@ -16,6 +16,11 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Q, Sum
 from datetime import datetime, date, timedelta
 from .email.booking import send_booking_confirmation_email, send_booking_rejection_email, send_checkout_e_receipt
+from .tasks import (
+    send_booking_confirmation_email_task,
+    send_booking_rejection_email_task,
+    send_checkout_e_receipt_task
+)
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.db.models import Sum, Count, Avg
@@ -642,6 +647,7 @@ def fetch_amenities(request):
             amenities_page = paginator.page(1)
         except EmptyPage:
             amenities_page = paginator.page(paginator.num_pages)
+
         serializer = AmenitySerializer(amenities_page, many=True)
         return Response({
             "data": serializer.data,
@@ -884,7 +890,8 @@ def update_booking_status(request, booking_id):
             if status_value == 'reserved':
                 notification_message = f"Your booking for {property_name} has been reserved."
                 user_email = booking.user.email
-                send_booking_confirmation_email(user_email, serializer.data)
+                # Use background task for email sending to prevent timeout
+                send_booking_confirmation_email_task(user_email, serializer.data)
             elif status_value == 'confirmed':
                 notification_message = f"Your booking for {property_name} has been confirmed."
             elif status_value == 'checked_in':
@@ -892,12 +899,14 @@ def update_booking_status(request, booking_id):
             elif status_value == 'checked_out':
                 notification_message = f"You've been checked out from {property_name}."
                 user_email = booking.user.email
-                send_checkout_e_receipt(user_email, serializer.data)
+                # Use background task for email sending to prevent timeout
+                send_checkout_e_receipt_task(user_email, serializer.data)
             elif status_value == 'rejected':
                 reason = booking.cancellation_reason or "No reason provided"
                 notification_message = f"Your booking for {property_name} was rejected. Reason: {reason}"
                 user_email = booking.user.email
-                send_booking_rejection_email(user_email, serializer.data)
+                # Use background task for email sending to prevent timeout
+                send_booking_rejection_email_task(user_email, serializer.data)
             elif status_value == 'no_show':
                 notification_message = f"You were marked as no-show for your booking at {property_name}."
             elif status_value == 'cancelled':
@@ -936,7 +945,8 @@ def update_booking_status(request, booking_id):
             }
         )
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # Log the error but don't fail the request - WebSocket notification is not critical
+        logger.warning(f"Failed to send WebSocket notification: {str(e)}")
     
     return Response({
         "message": f"Booking status updated to {status_value}",

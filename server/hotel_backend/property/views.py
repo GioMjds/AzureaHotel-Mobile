@@ -9,7 +9,7 @@ from .serializers import RoomSerializer, AreaSerializer, AmenitySerializer
 @api_view(['GET'])
 def fetch_rooms(request):
     try:
-        rooms = Rooms.objects.all().order_by('id')
+        rooms = Rooms.objects.filter(status='available').order_by('id')
 
         page = request.query_params.get('page', 1)
         page_size = request.query_params.get('page_size', 6)
@@ -60,7 +60,7 @@ def fetch_amenities(request):
 @api_view(['GET'])
 def fetch_areas(request):
     try:
-        areas = Areas.objects.all().order_by('id')
+        areas = Areas.objects.filter(status='available').order_by('id')
 
         page = request.query_params.get('page', 1)
         page_size = request.query_params.get('page_size', 6)
