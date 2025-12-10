@@ -48,16 +48,79 @@ class FirebaseService:
         except ValueError:
             return False
 
+    def create_firebase_user(self, user_id: int, email: str, display_name: str = None) -> dict:
+        """Create or update a Firebase user in Authentication
+        This ensures users appear in Firebase Console > Authentication > Users
+        """
+        try:
+            if not self.is_available():
+                raise Exception("Firebase is not initialized")
+            
+            uid = str(user_id)
+            
+            try:
+                # Try to get existing user
+                user = auth.get_user(uid)
+                logger.info(f"Firebase user {uid} already exists")
+                
+                # Update email if changed
+                if user.email != email:
+                    auth.update_user(uid, email=email, display_name=display_name)
+                    logger.info(f"Updated Firebase user {uid} email to {email}")
+                
+                return {'uid': uid, 'email': email, 'created': False}
+                
+            except auth.UserNotFoundError:
+                # Create new Firebase user
+                user = auth.create_user(
+                    uid=uid,
+                    email=email,
+                    display_name=display_name or email.split('@')[0],
+                    email_verified=True  # Since they verified OTP with us
+                )
+                logger.info(f"Created Firebase user {uid} with email {email}")
+                return {'uid': uid, 'email': email, 'created': True}
+                
+        except Exception as e:
+            logger.error(f"Failed to create/update Firebase user: {str(e)}")
+            raise
+    
     def create_custom_token(self, user_id: str, additional_claims: dict = None) -> str:
         """Create a Firebase custom token for the given user"""
         try:
             if not self.is_available():
-                raise Exception("Firebase not initialized")
+                raise Exception("Firebase is not initialized")
 
             claims = additional_claims or {}
             custom_token = auth.create_custom_token(user_id, claims)
-            return custom_token.decode('utf-8')
+            token_str = custom_token.decode('utf-8')
+            
+            # DEBUG: Log what we're generating
+            logger.info(f"🔥 Generated Firebase custom token for user {user_id}")
+            logger.info(f"   Token length: {len(token_str)} chars")
+            logger.info(f"   Claims: {claims}")
+            
+            # Decode to verify what we're sending
+            import jwt
+            import json
+            
+            parts = token_str.split('.')
+            if len(parts) == 3:
+                # Decode header
+                header = json.loads(jwt.utils.base64url_decode(parts[0]))
+                logger.info(f"   Token Header: {header}")
+                
+                # Decode payload
+                payload = json.loads(jwt.utils.base64url_decode(parts[1]))
+                logger.info(f"   Token Payload:")
+                logger.info(f"      UID: {payload.get('uid')}")
+                logger.info(f"      Issuer: {payload.get('iss')}")
+                logger.info(f"      Audience: {payload.get('aud')}")
+                logger.info(f"      Subject: {payload.get('sub')}")
+                
+            return token_str
         except Exception as e:
+            logger.error(f"Failed to create custom token: {str(e)}")
             raise
 
     def send_booking_update(self, booking_id: int, user_id: int, status: str, additional_data: dict = None):

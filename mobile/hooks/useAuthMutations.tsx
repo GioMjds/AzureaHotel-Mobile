@@ -36,6 +36,10 @@ export function useAuthMutations() {
         },
         onSuccess: async (data) => {
             if (data.user && data.access_token && data.refresh_token) {
+                logger.info('📱 Login successful, processing response...');
+                logger.info(`   User: ${data.user.email} (ID: ${data.user.id})`);
+                logger.info(`   Has firebase_token: ${!!data.firebase_token}`);
+                
                 await storeTokens(data.access_token, data.refresh_token);
                 await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(data.user));
                 setUser(data.user);
@@ -43,8 +47,10 @@ export function useAuthMutations() {
 
                 // Authenticate with Firebase using token from login response
                 if (data.firebase_token) {
+                    logger.info('🔥 Login response contains firebase_token, using direct authentication');
                     await FirebaseAuthService.authenticateWithToken(data.firebase_token);
                 } else {
+                    logger.warn('⚠️ Login response missing firebase_token, fetching from backend');
                     await FirebaseAuthService.authenticateWithFirebase();
                 }
 

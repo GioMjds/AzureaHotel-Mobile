@@ -3,7 +3,7 @@
     "user-notifications": {
       "$userId": {
         ".read": "auth != null && auth.uid == $userId",
-        ".write": "auth != null && (auth.uid == $userId || auth.token.admin == true)",
+        ".write": "true",
         "$notificationId": {
           ".read": "auth != null && auth.uid == $userId",
           ".write": "auth != null && auth.uid == $userId"
