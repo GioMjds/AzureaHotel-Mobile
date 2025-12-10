@@ -25,7 +25,10 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "READ_MEDIA_IMAGES",
-        "ACCESS_MEDIA_LOCATION"
+        "ACCESS_MEDIA_LOCATION",
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
       ]
     },
     "web": {
@@ -48,9 +51,13 @@
         "expo-notifications",
         {
           "defaultChannel": "default",
-          "enableBackgroundRemoteNotifications": true
+          "enableBackgroundRemoteNotifications": true,
+          "icon": "./assets/images/logo.png",
+          "color": "#6F00FF"
         }
       ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
       [
         "@react-native-google-signin/google-signin"
       ],

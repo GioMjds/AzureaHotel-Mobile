@@ -165,11 +165,13 @@ class FirebaseService:
                 return False
             
             # Write to Firebase Realtime Database
+            # IMPORTANT: Mobile subscribes to `user-notifications/{userId}` (not `notifications/user_{user_id}`)
             ref = db.reference('/')
-            user_notifications_ref = ref.child('notifications').child(f'user_{user_id}').push()
+            user_notifications_ref = ref.child('user-notifications').child(str(user_id)).push()
             user_notifications_ref.set({
                 **notification_data,
-                'timestamp': datetime.now().isoformat(),
+                # Mobile expects timestamp as milliseconds (number), not ISO string
+                'timestamp': int(datetime.now().timestamp() * 1000),
                 'read': False
             })
 
@@ -193,17 +195,31 @@ class FirebaseService:
                         if fcm_tokens:
                             notif = messaging.Notification(title=title, body=body)
                             data_strings = {k: str(v) for k, v in data_payload.items()}
+                            
+                            # Android-specific config for background notifications
+                            android_config = messaging.AndroidConfig(
+                                priority='high',
+                                notification=messaging.AndroidNotification(
+                                    title=title,
+                                    body=body,
+                                    channel_id='default',  # Must match app.json defaultChannel
+                                    priority='high',
+                                    default_sound=True,
+                                    default_vibrate_timings=True,
+                                )
+                            )
 
                             try:
                                 if hasattr(messaging, 'send_multicast'):
                                     multicast = messaging.MulticastMessage(
                                         notification=notif,
                                         data=data_strings,
-                                        tokens=fcm_tokens
+                                        tokens=fcm_tokens,
+                                        android=android_config,
                                     )
                                     res = messaging.send_multicast(multicast)
                                 elif hasattr(messaging, 'send_all'):
-                                    messages = [messaging.Message(notification=notif, data=data_strings, token=t) for t in fcm_tokens]
+                                    messages = [messaging.Message(notification=notif, data=data_strings, token=t, android=android_config) for t in fcm_tokens]
                                     res = messaging.send_all(messages)
                                     success = getattr(res, 'success_count', None)
                                     failure = getattr(res, 'failure_count', None)
@@ -212,7 +228,7 @@ class FirebaseService:
                                     failure = 0
                                     for t in fcm_tokens:
                                         try:
-                                            m = messaging.Message(notification=notif, data=data_strings, token=t)
+                                            m = messaging.Message(notification=notif, data=data_strings, token=t, android=android_config)
                                             messaging.send(m)
                                             success += 1
                                         except Exception:

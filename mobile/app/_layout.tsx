@@ -97,13 +97,11 @@ function AuthInitializer() {
 						try {
 							if (fcmToken) {
 								try {
-									const accessToken = await (
-										await import('expo-secure-store')
-									).getItemAsync('access_token');
-									await auth.firebaseAuthToken(
+									// Register FCM token with backend for push notifications
+									// This is separate from Firebase custom token authentication
+									await auth.registerFcmToken(
 										fcmToken,
-										Platform.OS,
-										accessToken!
+										Platform.OS
 									);
 								} catch (e) {
 									console.warn(
@@ -161,28 +159,13 @@ function AuthInitializer() {
 					} catch (error) {
 						console.error(`⚠️ FCM registration failed:`, error);
 						try {
+							// Fallback to Expo push tokens when FCM fails
 							const expoTokenObj =
 								await Notifications.getExpoPushTokenAsync();
 							const expoToken =
 								(expoTokenObj as any).data ?? expoTokenObj;
-							const backendUrl = `${process.env.EXPO_PUBLIC_DJANGO_URL}/api/register_fcm_token`;
-							const accessToken = await (
-								await import('expo-secure-store')
-							).getItemAsync('access_token');
-							await fetch(backendUrl, {
-								method: 'POST',
-								headers: {
-									'Content-Type': 'application/json',
-									Authorization: accessToken
-										? `Bearer ${accessToken}`
-										: '',
-								},
-								body: JSON.stringify({
-									token: expoToken,
-									platform: Platform.OS,
-									provider: 'expo',
-								}),
-							});
+							// Use the service method for consistency
+							await auth.registerFcmToken(expoToken, 'expo');
 						} catch (e) {
 							console.warn(
 								'Failed to register Expo push token as fallback',

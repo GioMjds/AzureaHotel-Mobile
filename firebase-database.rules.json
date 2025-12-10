@@ -1,0 +1,61 @@
+{
+  "rules": {
+    "user-notifications": {
+      "$userId": {
+        ".read": "auth != null && auth.uid == $userId",
+        ".write": "auth != null && (auth.uid == $userId || auth.token.admin == true)",
+        "$notificationId": {
+          ".read": "auth != null && auth.uid == $userId",
+          ".write": "auth != null && auth.uid == $userId"
+        }
+      }
+    },
+
+    "user-presence": {
+      "$userId": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid == $userId"
+      }
+    },
+
+    "booking-updates": {
+      "$bookingId": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.token.admin == true"
+      }
+    },
+
+    "user-bookings": {
+      "$userKey": {
+        ".read": "auth != null && $userKey == 'user_' + auth.uid",
+        ".write": "auth != null && auth.token.admin == true"
+      }
+    },
+
+    "room-availability": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.admin == true"
+    },
+
+    "area-availability": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.admin == true"
+    },
+
+    "admin-notifications": {
+      ".read": "auth != null && auth.token.admin == true",
+      ".write": "auth != null && auth.token.admin == true"
+    },
+
+    "notifications": {
+      "$userKey": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+
+    ".info": {
+      ".read": true
+    }
+  }
+}

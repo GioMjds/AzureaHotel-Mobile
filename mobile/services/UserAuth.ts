@@ -176,6 +176,17 @@ class UserAuthService {
 			}
 		});
 	}
+
+	/**
+	 * Register FCM device token with the backend for push notifications.
+	 * This is separate from Firebase custom token authentication.
+	 */
+	async registerFcmToken(fcmToken: string, platform: string) {
+		return await httpClient.post(ApiRoutes.REGISTER_FCM_TOKEN, {
+			token: fcmToken,
+			platform: platform,
+		});
+	}
 }
 
 export const auth = new UserAuthService();

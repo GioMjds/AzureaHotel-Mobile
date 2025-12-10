@@ -524,13 +524,37 @@ def verify_otp(request):
         if user_auth is not None:
             login(request, user_auth)
             refresh = RefreshToken.for_user(user_auth)
-            response = Response({
+            
+            # Generate Firebase custom token for newly registered user
+            firebase_token = None
+            if firebase_service.is_available():
+                try:
+                    firebase_token = firebase_service.create_custom_token(
+                        user_id=str(user_auth.id),
+                        additional_claims={
+                            'email': user_auth.email,
+                            'username': user_auth.username,
+                            'is_verified': True,
+                            'role': 'guest',
+                            'django_user_id': user_auth.id
+                        }
+                    )
+                except Exception as firebase_error:
+                    logger.warning(f"Failed to generate Firebase token for new user: {firebase_error}")
+            
+            response_data = {
                 "message": "OTP verified and user registered successfully",
                 "access_token": str(refresh.access_token),
                 "refresh_token": str(refresh),
                 "user": CustomUserSerializer(user_auth).data,
                 "is_google": is_google_auth
-            }, status=status.HTTP_200_OK)
+            }
+            
+            # Add Firebase token if available
+            if firebase_token:
+                response_data['firebase_token'] = firebase_token
+            
+            response = Response(response_data, status=status.HTTP_200_OK)
             
             cookie_settings = get_cookie_settings()
             
