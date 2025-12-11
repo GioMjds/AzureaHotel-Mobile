@@ -11,7 +11,7 @@ from booking.serializers import BookingSerializer
 from user_roles.models import CustomUsers, Notification
 from user_roles.serializers import CustomUserSerializer
 from user_roles.views import create_booking_notification
-from user_roles.service.firebase import firebase_service
+from user_roles.service.firebase import firebase_service, sanitize_for_json
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Q, Sum
 from datetime import datetime, date, timedelta
@@ -891,7 +891,8 @@ def update_booking_status(request, booking_id):
                 notification_message = f"Your booking for {property_name} has been reserved."
                 user_email = booking.user.email
                 # Use background task for email sending to prevent timeout
-                send_booking_confirmation_email_task(user_email, serializer.data)
+                # Sanitize data to convert Decimal/datetime to JSON-serializable types
+                send_booking_confirmation_email_task(user_email, sanitize_for_json(serializer.data))
             elif status_value == 'confirmed':
                 notification_message = f"Your booking for {property_name} has been confirmed."
             elif status_value == 'checked_in':
@@ -900,13 +901,15 @@ def update_booking_status(request, booking_id):
                 notification_message = f"You've been checked out from {property_name}."
                 user_email = booking.user.email
                 # Use background task for email sending to prevent timeout
-                send_checkout_e_receipt_task(user_email, serializer.data)
+                # Sanitize data to convert Decimal/datetime to JSON-serializable types
+                send_checkout_e_receipt_task(user_email, sanitize_for_json(serializer.data))
             elif status_value == 'rejected':
                 reason = booking.cancellation_reason or "No reason provided"
                 notification_message = f"Your booking for {property_name} was rejected. Reason: {reason}"
                 user_email = booking.user.email
                 # Use background task for email sending to prevent timeout
-                send_booking_rejection_email_task(user_email, serializer.data)
+                # Sanitize data to convert Decimal/datetime to JSON-serializable types
+                send_booking_rejection_email_task(user_email, sanitize_for_json(serializer.data))
             elif status_value == 'no_show':
                 notification_message = f"You were marked as no-show for your booking at {property_name}."
             elif status_value == 'cancelled':

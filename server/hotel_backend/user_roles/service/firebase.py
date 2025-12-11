@@ -1,11 +1,33 @@
 from firebase_admin import credentials, auth, db, messaging, get_app, initialize_app
 import logging
-from datetime import datetime
+from datetime import datetime, date
 from pathlib import Path
 from ..models import DeviceToken
-from typing import List
+from typing import List, Any
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_for_json(data: Any) -> Any:
+    """Convert non-JSON-serializable types (Decimal, datetime, date, etc.) to JSON-compatible formats"""
+    if data is None:
+        return None
+    elif isinstance(data, Decimal):
+        return float(data)
+    elif isinstance(data, datetime):
+        return data.isoformat()
+    elif isinstance(data, date):
+        return data.isoformat()
+    elif isinstance(data, dict):
+        return {k: sanitize_for_json(v) for k, v in data.items()}
+    elif isinstance(data, (list, tuple)):
+        return [sanitize_for_json(item) for item in data]
+    elif isinstance(data, (int, float, str, bool)):
+        return data
+    else:
+        # For other types, convert to string
+        return str(data)
 
 class FirebaseService:
     _instance = None
@@ -48,79 +70,16 @@ class FirebaseService:
         except ValueError:
             return False
 
-    def create_firebase_user(self, user_id: int, email: str, display_name: str = None) -> dict:
-        """Create or update a Firebase user in Authentication
-        This ensures users appear in Firebase Console > Authentication > Users
-        """
-        try:
-            if not self.is_available():
-                raise Exception("Firebase is not initialized")
-            
-            uid = str(user_id)
-            
-            try:
-                # Try to get existing user
-                user = auth.get_user(uid)
-                logger.info(f"Firebase user {uid} already exists")
-                
-                # Update email if changed
-                if user.email != email:
-                    auth.update_user(uid, email=email, display_name=display_name)
-                    logger.info(f"Updated Firebase user {uid} email to {email}")
-                
-                return {'uid': uid, 'email': email, 'created': False}
-                
-            except auth.UserNotFoundError:
-                # Create new Firebase user
-                user = auth.create_user(
-                    uid=uid,
-                    email=email,
-                    display_name=display_name or email.split('@')[0],
-                    email_verified=True  # Since they verified OTP with us
-                )
-                logger.info(f"Created Firebase user {uid} with email {email}")
-                return {'uid': uid, 'email': email, 'created': True}
-                
-        except Exception as e:
-            logger.error(f"Failed to create/update Firebase user: {str(e)}")
-            raise
-    
     def create_custom_token(self, user_id: str, additional_claims: dict = None) -> str:
         """Create a Firebase custom token for the given user"""
         try:
             if not self.is_available():
-                raise Exception("Firebase is not initialized")
+                raise Exception("Firebase not initialized")
 
             claims = additional_claims or {}
             custom_token = auth.create_custom_token(user_id, claims)
-            token_str = custom_token.decode('utf-8')
-            
-            # DEBUG: Log what we're generating
-            logger.info(f"🔥 Generated Firebase custom token for user {user_id}")
-            logger.info(f"   Token length: {len(token_str)} chars")
-            logger.info(f"   Claims: {claims}")
-            
-            # Decode to verify what we're sending
-            import jwt
-            import json
-            
-            parts = token_str.split('.')
-            if len(parts) == 3:
-                # Decode header
-                header = json.loads(jwt.utils.base64url_decode(parts[0]))
-                logger.info(f"   Token Header: {header}")
-                
-                # Decode payload
-                payload = json.loads(jwt.utils.base64url_decode(parts[1]))
-                logger.info(f"   Token Payload:")
-                logger.info(f"      UID: {payload.get('uid')}")
-                logger.info(f"      Issuer: {payload.get('iss')}")
-                logger.info(f"      Audience: {payload.get('aud')}")
-                logger.info(f"      Subject: {payload.get('sub')}")
-                
-            return token_str
+            return custom_token.decode('utf-8')
         except Exception as e:
-            logger.error(f"Failed to create custom token: {str(e)}")
             raise
 
     def send_booking_update(self, booking_id: int, user_id: int, status: str, additional_data: dict = None):
@@ -129,6 +88,9 @@ class FirebaseService:
         try:
             if not self.is_available():
                 return False
+            
+            # Sanitize data to handle Decimal and other non-JSON types
+            sanitized_data = sanitize_for_json(additional_data or {})
             
             # Write to Firebase Realtime Database
             ref = db.reference('/')
@@ -140,7 +102,7 @@ class FirebaseService:
                 'user_id': user_id,
                 'status': status,
                 'timestamp': datetime.now().isoformat(),
-                'data': additional_data or {}
+                'data': sanitized_data
             })
             
             # Update user-bookings node (for quick user lookup)
@@ -149,7 +111,7 @@ class FirebaseService:
                 'booking_id': booking_id,
                 'status': status,
                 'timestamp': datetime.now().isoformat(),
-                'is_venue_booking': additional_data.get('is_venue_booking', False) if additional_data else False
+                'is_venue_booking': sanitized_data.get('is_venue_booking', False)
             })
             
             # NOTE: We do NOT create user-facing notifications here anymore.
@@ -207,12 +169,15 @@ class FirebaseService:
             if not self.is_available():
                 return False
 
+            # Sanitize data to handle Decimal types
+            sanitized_data = sanitize_for_json(data)
+
             ref = db.reference('/')
             admin_notifications_ref = ref.child('admin-notifications').push()
             admin_notifications_ref.set({
                 'type': notification_type,
                 'message': message,
-                'data': data,
+                'data': sanitized_data,
                 'timestamp': datetime.now().isoformat(),
                 'read': False
             })
@@ -227,21 +192,22 @@ class FirebaseService:
             if not self.is_available():
                 return False
             
+            # Sanitize notification data to handle Decimal and other non-JSON types
+            sanitized_notification = sanitize_for_json(notification_data)
+            
             # Write to Firebase Realtime Database
-            # IMPORTANT: Mobile subscribes to `user-notifications/{userId}` (not `notifications/user_{user_id}`)
             ref = db.reference('/')
-            user_notifications_ref = ref.child('user-notifications').child(str(user_id)).push()
+            user_notifications_ref = ref.child('notifications').child(f'user_{user_id}').push()
             user_notifications_ref.set({
-                **notification_data,
-                # Mobile expects timestamp as milliseconds (number), not ISO string
-                'timestamp': int(datetime.now().timestamp() * 1000),
+                **sanitized_notification,
+                'timestamp': datetime.now().isoformat(),
                 'read': False
             })
 
             try:
-                title = notification_data.get('title', 'Booking Update')
-                body = notification_data.get('message') or notification_data.get('body') or ''
-                data_payload = notification_data.get('data', {}) or {}
+                title = sanitized_notification.get('title', 'Booking Update')
+                body = sanitized_notification.get('message') or sanitized_notification.get('body') or ''
+                data_payload = sanitize_for_json(sanitized_notification.get('data', {}) or {})
 
                 try:
                     tokens_qs = DeviceToken.objects.filter(user_id=user_id).values_list('token', 'platform')
@@ -258,31 +224,17 @@ class FirebaseService:
                         if fcm_tokens:
                             notif = messaging.Notification(title=title, body=body)
                             data_strings = {k: str(v) for k, v in data_payload.items()}
-                            
-                            # Android-specific config for background notifications
-                            android_config = messaging.AndroidConfig(
-                                priority='high',
-                                notification=messaging.AndroidNotification(
-                                    title=title,
-                                    body=body,
-                                    channel_id='default',  # Must match app.json defaultChannel
-                                    priority='high',
-                                    default_sound=True,
-                                    default_vibrate_timings=True,
-                                )
-                            )
 
                             try:
                                 if hasattr(messaging, 'send_multicast'):
                                     multicast = messaging.MulticastMessage(
                                         notification=notif,
                                         data=data_strings,
-                                        tokens=fcm_tokens,
-                                        android=android_config,
+                                        tokens=fcm_tokens
                                     )
                                     res = messaging.send_multicast(multicast)
                                 elif hasattr(messaging, 'send_all'):
-                                    messages = [messaging.Message(notification=notif, data=data_strings, token=t, android=android_config) for t in fcm_tokens]
+                                    messages = [messaging.Message(notification=notif, data=data_strings, token=t) for t in fcm_tokens]
                                     res = messaging.send_all(messages)
                                     success = getattr(res, 'success_count', None)
                                     failure = getattr(res, 'failure_count', None)
@@ -291,7 +243,7 @@ class FirebaseService:
                                     failure = 0
                                     for t in fcm_tokens:
                                         try:
-                                            m = messaging.Message(notification=notif, data=data_strings, token=t, android=android_config)
+                                            m = messaging.Message(notification=notif, data=data_strings, token=t)
                                             messaging.send(m)
                                             success += 1
                                         except Exception:
