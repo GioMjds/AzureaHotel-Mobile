@@ -36,7 +36,7 @@ interface FormData {
 	phoneNumber: string;
 	numberOfGuests: number;
 	specialRequests: string;
-	paymentMethod: 'gcash' | 'paymongo' | 'on_site';
+	paymentMethod: 'gcash' | 'paymongo';
 }
 
 export default function ConfirmAreaBookingScreen() {
@@ -49,7 +49,7 @@ export default function ConfirmAreaBookingScreen() {
 	const [qrModalVisible, setQrModalVisible] = useState<boolean>(false);
 	const [selectedQrImage, setSelectedQrImage] = useState<number | null>(null);
 	const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
-		'gcash' | 'paymongo' | 'on_site'
+		'gcash' | 'paymongo'
 	>('gcash');
 	const [showPayMongoModal, setShowPayMongoModal] = useState<boolean>(false);
 	const [confirmedDownPayment, setConfirmedDownPayment] = useState<
@@ -251,13 +251,13 @@ export default function ConfirmAreaBookingScreen() {
 			return;
 		}
 
-		const cleanedValue = data.phoneNumber.replace(/[^\d+]/g, '');
-		const phPattern = /^(\+639\d{9}|09\d{9})$/;
+		// Validate phone number - exactly 11 digits starting with 09
+		const cleanedValue = data.phoneNumber.replace(/[^\d]/g, '');
+		const phPattern = /^09\d{9}$/;
 		if (!phPattern.test(cleanedValue)) {
 			setError('phoneNumber', {
 				type: 'pattern',
-				message:
-					'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
+				message: 'Phone number must be exactly 11 digits starting with 09',
 			});
 			return;
 		}
@@ -290,8 +290,8 @@ export default function ConfirmAreaBookingScreen() {
 	const handlePayMongoModalClose = () => {
 		setShowPayMongoModal(false);
 		setConfirmedDownPayment(null);
-		setSelectedPaymentMethod('on_site');
-		control._formValues.paymentMethod = 'on_site';
+		setSelectedPaymentMethod('gcash');
+		control._formValues.paymentMethod = 'gcash';
 	};
 
 	const handleInitiatePrebooking = async (amount: number) => {
@@ -603,9 +603,9 @@ export default function ConfirmAreaBookingScreen() {
 								rules={{
 									required: 'Phone number is required',
 									pattern: {
-										value: /^(\+639\d{9}|09\d{9})$/,
+										value: /^09\d{9}$/,
 										message:
-											'Phone number must be a Philippine number (+639XXXXXXXXX or 09XXXXXXXXX)',
+											'Phone number must be exactly 11 digits starting with 09',
 									},
 								}}
 								render={({
@@ -613,15 +613,21 @@ export default function ConfirmAreaBookingScreen() {
 								}) => (
 									<TextInput
 										value={value}
-										onChangeText={onChange}
+										onChangeText={(text) => {
+											const numericOnly = text.replace(/[^0-9]/g, '');
+											if (numericOnly.length <= 11) {
+												onChange(numericOnly);
+											}
+										}}
 										onBlur={onBlur}
+										maxLength={11}
 										keyboardType="phone-pad"
 										className={`border rounded-xl p-3 font-montserrat ${
 											errors.phoneNumber
 												? 'border-feedback-error-DEFAULT'
 												: 'border-border-focus'
 										}`}
-										placeholder="+639XXXXXXXXX or 09XXXXXXXXX"
+										placeholder="09XXXXXXXXX"
 									/>
 								)}
 							/>
@@ -635,7 +641,7 @@ export default function ConfirmAreaBookingScreen() {
 						{/* Number of Guests */}
 						<View className="mb-4">
 							<StyledText className="text-text-primary font-montserrat mb-2">
-								Number of Guests *
+								Estimated No. of Guests *
 							</StyledText>
 							<Controller
 								control={control}
@@ -818,87 +824,10 @@ export default function ConfirmAreaBookingScreen() {
 												/>
 											</View>
 										</TouchableOpacity>
-
-										{/* On-Site Payment Option */}
-										<TouchableOpacity
-											onPress={() => {
-												onChange('on_site');
-												setSelectedPaymentMethod(
-													'on_site'
-												);
-											}}
-											className={`border-2 rounded-xl p-4 my-1 ${
-												value === 'on_site'
-													? 'border-brand-primary bg-brand-accent'
-													: 'border-border-focus'
-											}`}
-										>
-											<View className="flex-row items-center justify-between">
-												<View className="flex-row items-center flex-1">
-													<View
-														className={`w-5 h-5 rounded-full border-2 mr-3 items-center justify-center ${
-															value === 'on_site'
-																? 'border-brand-primary bg-brand-primary'
-																: 'border-border-focus'
-														}`}
-													>
-														{value ===
-															'on_site' && (
-															<View className="w-2.5 h-2.5 rounded-full bg-white" />
-														)}
-													</View>
-													<View className="flex-1">
-														<StyledText className="text-text-primary font-montserrat-bold text-base">
-															Pay On-Site
-														</StyledText>
-														<StyledText
-															variant="raleway-regular"
-															className="text-text-muted text-sm mt-1"
-														>
-															Pay the full amount
-															upon arrival
-														</StyledText>
-													</View>
-												</View>
-												<Ionicons
-													name="business-outline"
-													size={24}
-													color="#6F00FF"
-												/>
-											</View>
-										</TouchableOpacity>
 									</View>
 								)}
 							/>
 						</View>
-
-						{/* On-Site Payment Disclaimer */}
-						{selectedPaymentMethod === 'on_site' && (
-							<View className="bg-feedback-warning-light border border-feedback-warning-DEFAULT rounded-xl p-4 mb-4">
-								<View className="flex-row items-start">
-									<Ionicons
-										name="warning-outline"
-										size={20}
-										color="#D97706"
-										style={{ marginRight: 8, marginTop: 2 }}
-									/>
-									<View className="flex-1">
-										<StyledText
-											variant="montserrat-bold"
-											className="text-feedback-warning-dark text-sm mb-1"
-										>
-											Disclaimer:
-										</StyledText>
-										<StyledText
-											variant="montserrat-regular"
-											className="text-feedback-warning-dark text-xs leading-5"
-										>
-											Your reservation is subject to availability and may be taken by another guest if full payment is completed online by someone else prior to your payment.
-										</StyledText>
-									</View>
-								</View>
-							</View>
-						)}
 
 						{/* GCash Payment Proof (only show when GCash is selected) */}
 						{selectedPaymentMethod === 'gcash' && (
@@ -1134,7 +1063,6 @@ export default function ConfirmAreaBookingScreen() {
 						}
 						className={`rounded-2xl py-4 px-6 mb-8 ${
 							selectedPaymentMethod === 'paymongo' ||
-							selectedPaymentMethod === 'on_site' ||
 							(selectedPaymentMethod === 'gcash' && gcashFile)
 								? 'bg-brand-primary'
 								: 'bg-neutral-300'

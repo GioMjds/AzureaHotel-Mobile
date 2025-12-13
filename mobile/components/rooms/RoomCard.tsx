@@ -18,15 +18,12 @@ const RoomCard = ({ item }: RoomCardProps) => {
 	const { isOffline } = useNetwork();
 	const user = useAuthStore((s) => s.user);
 
-	// Check if user is eligible for PWD discount (verified AND is_senior_or_pwd)
 	const isEligibleForPwdDiscount = user?.is_verified === 'verified' && user?.is_senior_or_pwd === true;
 
-	// Calculate which discount is better: admin discount or PWD 20% (only for eligible users)
 	const getBestDiscount = () => {
 		const adminDiscountPrice = item.discounted_price_numeric;
 		const pwdDiscountPrice = item.senior_discounted_price;
 		
-		// If admin discount exists and is better (higher %) than PWD discount, show it to everyone
 		if (adminDiscountPrice && item.discount_percent > PWD_DISCOUNT_PERCENT) {
 			return {
 				finalPrice: adminDiscountPrice,
@@ -36,7 +33,6 @@ const RoomCard = ({ item }: RoomCardProps) => {
 			};
 		}
 		
-		// PWD discount is only available for verified PWD/Senior users
 		if (isEligibleForPwdDiscount && pwdDiscountPrice) {
 			return {
 				finalPrice: pwdDiscountPrice,
@@ -46,7 +42,6 @@ const RoomCard = ({ item }: RoomCardProps) => {
 			};
 		}
 
-		// Fallback to admin discount if it exists (but is <= PWD discount)
 		if (adminDiscountPrice && item.discount_percent > 0) {
 			return {
 				finalPrice: adminDiscountPrice,
@@ -140,7 +135,8 @@ const RoomCard = ({ item }: RoomCardProps) => {
 	};
 
 	return (
-		<View className="bg-surface-default rounded-2xl shadow-lg mx-4 mb-6 overflow-hidden border border-border-subtle">
+		<Link href={`/(screens)/rooms/${item.id}` as any} asChild disabled={!!isOffline}>
+			<TouchableOpacity className="bg-surface-default rounded-2xl shadow-lg mx-4 mb-6 overflow-hidden border border-border-subtle" activeOpacity={0.9}>
 			{/* Room Image with Overlay Gradient */}
 			<View className="h-48 bg-neutral-100 relative">
 				{item.images && item.images.length > 0 ? (
@@ -325,28 +321,22 @@ const RoomCard = ({ item }: RoomCardProps) => {
 					</View>
 
 					{/* View Details Button */}
-					<Link
-						href={`/(screens)/rooms/${item.id}` as any}
-						asChild
-						disabled={!!isOffline}
+					<View
+						className={`bg-interactive-primary rounded-xl px-4 py-2 shadow-md ${
+							isOffline ? 'opacity-50' : ''
+						}`}
 					>
-						<TouchableOpacity
-							className={`bg-interactive-primary rounded-xl px-4 py-2 shadow-md active:bg-interactive-primary-pressed ${
-								isOffline ? 'opacity-50' : ''
-							}`}
-							activeOpacity={0.8}
+						<StyledText
+							variant="montserrat-bold"
+							className="text-interactive-primary-foreground text-md tracking-wide"
 						>
-							<StyledText
-								variant="montserrat-bold"
-								className="text-interactive-primary-foreground text-md tracking-wide"
-							>
-								View Details
-							</StyledText>
-						</TouchableOpacity>
-					</Link>
+							View Details
+						</StyledText>
+					</View>
 				</View>
 			</View>
-		</View>
+			</TouchableOpacity>
+		</Link>
 	);
 };
 

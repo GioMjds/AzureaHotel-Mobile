@@ -64,7 +64,11 @@ const AreaCard = ({ item }: AreaCardProps) => {
 	const bestDiscount = getBestDiscount();
 
 	return (
-		<View className="bg-surface-default rounded-2xl shadow-lg mx-4 mb-6 overflow-hidden border border-border-subtle">
+		<Link href={`/(screens)/areas/${item.id}` as any} asChild disabled={!!isOffline}>
+			<TouchableOpacity 
+				className="bg-surface-default rounded-2xl shadow-lg mx-4 mb-6 overflow-hidden border border-border-subtle"
+				activeOpacity={0.9}
+			>
 			{/* Area Image with Overlay Gradient */}
 			<View className="h-48 bg-neutral-100 relative">
 				{item.images && item.images.length > 0 ? (
@@ -207,28 +211,22 @@ const AreaCard = ({ item }: AreaCardProps) => {
 					</View>
 
 					{/* View Details Button */}
-					<Link
-						href={`/(screens)/areas/${item.id}` as any}
-						asChild
-						disabled={!!isOffline}
+					<View
+						className={`bg-interactive-primary rounded-xl px-4 py-2 shadow-md ${
+							isOffline ? 'opacity-50' : ''
+						}`}
 					>
-						<TouchableOpacity
-							className={`bg-interactive-primary rounded-xl px-4 py-2 shadow-md active:bg-interactive-primary-pressed ${
-								isOffline ? 'opacity-50' : ''
-							}`}
-							activeOpacity={0.8}
+						<StyledText
+							variant="montserrat-bold"
+							className="text-interactive-primary-foreground text-md tracking-wide"
 						>
-							<StyledText
-								variant="montserrat-bold"
-								className="text-interactive-primary-foreground text-md tracking-wide"
-							>
-								View Details
-							</StyledText>
-						</TouchableOpacity>
-					</Link>
+							View Details
+						</StyledText>
+					</View>
 				</View>
 			</View>
-		</View>
+			</TouchableOpacity>
+		</Link>
 	);
 };
 

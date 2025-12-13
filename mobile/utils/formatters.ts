@@ -369,7 +369,7 @@ export const bookMessage = (
 	// Check status
 	switch (status) {
 		case 'available':
-			return 'Book This Area';
+			return 'Book Now';
 		case 'maintenance':
 			return 'Under Maintenance';
 		default:
